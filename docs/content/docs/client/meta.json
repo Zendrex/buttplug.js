@@ -1,0 +1,18 @@
+{
+	"title": "Client",
+	"description": "Buttplug protocol v4 client",
+	"root": true,
+	"pages": [
+		"---Overview---",
+		"index",
+		"getting-started",
+		"---API References---",
+		"api/client",
+		"api/device",
+		"api/transport",
+		"api/logging",
+		"api/errors",
+		"api/types",
+		"api/constants"
+	]
+}

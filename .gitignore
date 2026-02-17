@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build / Output
+build/
+dist/
+out/
+
+# MacOS
+._*
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Docs
+docs/.next/
+docs/.source/
+docs/out/
+docs/node_modules/
+docs/bun.lock
+docs/next-env.d.ts
+
+# AI / IDE
+.vscode/
+.claude/
+.cursor/

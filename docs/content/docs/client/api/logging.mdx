@@ -1,0 +1,108 @@
+---
+title: Logging
+description: Logger interface and built-in logging utilities
+---
+
+Structured logging with hierarchical prefixes. Pass a logger to `ButtplugClient` for diagnostics.
+
+## Logger Interface
+
+<auto-type-table path="src/lib/logger.ts" name="Logger" />
+
+All methods accept a single `message: string` parameter. The `child(prefix)` method returns a new `Logger` with a nested prefix separated by `:`.
+
+## Built-in Loggers
+
+### `consoleLogger`
+
+Writes to the console with `[buttplug:...]` prefixed messages. Child loggers append their prefix with a colon separator.
+
+```ts
+import { ButtplugClient, consoleLogger } from "@zendrex/buttplug.js";
+
+const client = new ButtplugClient("ws://localhost:12345", {
+  logger: consoleLogger,
+});
+// Logs: [buttplug:client] Connecting to ws://localhost:12345
+// Logs: [buttplug:ws-transport] Opening WebSocket connection to ...
+```
+
+### `noopLogger`
+
+Silently discards all messages. This is the default when no logger is configured.
+
+```ts
+import { noopLogger } from "@zendrex/buttplug.js";
+
+const client = new ButtplugClient("ws://localhost:12345", {
+  logger: noopLogger, // explicit silence (same as omitting logger)
+});
+```
+
+## Custom Logger
+
+Implement the `Logger` interface for custom logging integrations:
+
+```ts
+import type { Logger } from "@zendrex/buttplug.js";
+
+function createLogger(prefix: string): Logger {
+  return {
+    debug: (message) => myLogSystem.debug(`[${prefix}] ${message}`),
+    info: (message) => myLogSystem.info(`[${prefix}] ${message}`),
+    warn: (message) => myLogSystem.warn(`[${prefix}] ${message}`),
+    error: (message) => myLogSystem.error(`[${prefix}] ${message}`),
+    child: (childPrefix) => createLogger(`${prefix}:${childPrefix}`),
+  };
+}
+
+const client = new ButtplugClient("ws://localhost:12345", {
+  logger: createLogger("buttplug"),
+});
+```
+
+<Accordions>
+<Accordion title="Context Logger (Advanced)">
+
+For advanced use cases, buttplug.js provides context-scoped logging via module-level state.
+
+### `runWithLogger()`
+
+```ts
+runWithLogger<T>(logger: Logger, fn: () => T): T
+```
+
+Executes a function with the given logger scoped to the current synchronous call stack. All calls to `getLogger()` within `fn` return the provided logger.
+
+```ts
+import { runWithLogger, consoleLogger } from "@zendrex/buttplug.js";
+
+runWithLogger(consoleLogger, () => {
+  // All library internals called from here use consoleLogger
+  doSomething();
+});
+```
+
+### `getLogger()`
+
+```ts
+getLogger(): Logger
+```
+
+Returns the logger from the current context. Falls back to `noopLogger` outside a `runWithLogger` scope.
+
+```ts
+import { getLogger } from "@zendrex/buttplug.js";
+
+function myLibraryFunction() {
+  const logger = getLogger();
+  logger.info("Using context-scoped logger");
+}
+```
+
+<Callout title="Note">
+  Context is maintained for the synchronous call stack only. The logger restores to the previous value after `fn` returns. Pass the logger explicitly across `await` boundaries.
+</Callout>
+
+</Accordion>
+</Accordions>

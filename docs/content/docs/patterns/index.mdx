@@ -1,0 +1,77 @@
+---
+title: Pattern Engine
+description: Tick-based keyframe pattern playback for device control
+---
+
+`PatternEngine` provides keyframe-based pattern playback on connected devices. It handles tick scheduling with drift correction, loop control, intensity/speed scaling, and automatic cleanup on disconnect or device removal.
+
+## Features
+
+<Cards>
+  <Card title="Built-in Presets" description="7 ready-to-use patterns: pulse, wave, heartbeat, ramp, surge, and stroke." />
+  <Card title="Custom Patterns" description="Define tracks with keyframes targeting specific device features." />
+  <Card title="Easing Curves" description="5 easing functions: linear, easeIn, easeOut, easeInOut, and step." />
+  <Card title="Loop Control" description="Play once, a fixed number of times, or loop indefinitely." />
+  <Card title="Intensity and Speed" description="Scale amplitude (0-1) and speed (0.25-4x) on any pattern." />
+  <Card title="Safety Timeout" description="Configurable auto-stop timeout (default: 30 minutes)." />
+</Cards>
+
+## Constructor
+
+```ts
+import { PatternEngine } from "@zendrex/buttplug.js";
+
+const engine = new PatternEngine(client, {
+  defaultTimeout: 1_800_000, // 30 minutes (default)
+});
+```
+
+The first argument is a `ButtplugClient` instance. The optional second argument configures the default safety timeout in milliseconds.
+
+## Quick Start
+
+<Tabs items={["Preset", "Custom"]}>
+  <Tab value="Preset">
+    ```ts
+    // Play a built-in preset
+    const patternId = await engine.play(device, "heartbeat");
+
+    // With intensity and speed scaling
+    await engine.play(device, "wave", {
+      intensity: 0.6,
+      speed: 2.0,
+      loop: true,
+    });
+
+    // Stop by pattern ID
+    await engine.stop(patternId);
+    ```
+  </Tab>
+  <Tab value="Custom">
+    ```ts
+    // Play custom keyframe tracks
+    await engine.play(device, [
+      {
+        featureIndex: 0,
+        keyframes: [
+          { value: 0, duration: 200 },
+          { value: 1, duration: 300, easing: "easeInOut" },
+          { value: 0, duration: 500, easing: "easeOut" },
+        ],
+      },
+    ], { loop: true });
+
+    // Stop all patterns on a device
+    engine.stopByDevice(device.index);
+    ```
+  </Tab>
+</Tabs>
+
+## API Reference
+
+<Cards>
+  <Card title="Playback" href="/docs/patterns/api/playback" description="play(), stop(), stopAll(), and stopByDevice() methods." />
+  <Card title="Presets" href="/docs/patterns/api/presets" description="Built-in pattern presets and their configuration." />
+  <Card title="Custom Patterns" href="/docs/patterns/api/custom-patterns" description="Tracks, keyframes, and easing curves." />
+  <Card title="Reference" href="/docs/patterns/api/reference" description="Query methods, lifecycle, and stop reasons." />
+</Cards>

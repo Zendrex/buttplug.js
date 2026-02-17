@@ -1,0 +1,133 @@
+---
+title: Getting Started
+description: Install buttplug.js and control your first device
+---
+
+## Installation
+
+<Tabs items={["bun", "npm", "yarn", "pnpm"]}>
+  <Tab value="bun">
+    ```bash
+    bun add @zendrex/buttplug.js
+    ```
+  </Tab>
+  <Tab value="npm">
+    ```bash
+    npm install @zendrex/buttplug.js
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @zendrex/buttplug.js
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @zendrex/buttplug.js
+    ```
+  </Tab>
+</Tabs>
+
+## Quick Start
+
+<Steps>
+  <Step>
+    ### Connect to a Server
+
+    ```ts
+    import { ButtplugClient } from "@zendrex/buttplug.js";
+
+    const client = new ButtplugClient("ws://localhost:12345");
+
+    client.on("deviceAdded", ({ device }) => {
+      console.log(`Device found: ${device.name}`);
+    });
+
+    await client.connect();
+    ```
+  </Step>
+  <Step>
+    ### Scan for Devices
+
+    ```ts
+    await client.startScanning();
+
+    // Devices arrive via the "deviceAdded" event.
+    // Stop scanning once you have the devices you need.
+    await client.stopScanning();
+    ```
+  </Step>
+  <Step>
+    ### Control a Device
+
+    ```ts
+    const device = client.devices[0];
+    if (!device) throw new Error("No devices found");
+
+    // Vibrate at 50% intensity
+    await device.vibrate(0.5);
+
+    // Stop the device
+    await device.stop();
+
+    // Stop all devices at once
+    await client.stopAll();
+    ```
+  </Step>
+  <Step>
+    ### Disconnect
+
+    ```ts
+    await client.disconnect();
+    ```
+  </Step>
+</Steps>
+
+## Pattern Playback
+
+The `PatternEngine` plays keyframe-based patterns on devices. See the [Pattern Engine](/docs/patterns) docs for details.
+
+<Tabs items={["Preset", "Custom"]}>
+  <Tab value="Preset">
+    ```ts
+    import { PatternEngine } from "@zendrex/buttplug.js";
+
+    const engine = new PatternEngine(client);
+
+    const patternId = await engine.play(device, "pulse", {
+      intensity: 0.7,
+      speed: 1.5,
+      loop: true,
+    });
+
+    await engine.stop(patternId);
+    ```
+  </Tab>
+  <Tab value="Custom">
+    ```ts
+    import { PatternEngine } from "@zendrex/buttplug.js";
+
+    const engine = new PatternEngine(client);
+
+    await engine.play(device, [
+      {
+        featureIndex: 0,
+        keyframes: [
+          { value: 0, duration: 200 },
+          { value: 1, duration: 300, easing: "easeInOut" },
+          { value: 0, duration: 200, easing: "easeOut" },
+        ],
+      },
+    ], { loop: 5 });
+    ```
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+<Cards>
+  <Card title="Client API" href="/docs/client/api/client" description="Connection options, events, scanning, and auto-reconnect." />
+  <Card title="Device API" href="/docs/client/api/device" description="All output types, per-motor control, and sensor reads." />
+  <Card title="Patterns" href="/docs/patterns" description="Presets, custom keyframes, easing, and play options." />
+  <Card title="Transport" href="/docs/client/api/transport" description="WebSocket transport configuration and ping keep-alive." />
+</Cards>

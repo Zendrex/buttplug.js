@@ -1,0 +1,105 @@
+---
+title: Playback
+description: Playing and stopping patterns on devices
+---
+
+## `play()`
+
+Starts a pattern on a device. Returns a `Promise<string>` with the unique pattern ID. Existing patterns on the same device are automatically stopped.
+
+The `device` parameter accepts a `Device` object or a device index number.
+
+**Preset shorthand:**
+```ts
+play(device: Device | number, preset: PresetName, options?: PatternPlayOptions): Promise<string>
+```
+
+**Custom tracks shorthand:**
+```ts
+play(device: Device | number, tracks: Track[], options?: PatternPlayOptions): Promise<string>
+```
+
+**Full descriptor:**
+```ts
+play(device: Device | number, descriptor: PatternDescriptor, options?: PatternPlayOptions): Promise<string>
+```
+
+<Tabs items={["Preset", "Custom"]}>
+  <Tab value="Preset">
+    ```ts
+    // Play a preset by name
+    const patternId = await engine.play(device, "heartbeat");
+
+    // With options
+    await engine.play(device, "heartbeat", {
+      intensity: 0.8,
+      speed: 1.5,
+      loop: true,
+    });
+    ```
+  </Tab>
+  <Tab value="Custom">
+    ```ts
+    await engine.play(device, [
+      {
+        featureIndex: 0,
+        keyframes: [
+          { value: 0, duration: 200 },
+          { value: 1, duration: 300, easing: "easeInOut" },
+          { value: 0.2, duration: 100, easing: "easeOut" },
+          { value: 0.8, duration: 400, easing: "easeIn" },
+        ],
+      },
+    ], {
+      intensity: 0.9,
+      loop: 3,
+    });
+    ```
+  </Tab>
+</Tabs>
+
+<Callout type="error" title="Throws">
+  `DeviceError` if the engine is disposed, the device is not found, or no compatible features exist.
+</Callout>
+
+## Play Options
+
+<auto-type-table path="src/patterns/types.ts" name="PatternPlayOptions" />
+
+The `loop` option controls repetition: `true` loops indefinitely, a number sets the exact loop count, `false` or omitted plays once.
+
+## `stop()`
+
+```ts
+stop(patternId: string): Promise<void>
+```
+
+Stops a pattern by ID. No-op if the pattern is not found.
+
+```ts
+await engine.stop(patternId);
+```
+
+## `stopAll()`
+
+```ts
+stopAll(): number
+```
+
+Stops all active patterns. Returns the count of patterns stopped.
+
+```ts
+const count = engine.stopAll();
+```
+
+## `stopByDevice()`
+
+```ts
+stopByDevice(deviceIndex: number): number
+```
+
+Stops all patterns targeting a device. Returns the count of patterns stopped.
+
+```ts
+engine.stopByDevice(device.index);
+```

@@ -1,0 +1,171 @@
+---
+title: Error Classes
+description: Error hierarchy for Buttplug protocol failures
+---
+
+All errors extend `ButtplugError`. Each type carries context specific to the failure.
+
+## Error Hierarchy
+
+```
+ButtplugError
+├── ConnectionError
+├── HandshakeError
+├── ProtocolError
+├── DeviceError
+└── TimeoutError
+```
+
+## ButtplugError
+
+Base class for all Buttplug-related failures.
+
+```ts
+constructor(message: string, cause?: Error)
+```
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `name` | `"ButtplugError"` | Error name override |
+| `message` | `string` | Human-readable description |
+| `cause` | `Error \| undefined` | Underlying error, if any |
+
+```ts
+import { ButtplugError } from "@zendrex/buttplug.js";
+
+try {
+  await client.connect();
+} catch (err) {
+  if (err instanceof ButtplugError) {
+    console.error(err.message);
+    console.error(err.cause); // underlying error, if any
+  }
+}
+```
+
+## ConnectionError
+
+Thrown when a WebSocket or transport connection fails. Inherits all properties from `ButtplugError`.
+
+```ts
+constructor(message: string, cause?: Error)
+```
+
+```ts
+import { ConnectionError } from "@zendrex/buttplug.js";
+
+client.on("error", ({ error }) => {
+  if (error instanceof ConnectionError) {
+    console.error("Connection failed:", error.message);
+  }
+});
+```
+
+## HandshakeError
+
+Thrown when the initial protocol handshake with the server fails. Inherits all properties from `ButtplugError`.
+
+```ts
+constructor(message: string, cause?: Error)
+```
+
+## ProtocolError
+
+Thrown when the server returns a protocol-level error message.
+
+```ts
+constructor(code: ErrorCode, message: string, cause?: Error)
+```
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `code` | `ErrorCode` | Protocol error code from the server |
+
+```ts
+import { ProtocolError, ErrorCode } from "@zendrex/buttplug.js";
+
+try {
+  await client.send(commands);
+} catch (err) {
+  if (err instanceof ProtocolError) {
+    console.error(`Protocol error [${err.code}]: ${err.message}`);
+  }
+}
+```
+
+### ErrorCode
+
+<TypeTable type={{
+  'UNKNOWN (0)': { description: 'Unknown error' },
+  'INIT (1)': { description: 'Initialization error' },
+  'PING (2)': { description: 'Ping timeout' },
+  'MESSAGE (3)': { description: 'Invalid message' },
+  'DEVICE (4)': { description: 'Device error' },
+}} />
+
+## DeviceError
+
+Thrown when a device-specific operation fails.
+
+```ts
+constructor(deviceIndex: number, message: string, cause?: Error)
+```
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `deviceIndex` | `number` | Index of the device that triggered the error |
+
+```ts
+import { DeviceError } from "@zendrex/buttplug.js";
+
+try {
+  await device.vibrate(0.5);
+} catch (err) {
+  if (err instanceof DeviceError) {
+    console.error(`Device ${err.deviceIndex} error: ${err.message}`);
+  }
+}
+```
+
+## TimeoutError
+
+Thrown when an operation exceeds its allowed duration. The error message is auto-generated as `"${operation} timed out after ${timeoutMs}ms"`.
+
+```ts
+constructor(operation: string, timeoutMs: number, cause?: Error)
+```
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `operation` | `string` | Name of the operation that timed out |
+| `timeoutMs` | `number` | Duration in milliseconds before the timeout triggered |
+
+```ts
+import { TimeoutError } from "@zendrex/buttplug.js";
+
+try {
+  await client.connect();
+} catch (err) {
+  if (err instanceof TimeoutError) {
+    console.error(`${err.operation} timed out after ${err.timeoutMs}ms`);
+  }
+}
+```
+
+## `formatError()`
+
+```ts
+formatError(error: unknown): string
+```
+
+Normalizes an unknown thrown value into a readable message. Returns `error.message` for `Error` instances, `String(error)` otherwise.
+
+```ts
+import { formatError } from "@zendrex/buttplug.js";
+
+try {
+  await doSomething();
+} catch (err) {
+  console.error(formatError(err)); // always returns a string
+}
+```

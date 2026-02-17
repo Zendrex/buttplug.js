@@ -1,0 +1,165 @@
+---
+title: Types Reference
+description: Quick-reference index for all exported types
+---
+
+Quick-reference for all exported types. Types that are fully documented on their respective API pages link there instead of duplicating content.
+
+## Protocol Types
+
+### OutputType
+
+Supported output actuator types in the Buttplug v4 protocol.
+
+```ts
+type OutputType =
+  | "Vibrate"
+  | "Rotate"
+  | "RotateWithDirection"
+  | "Oscillate"
+  | "Constrict"
+  | "Spray"
+  | "Temperature"
+  | "Led"
+  | "Position"
+  | "HwPositionWithDuration";
+```
+
+### InputType
+
+Supported input sensor types in the Buttplug v4 protocol.
+
+```ts
+type InputType = "Battery" | "RSSI" | "Pressure" | "Button" | "Position";
+```
+
+### InputCommandType
+
+Sensor command operation sent to the server.
+
+```ts
+type InputCommandType = "Read" | "Subscribe" | "Unsubscribe";
+```
+
+### OutputCommand
+
+Tagged union of output command payloads, discriminated by actuator type key. Each variant is a single-key object mapping the output type to its data shape.
+
+Variants: `Vibrate`, `Rotate`, `RotateWithDirection`, `Oscillate`, `Constrict`, `Spray`, `Temperature`, `Led`, `Position`, `HwPositionWithDuration`.
+
+### ClientMessage
+
+Tagged union of all client-to-server messages. Each variant is a single-key object wrapping a specific message schema.
+
+Variants: `RequestServerInfo`, `StartScanning`, `StopScanning`, `RequestDeviceList`, `Ping`, `Disconnect`, `StopCmd`, `OutputCmd`, `InputCmd`.
+
+### ServerMessage
+
+Tagged union of all server-to-client messages.
+
+Variants: `ServerInfo`, `Ok`, `Error`, `DeviceList`, `ScanningFinished`, `InputReading`.
+
+### InputReading
+
+Server message delivering a sensor reading from a device. Contains `DeviceIndex`, `FeatureIndex`, and a `Reading` union discriminated by sensor type.
+
+### ServerInfo
+
+Handshake response from the server. See [ButtplugClient properties](/docs/client/api/client#properties).
+
+### Output Data Shapes
+
+<TypeTable type={{
+  UnsignedScalarOutputData: { type: '{ Value: number }', description: 'Non-negative integer value. Used by most output types.' },
+  SignedScalarOutputData: { type: '{ Value: number }', description: 'Signed integer value. Used by Temperature.' },
+  ScalarOutputData: { type: 'UnsignedScalarOutputData', description: 'Alias for UnsignedScalarOutputData.' },
+  RotateWithDirectionOutputData: { type: '{ Value: number, Clockwise: boolean }', description: 'Rotation speed with direction control.' },
+  HwPositionOutputData: { type: '{ Position: number, Duration: number }', description: 'Timed position movement.' },
+}} />
+
+### InputData
+
+Tagged sensor data union discriminated by sensor type key. Each variant maps a sensor type to `{ Value: number }`.
+
+Variants: `Battery`, `RSSI`, `Pressure`, `Button`, `Position`.
+
+## Feature Descriptors
+
+### OutputFeature
+
+<auto-type-table path="src/protocol/schema.ts" name="OutputFeature" />
+
+### InputFeature
+
+<auto-type-table path="src/protocol/schema.ts" name="InputFeature" />
+
+### DeviceFeatures
+
+<auto-type-table path="src/protocol/schema.ts" name="DeviceFeatures" />
+
+## Feature Values
+
+Used for batch output commands targeting specific features by index.
+
+### FeatureValue
+
+<auto-type-table path="src/protocol/schema.ts" name="FeatureValue" />
+
+### RotationValue
+
+<auto-type-table path="src/protocol/schema.ts" name="RotationValue" />
+
+### PositionValue
+
+<auto-type-table path="src/protocol/schema.ts" name="PositionValue" />
+
+## Callback Types
+
+| Type | Signature | Used by |
+|------|-----------|---------|
+| `SensorCallback` | `(value: number) => void` | `Device.subscribeSensor()` |
+| `DeviceMessageSender` | Interface for sending protocol messages | Internal: used by `Device` |
+| `EasingFunction` | `(t: number) => number` | Custom easing curves |
+
+## Client Types
+
+Documented on their respective API pages:
+
+| Type | Page |
+|------|------|
+| `ButtplugClientOptions` | [ButtplugClient](/docs/client/api/client#options) |
+| `ClientEventMap` | [ButtplugClient](/docs/client/api/client#events) |
+| `DeviceStopOptions` | [Device](/docs/client/api/device#stop) |
+| `DeviceOutputOptions` | [Device](/docs/client/api/device#output) |
+| `Logger` | [Logging](/docs/client/api/logging#logger-interface) |
+
+## Transport Types
+
+Documented on the [Transport](/docs/client/api/transport) page:
+
+| Type | Description |
+|------|-------------|
+| `Transport` | Bidirectional message transport interface |
+| `TransportEvents` | Event handler signatures for transport events |
+| `TransportState` | `"disconnected" \| "connecting" \| "connected"` |
+| `TransportOptions` | `{ logger?: Logger }` |
+| `ReconnectOptions` | Configuration for ReconnectHandler |
+| `WebSocketTransportOptions` | Configuration for WebSocketTransport |
+
+## Pattern Types
+
+Documented on the [PatternEngine](/docs/patterns) page:
+
+| Type | Description |
+|------|-------------|
+| `PresetPattern` | Preset pattern descriptor |
+| `CustomPattern` | Custom keyframe pattern descriptor |
+| `PatternDescriptor` | Union of `PresetPattern \| CustomPattern` |
+| `Keyframe` | Animation keyframe with value, duration, easing |
+| `Track` | Sequence of keyframes bound to a device feature |
+| `PatternPlayOptions` | Playback options (intensity, speed, loop, callbacks) |
+| `PatternInfo` | Read-only snapshot of an active pattern |
+| `PresetInfo` | Metadata for a built-in preset |
+| `PresetName` | `"pulse" \| "wave" \| "ramp_up" \| "ramp_down" \| "heartbeat" \| "surge" \| "stroke"` |
+| `Easing` | `"linear" \| "easeIn" \| "easeOut" \| "easeInOut" \| "step"` |
+| `StopReason` | `"manual" \| "complete" \| "timeout" \| "error" \| "disconnect" \| "deviceRemoved"` |

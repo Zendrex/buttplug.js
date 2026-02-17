@@ -1,0 +1,286 @@
+---
+title: ButtplugClient
+description: High-level client for communicating with a Buttplug server
+---
+
+High-level client for connecting to a Buttplug server, scanning for devices, and sending commands.
+
+## Constructor
+
+```ts
+import { ButtplugClient } from "@zendrex/buttplug.js";
+
+const client = new ButtplugClient("ws://localhost:12345", {
+  clientName: "My App",
+  requestTimeout: 10_000,
+  autoPing: true,
+  autoReconnect: true,
+  reconnectDelay: 1000,
+  maxReconnectDelay: 30000,
+  maxReconnectAttempts: 10,
+});
+```
+
+### Options
+
+<auto-type-table path="src/types.ts" name="ButtplugClientOptions" />
+
+## Connection
+
+### `connect()`
+
+```ts
+connect(): Promise<void>
+```
+
+Opens a WebSocket connection and performs the Buttplug protocol handshake. If already connected, returns immediately. Concurrent calls are coalesced into a single connection attempt.
+
+```ts
+await client.connect();
+```
+
+<Callout type="error" title="Throws">
+  `ConnectionError` if the transport fails to connect. `HandshakeError` if the server rejects the handshake.
+</Callout>
+
+### `disconnect()`
+
+```ts
+disconnect(reason?: string): Promise<void>
+```
+
+Gracefully disconnects from the server. Stops all devices, sends a protocol-level disconnect message, then closes the WebSocket. Both steps are time-bounded so the method will not hang.
+
+```ts
+await client.disconnect("User requested");
+```
+
+## Device Discovery
+
+### `startScanning()`
+
+```ts
+startScanning(): Promise<void>
+```
+
+Begins scanning for devices on the server.
+
+```ts
+await client.startScanning();
+```
+
+<Callout type="error" title="Throws">
+  `ConnectionError` if the client is not connected.
+</Callout>
+
+### `stopScanning()`
+
+```ts
+stopScanning(): Promise<void>
+```
+
+Stops an active device scan.
+
+```ts
+await client.stopScanning();
+```
+
+<Callout type="error" title="Throws">
+  `ConnectionError` if the client is not connected.
+</Callout>
+
+### `requestDeviceList()`
+
+```ts
+requestDeviceList(): Promise<void>
+```
+
+Requests the current device list from the server. The response triggers device reconciliation, emitting `deviceAdded`, `deviceRemoved`, `deviceUpdated`, and `deviceList` events as needed.
+
+```ts
+await client.requestDeviceList();
+```
+
+<Callout type="error" title="Throws">
+  `ConnectionError` if the client is not connected.
+</Callout>
+
+### `stopAll()`
+
+```ts
+stopAll(): Promise<void>
+```
+
+Sends a global stop command to halt all devices on the server.
+
+```ts
+await client.stopAll();
+```
+
+<Callout type="error" title="Throws">
+  `ConnectionError` if the client is not connected.
+</Callout>
+
+## Device Access
+
+### `getDevice()`
+
+```ts
+getDevice(index: number): Device | undefined
+```
+
+Retrieves a device by its server-assigned index. Returns `undefined` if not found.
+
+```ts
+const device = client.getDevice(0);
+if (device) {
+  await device.vibrate(0.5);
+}
+```
+
+### `devices`
+
+```ts
+get devices(): Device[]
+```
+
+Snapshot of all currently known `Device` instances.
+
+```ts
+for (const device of client.devices) {
+  console.log(device.name);
+}
+```
+
+## Properties
+
+<TypeTable type={{
+  connected: { type: 'boolean', description: 'Whether the WebSocket transport is currently connected.' },
+  scanning: { type: 'boolean', description: 'Whether a device scan is currently in progress.' },
+  serverInfo: { type: 'ServerInfo | null', description: 'Server information from the handshake, or null if not connected.' },
+  devices: { type: 'Device[]', description: 'Snapshot of all known devices.' },
+}} />
+
+## Events
+
+`ButtplugClient` extends `Emittery<ClientEventMap>`. Subscribe with `client.on(event, listener)`.
+
+<auto-type-table path="src/types.ts" name="ClientEventMap" />
+
+### Usage
+
+```ts
+client.on("connected", () => {
+  console.log("Connected to server");
+});
+
+client.on("deviceAdded", ({ device }) => {
+  console.log(`Found: ${device.name}`);
+});
+
+client.on("error", ({ error }) => {
+  console.error("Client error:", error);
+});
+```
+
+<Accordions>
+  <Accordion title="All Event Examples">
+    ```ts
+    client.on("disconnected", ({ reason }) => {
+      console.log(`Disconnected: ${reason ?? "unknown"}`);
+    });
+
+    client.on("reconnecting", ({ attempt }) => {
+      console.log(`Reconnection attempt ${attempt}...`);
+    });
+
+    client.on("reconnected", () => {
+      console.log("Reconnected to server");
+    });
+
+    client.on("deviceRemoved", ({ device }) => {
+      console.log(`Removed: ${device.name}`);
+    });
+
+    client.on("deviceUpdated", ({ device, previousDevice }) => {
+      console.log(`Updated: ${previousDevice.name} -> ${device.name}`);
+    });
+
+    client.on("deviceList", ({ devices }) => {
+      console.log(`Device list reconciled: ${devices.length} device(s)`);
+    });
+
+    client.on("scanningFinished", () => {
+      console.log("Device scanning finished");
+    });
+
+    client.on("inputReading", ({ reading }) => {
+      console.log("Sensor reading:", reading);
+    });
+    ```
+  </Accordion>
+</Accordions>
+
+## Raw Protocol Access
+
+### `send()`
+
+```ts
+send(messages: ClientMessage | ClientMessage[]): Promise<ServerMessage[]>
+```
+
+Sends one or more raw protocol messages to the server.
+
+```ts
+const responses = await client.send({
+  StartScanning: { Id: client.nextId() },
+});
+```
+
+<Callout type="error" title="Throws">
+  `ConnectionError` if the client is not connected.
+</Callout>
+
+### `nextId()`
+
+```ts
+nextId(): number
+```
+
+Returns the next monotonically increasing message ID for outgoing messages.
+
+## Sensor Subscriptions
+
+<Accordions>
+  <Accordion title="Internal: Sensor Registration">
+    <Callout type="info" title="Internal API">
+      These methods are used internally by `Device.subscribeSensor()`. Use that method instead for subscribing to sensor data.
+    </Callout>
+
+    ### `registerSensorSubscription()`
+
+    ```ts
+    registerSensorSubscription(
+      key: string,
+      callback: SensorCallback,
+      info: { deviceIndex: number; featureIndex: number; type: InputType }
+    ): void
+    ```
+
+    Registers a callback for incoming sensor readings.
+
+    <TypeTable type={{
+      key: { type: 'string', description: 'Unique subscription key (typically from sensorKey()).', required: true },
+      callback: { type: 'SensorCallback', description: 'Invoked on each matching reading.', required: true },
+      info: { type: '{ deviceIndex: number; featureIndex: number; type: InputType }', description: 'Identifies the device, feature, and sensor type.', required: true },
+    }} />
+
+    ### `unregisterSensorSubscription()`
+
+    ```ts
+    unregisterSensorSubscription(key: string): void
+    ```
+
+    Removes a previously registered sensor subscription.
+  </Accordion>
+</Accordions>

@@ -1,0 +1,12 @@
+{
+	"title": "API Reference",
+	"pages": [
+		"client",
+		"device",
+		"transport",
+		"logging",
+		"errors",
+		"types",
+		"constants"
+	]
+}

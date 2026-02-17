@@ -1,0 +1,14 @@
+{
+	"title": "Pattern Engine",
+	"description": "Keyframe pattern playback",
+	"root": true,
+	"pages": [
+		"---Overview---",
+		"index",
+		"---API References---",
+		"api/playback",
+		"api/presets",
+		"api/custom-patterns",
+		"api/reference"
+	]
+}

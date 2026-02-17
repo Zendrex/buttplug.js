@@ -1,0 +1,55 @@
+{
+	"name": "@zendrex/buttplug.js",
+	"version": "0.0.0",
+	"description": "Modern TypeScript client for the Buttplug protocol v4",
+	"author": "zendrex",
+	"license": "MIT",
+	"type": "module",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			},
+			"require": {
+				"types": "./dist/index.d.cts",
+				"default": "./dist/index.cjs"
+			}
+		}
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "tsup",
+		"clean": "git clean -xdf dist node_modules",
+		"docs": "cd docs && bun run dev",
+		"docs:build": "cd docs && bun run build",
+		"changeset": "changeset",
+		"version": "changeset version"
+	},
+	"dependencies": {
+		"emittery": "^1.2.0",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.4.1",
+		"@changesets/changelog-github": "^0.5.2",
+		"@changesets/cli": "^2.29.8",
+		"@types/bun": "latest",
+		"bun-types": "latest",
+		"tsup": "^8.5.1",
+		"ultracite": "^7.2.3"
+	},
+	"peerDependencies": {
+		"typescript": "^5.9.3"
+	}
+}
