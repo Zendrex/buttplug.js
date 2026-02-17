@@ -51,5 +51,24 @@
 	},
 	"peerDependencies": {
 		"typescript": "^5.9.3"
-	}
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/zendrex/buttplug.js.git"
+	},
+	"bugs": {
+		"url": "https://github.com/zendrex/buttplug.js/issues"
+	},
+	"homepage": "https://github.com/zendrex/buttplug.js#readme",
+	"keywords": [
+		"buttplug",
+		"intiface",
+		"haptics",
+		"teledildonics",
+		"bluetooth",
+		"sex-tech",
+		"iot",
+		"websocket",
+		"typescript"
+	]
 }
