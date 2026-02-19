@@ -1,15 +1,16 @@
 # @zendrex/buttplug.js
 
-TypeScript client for the [Buttplug](https://buttplug.io) protocol v4. Connect to [Intiface Central](https://intiface.com/central/), discover devices, and control them with a type-safe API.
+Modern TypeScript client for the [Buttplug](https://buttplug.io) intimate hardware protocol v4. Connect to [Intiface Central](https://intiface.com/central/), discover devices, and control them with a type-safe API.
 
 ## Features
 
-- Buttplug protocol v4 over WebSocket
+- Full Buttplug protocol v4 implementation over WebSocket
 - 10 output types — vibration, rotation, position, oscillation, constriction, temperature, LED, spray, and more
 - 5 sensor types — battery, RSSI, pressure, button, position (one-shot reads and subscriptions)
 - Pattern engine with 7 built-in presets, custom keyframes, and easing curves
 - Auto-reconnect with exponential backoff
-- Zod-validated protocol messages
+- Zod-validated protocol messages with full type inference
+- ESM and CJS dual-package output with `.d.ts` types
 - Zero config — point at Intiface Central and go
 
 ## Prerequisites
@@ -58,6 +59,7 @@ await client.connect();
 await client.startScanning();
 await client.stopAll();
 await client.disconnect();
+client.dispose();             // cleanup listeners and internal state
 
 client.connected;   // boolean
 client.devices;     // Device[]
@@ -120,7 +122,17 @@ engine.stopAll();
 engine.dispose();
 ```
 
-**Presets:** `pulse`, `wave`, `ramp_up`, `ramp_down`, `heartbeat`, `surge`, `stroke`
+**Presets:**
+
+| Preset | Description | Loops |
+|--------|-------------|-------|
+| `pulse` | Square wave on/off | yes |
+| `wave` | Smooth sine wave oscillation | yes |
+| `ramp_up` | Gradual increase to maximum | no |
+| `ramp_down` | Gradual decrease to zero | no |
+| `heartbeat` | Ba-bump heartbeat rhythm | yes |
+| `surge` | Build to peak then release | no |
+| `stroke` | Full-range position strokes | yes |
 
 **Easings:** `linear`, `easeIn`, `easeOut`, `easeInOut`, `step`
 
@@ -148,6 +160,19 @@ const client = new ButtplugClient("ws://127.0.0.1:12345", {
 ```
 
 On reconnection, the client re-handshakes, reconciles the device list, and emits `reconnected`. The pattern engine automatically stops patterns for removed devices.
+
+### Cleanup
+
+```typescript
+// Graceful shutdown
+await client.disconnect();
+
+// Release all internal state and event listeners
+client.dispose();
+
+// Pattern engine cleanup
+engine.dispose();
+```
 
 ## Documentation
 
