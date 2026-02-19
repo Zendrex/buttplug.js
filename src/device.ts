@@ -319,6 +319,7 @@ export class Device {
 	 *
 	 * @param type - The sensor type to unsubscribe from
 	 * @param sensorIndex - Index of the sensor if the device has multiple of the same type
+	 * @throws {DeviceError} if the sensor does not exist at the given index
 	 */
 	async unsubscribe(type: InputType, sensorIndex = 0): Promise<void> {
 		const features = getInputsByType(this.#features, type);

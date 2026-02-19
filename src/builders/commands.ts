@@ -66,21 +66,15 @@ export function buildPositionMessage(options: PositionMessageOptions): ClientMes
 	};
 }
 
-/**
- * Options for building position command messages across multiple features.
- */
+/** Options for building position command messages across multiple features. */
 export interface PositionMessagesOptions {
-	/** Message sender used to generate unique message IDs. */
 	client: DeviceMessageSender;
-	/** Zero-based index of the target device. */
 	deviceIndex: number;
 	/** Movement duration in milliseconds (used when position is a uniform number). */
 	duration: number;
-	/** Array of position features on the device. */
 	features: OutputFeature[];
 	/** Uniform position value or per-feature {@link PositionValue} entries. */
 	position: number | PositionValue[];
-	/** The position output type (e.g. "Position" or "HwPositionWithDuration"). */
 	positionType: OutputType;
 }
 
@@ -127,19 +121,13 @@ export function buildPositionMessages(options: PositionMessagesOptions): ClientM
 	return messages;
 }
 
-/**
- * Options for building rotation command messages across multiple features.
- */
+/** Options for building rotation command messages across multiple features. */
 export interface RotateMessagesOptions {
-	/** Message sender used to generate unique message IDs. */
 	client: DeviceMessageSender;
 	/** Default rotation direction when using a uniform speed value. */
 	clockwise: boolean;
-	/** Zero-based index of the target device. */
 	deviceIndex: number;
-	/** Array of rotation features on the device. */
 	features: OutputFeature[];
-	/** The rotation output type (e.g. "Rotate" or "RotateWithDirection"). */
 	rotationType: OutputType;
 	/** Uniform speed value or per-feature {@link RotationValue} entries. */
 	speed: number | RotationValue[];
@@ -206,21 +194,15 @@ export function buildRotateMessages(options: RotateMessagesOptions): ClientMessa
 	return messages;
 }
 
-/**
- * Options for building scalar output command messages across multiple features.
- */
+/** Options for building scalar output command messages across multiple features. */
 export interface ScalarOutputMessagesOptions {
-	/** Message sender used to generate unique message IDs. */
 	client: DeviceMessageSender;
-	/** Zero-based index of the target device. */
 	deviceIndex: number;
-	/** Label for the feature type, used in log messages. */
+	/** Label for the feature type, used in error messages. */
 	errorLabel: string;
-	/** Array of output features on the device. */
 	features: OutputFeature[];
-	/** The output type (e.g. "Vibrate", "Constrict"). */
 	type: OutputType;
-	/** Uniform value for all features, or per-feature {@link FeatureValue} entries targeting specific indices. */
+	/** Uniform value for all features, or per-feature {@link FeatureValue} entries. */
 	values: number | FeatureValue[];
 }
 
@@ -276,14 +258,7 @@ export function buildScalarOutputMessages(options: ScalarOutputMessagesOptions):
 	return messages;
 }
 
-/**
- * Sends an array of messages through the client.
- *
- * Skips sending when the array is empty to avoid unnecessary protocol roundtrips.
- *
- * @param client - The message sender
- * @param messages - Array of messages to send
- */
+/** Sends an array of messages through the client. Skips empty arrays. */
 export async function sendMessages(client: DeviceMessageSender, messages: ClientMessage[]): Promise<void> {
 	if (messages.length === 0) {
 		return;

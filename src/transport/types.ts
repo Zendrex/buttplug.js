@@ -6,8 +6,11 @@ import type { Logger } from "../lib/logger";
 export interface TransportEvents {
 	/** Provides the WebSocket close code and reason for diagnostics. */
 	close: (code: number, reason: string) => void;
+	/** Fires when the transport encounters an error. */
 	error: (error: Error) => void;
+	/** Fires when a text message is received from the server. */
 	message: (data: string) => void;
+	/** Fires when the connection has been successfully established. */
 	open: () => void;
 }
 
@@ -73,5 +76,6 @@ export interface Transport {
 	 */
 	send(data: string): void;
 
+	/** Current lifecycle state of this transport. */
 	readonly state: TransportState;
 }

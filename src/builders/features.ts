@@ -194,66 +194,36 @@ function parseInputFeature(
 	};
 }
 
-/**
- * Checks whether the device supports the given output type.
- *
- * @param features - The parsed device features
- * @param type - The output type to check for
- */
+/** Checks whether the device supports the given output type. */
 export function hasOutputType(features: DeviceFeatures, type: OutputType): boolean {
 	const idx = getOutputIndex(features);
 	const list = idx.get(type);
 	return list !== undefined && list.length > 0;
 }
 
-/**
- * Checks whether the device supports the given input type.
- *
- * @param features - The parsed device features
- * @param type - The input type to check for
- */
+/** Checks whether the device supports the given input type. */
 export function hasInputType(features: DeviceFeatures, type: InputType): boolean {
 	const idx = getInputIndex(features);
 	const list = idx.get(type);
 	return list !== undefined && list.length > 0;
 }
 
-/**
- * Returns all output features of the given type.
- *
- * @param features - The parsed device features
- * @param type - The output type to filter by
- */
+/** Returns all output features of the given type. */
 export function getOutputsByType(features: DeviceFeatures, type: OutputType): OutputFeature[] {
 	return getOutputIndex(features).get(type) ?? [];
 }
 
-/**
- * Returns all input features of the given type.
- *
- * @param features - The parsed device features
- * @param type - The input type to filter by
- */
+/** Returns all input features of the given type. */
 export function getInputsByType(features: DeviceFeatures, type: InputType): InputFeature[] {
 	return getInputIndex(features).get(type) ?? [];
 }
 
-/**
- * Checks whether the device supports reading the given sensor type.
- *
- * @param features - The parsed device features
- * @param type - The input type to check
- */
+/** Checks whether the device supports reading the given sensor type. */
 export function canRead(features: DeviceFeatures, type: InputType): boolean {
 	return getInputsByType(features, type).some((f) => f.canRead);
 }
 
-/**
- * Checks whether the device supports subscribing to the given sensor type.
- *
- * @param features - The parsed device features
- * @param type - The input type to check
- */
+/** Checks whether the device supports subscribing to the given sensor type. */
 export function canSubscribe(features: DeviceFeatures, type: InputType): boolean {
 	return getInputsByType(features, type).some((f) => f.canSubscribe);
 }

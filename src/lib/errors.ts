@@ -23,23 +23,17 @@ export class ButtplugError extends Error {
 	}
 }
 
-/**
- * Error thrown when a WebSocket or transport connection fails.
- */
+/** Error thrown when a WebSocket or transport connection fails. */
 export class ConnectionError extends ButtplugError {
 	override readonly name: string = "ConnectionError";
 }
 
-/**
- * Error thrown when the initial protocol handshake with the server fails.
- */
+/** Error thrown when the initial protocol handshake with the server fails. */
 export class HandshakeError extends ButtplugError {
 	override readonly name: string = "HandshakeError";
 }
 
-/**
- * Error thrown when the server returns a protocol-level error message.
- */
+/** Error thrown when the server returns a protocol-level error message. */
 export class ProtocolError extends ButtplugError {
 	override readonly name: string = "ProtocolError";
 
@@ -57,9 +51,7 @@ export class ProtocolError extends ButtplugError {
 	}
 }
 
-/**
- * Error thrown when a device-specific operation fails.
- */
+/** Error thrown when a device-specific operation fails. */
 export class DeviceError extends ButtplugError {
 	override readonly name: string = "DeviceError";
 
@@ -77,9 +69,7 @@ export class DeviceError extends ButtplugError {
 	}
 }
 
-/**
- * Error thrown when an operation exceeds its allowed duration.
- */
+/** Error thrown when an operation exceeds its allowed duration. */
 export class TimeoutError extends ButtplugError {
 	override readonly name: string = "TimeoutError";
 

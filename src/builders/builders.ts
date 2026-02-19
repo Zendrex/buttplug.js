@@ -32,77 +32,51 @@ interface OutputBuilderState {
 export class OutputCommandBuilder {
 	readonly #state: OutputBuilderState = {};
 
-	/**
-	 * Sets the message ID for request/response correlation.
-	 *
-	 * **Important**: Callers must set a unique ID before sending the built message.
-	 * Defaults to 0 (placeholder) if not set.
-	 *
-	 * @param id - Unique message identifier
-	 */
+	/** Sets the message ID. Defaults to 0 if not called. */
 	id(id: number): this {
 		this.#state.id = id;
 		return this;
 	}
 
-	/**
-	 * Sets the target device index.
-	 *
-	 * @param deviceIndex - Zero-based device index
-	 */
+	/** Sets the target device index. */
 	device(deviceIndex: number): this {
 		this.#state.deviceIndex = deviceIndex;
 		return this;
 	}
 
-	/**
-	 * Sets the target feature index on the device.
-	 *
-	 * @param featureIndex - Zero-based feature index
-	 */
+	/** Sets the target feature index on the device. */
 	feature(featureIndex: number): this {
 		this.#state.featureIndex = featureIndex;
 		return this;
 	}
 
-	/**
-	 * Sets the allowed value range for clamping output values.
-	 *
-	 * @param range - Tuple of [min, max]
-	 */
+	/** Sets the allowed value range for clamping output values. */
 	withRange(range: [number, number]): this {
 		this.#state.featureRange = range;
 		return this;
 	}
 
-	/**
-	 * Sets the allowed duration range for clamping position command durations.
-	 *
-	 * @param range - Tuple of [min, max] in milliseconds
-	 */
+	/** Sets the allowed duration range for clamping position command durations. */
 	withDurationRange(range: [number, number]): this {
 		this.#state.durationRange = range;
 		return this;
 	}
 
-	/** @param value - Vibration intensity */
+	/** Sets vibration intensity. */
 	vibrate(value: number): this {
 		this.#state.outputType = "Vibrate";
 		this.#state.value = value;
 		return this;
 	}
 
-	/** @param value - Rotation speed */
+	/** Sets rotation speed. */
 	rotate(value: number): this {
 		this.#state.outputType = "Rotate";
 		this.#state.value = value;
 		return this;
 	}
 
-	/**
-	 * @param value - Rotation speed
-	 * @param clockwise - Rotation direction
-	 */
+	/** Sets rotation speed with direction. */
 	rotateWithDirection(value: number, clockwise: boolean): this {
 		this.#state.outputType = "RotateWithDirection";
 		this.#state.value = value;
@@ -110,52 +84,49 @@ export class OutputCommandBuilder {
 		return this;
 	}
 
-	/** @param value - Oscillation intensity */
+	/** Sets oscillation intensity. */
 	oscillate(value: number): this {
 		this.#state.outputType = "Oscillate";
 		this.#state.value = value;
 		return this;
 	}
 
-	/** @param value - Constriction intensity */
+	/** Sets constriction intensity. */
 	constrict(value: number): this {
 		this.#state.outputType = "Constrict";
 		this.#state.value = value;
 		return this;
 	}
 
-	/** @param value - Spray intensity */
+	/** Sets spray intensity. */
 	spray(value: number): this {
 		this.#state.outputType = "Spray";
 		this.#state.value = value;
 		return this;
 	}
 
-	/** @param value - Temperature value */
+	/** Sets temperature value. */
 	temperature(value: number): this {
 		this.#state.outputType = "Temperature";
 		this.#state.value = value;
 		return this;
 	}
 
-	/** @param value - LED intensity */
+	/** Sets LED intensity. */
 	led(value: number): this {
 		this.#state.outputType = "Led";
 		this.#state.value = value;
 		return this;
 	}
 
-	/** @param value - Target position */
+	/** Sets target position. */
 	position(value: number): this {
 		this.#state.outputType = "Position";
 		this.#state.value = value;
 		return this;
 	}
 
-	/**
-	 * @param value - Target position
-	 * @param duration - Movement duration in milliseconds
-	 */
+	/** Sets target position with movement duration in milliseconds. */
 	hwPositionWithDuration(value: number, duration: number): this {
 		this.#state.outputType = "HwPositionWithDuration";
 		this.#state.value = value;
@@ -252,54 +223,39 @@ interface InputBuilderState {
 export class InputCommandBuilder {
 	readonly #state: InputBuilderState = {};
 
-	/**
-	 * Sets the message ID for request/response correlation.
-	 *
-	 * **Important**: Callers must set a unique ID before sending the built message.
-	 * Defaults to 0 (placeholder) if not set.
-	 *
-	 * @param id - Unique message identifier
-	 */
+	/** Sets the message ID. Defaults to 0 if not called. */
 	id(id: number): this {
 		this.#state.id = id;
 		return this;
 	}
 
-	/**
-	 * Sets the target device index.
-	 *
-	 * @param deviceIndex - Zero-based device index
-	 */
+	/** Sets the target device index. */
 	device(deviceIndex: number): this {
 		this.#state.deviceIndex = deviceIndex;
 		return this;
 	}
 
-	/**
-	 * Sets the target feature index on the device.
-	 *
-	 * @param featureIndex - Zero-based feature index
-	 */
+	/** Sets the target feature index on the device. */
 	feature(featureIndex: number): this {
 		this.#state.featureIndex = featureIndex;
 		return this;
 	}
 
-	/** @param type - The input sensor type to read */
+	/** Sets the command to read the given sensor type. */
 	read(type: InputType): this {
 		this.#state.inputType = type;
 		this.#state.command = "Read";
 		return this;
 	}
 
-	/** @param type - The input sensor type to subscribe to */
+	/** Sets the command to subscribe to the given sensor type. */
 	subscribe(type: InputType): this {
 		this.#state.inputType = type;
 		this.#state.command = "Subscribe";
 		return this;
 	}
 
-	/** @param type - The input sensor type to unsubscribe from */
+	/** Sets the command to unsubscribe from the given sensor type. */
 	unsubscribe(type: InputType): this {
 		this.#state.inputType = type;
 		this.#state.command = "Unsubscribe";
@@ -309,7 +265,6 @@ export class InputCommandBuilder {
 	/**
 	 * Validates accumulated state and produces a {@link ClientMessage}.
 	 *
-	 * @returns The constructed input command message
 	 * @throws Error if deviceIndex, featureIndex, or input type/command are missing
 	 */
 	build(): ClientMessage {
@@ -356,46 +311,31 @@ interface StopBuilderState {
 export class StopCommandBuilder {
 	readonly #state: StopBuilderState = {};
 
-	/**
-	 * Sets the message ID for request/response correlation.
-	 *
-	 * **Important**: Callers must set a unique ID before sending the built message.
-	 * Defaults to 0 (placeholder) if not set.
-	 *
-	 * @param id - Unique message identifier
-	 */
+	/** Sets the message ID. Defaults to 0 if not called. */
 	id(id: number): this {
 		this.#state.id = id;
 		return this;
 	}
 
-	/**
-	 * Sets the target device index. When omitted, the stop applies to all devices.
-	 *
-	 * @param deviceIndex - Zero-based device index
-	 */
+	/** Sets the target device index. When omitted, the stop applies to all devices. */
 	device(deviceIndex: number): this {
 		this.#state.deviceIndex = deviceIndex;
 		return this;
 	}
 
-	/**
-	 * Sets the target feature index. Requires a device index to be set.
-	 *
-	 * @param featureIndex - Zero-based feature index
-	 */
+	/** Sets the target feature index. Requires a device index to be set. */
 	feature(featureIndex: number): this {
 		this.#state.featureIndex = featureIndex;
 		return this;
 	}
 
-	/** @param value - Whether to stop input subscriptions */
+	/** Sets whether to stop input subscriptions. */
 	inputs(value: boolean): this {
 		this.#state.stopInputs = value;
 		return this;
 	}
 
-	/** @param value - Whether to stop output commands */
+	/** Sets whether to stop output commands. */
 	outputs(value: boolean): this {
 		this.#state.stopOutputs = value;
 		return this;

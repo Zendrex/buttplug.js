@@ -52,11 +52,7 @@ export class MessageRouter {
 		this.#onError = options.onError;
 	}
 
-	/**
-	 * Returns the next message ID, wrapping around at {@link MAX_MESSAGE_ID}.
-	 *
-	 * @returns A monotonically increasing ID for use in outgoing messages
-	 */
+	/** Returns the next auto-incrementing message ID. */
 	nextId(): number {
 		this.#messageId = (this.#messageId % MAX_MESSAGE_ID) + 1;
 		return this.#messageId;
