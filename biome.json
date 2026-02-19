@@ -1,14 +1,14 @@
 {
-	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"$schema": "https://turbo.build/schema.json",
 	"extends": ["ultracite/biome/core"],
 	"vcs": {
-		"enabled": true,
+		"enabled": false,
 		"clientKind": "git",
-		"useIgnoreFile": true,
-		"defaultBranch": "main"
+		"useIgnoreFile": false
 	},
 	"files": {
-		"ignoreUnknown": false
+		"ignoreUnknown": false,
+		"includes": ["!**/dist"]
 	},
 	"formatter": {
 		"enabled": true,
@@ -22,19 +22,10 @@
 			"recommended": true,
 			"suspicious": {
 				"noConsole": "info"
+			},
+			"correctness": {
+				"useExhaustiveDependencies": "info"
 			}
-		}
-	},
-	"javascript": {
-		"globals": ["Bun"],
-		"formatter": {
-			"quoteStyle": "double"
-		}
-	},
-	"json": {
-		"formatter": {
-			"enabled": true,
-			"indentStyle": "tab"
 		}
 	},
 	"assist": {
@@ -62,6 +53,18 @@
 					}
 				}
 			}
+		}
+	},
+	"javascript": {
+		"globals": ["Bun"],
+		"formatter": {
+			"quoteStyle": "double"
+		}
+	},
+	"json": {
+		"formatter": {
+			"enabled": true,
+			"indentStyle": "tab"
 		}
 	}
 }
