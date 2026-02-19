@@ -1,20 +1,72 @@
+# =====================
 # Dependencies
+# =====================
 node_modules/
 
-# Build / Output
+# =====================
+# Build outputs
+# =====================
 build/
 dist/
 out/
+*.tsbuildinfo
 
-# MacOS
+# =====================
+# Environment Variables
+# =====================
+.env
+.env*.local
+
+# =====================
+# System / OS files
+# =====================
 ._*
 .DS_Store
 Thumbs.db
 
-# TypeScript
-*.tsbuildinfo
+# =====================
+# IDEs and Editors
+# =====================
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
-# Docs
+# =====================
+# AI / Agents
+# =====================
+.claude/
+.cursor/
+
+# =====================
+# Logs
+# =====================
+logs
+*.log
+
+# =====================
+# Turbo
+# =====================
+.turbo
+
+# =====================
+# Testing
+# =====================
+coverage
+.nyc_output
+
+# =====================
+# Miscellaneous
+# =====================
+*.tgz
+.cache
+tmp
+temp
+
+# =====================
+# Documentation
+# =====================
 docs/.next/
 docs/.source/
 docs/out/
@@ -22,7 +74,10 @@ docs/node_modules/
 docs/bun.lock
 docs/next-env.d.ts
 
-# AI / IDE
-.vscode/
-.claude/
-.cursor/
+# =====================
+# Ruler Generated Files
+# =====================
+# START Ruler Generated Files
+/CLAUDE.md
+/CLAUDE.md.bak
+# END Ruler Generated Files
