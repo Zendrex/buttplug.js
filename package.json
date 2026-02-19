@@ -33,8 +33,10 @@
 		"clean": "git clean -xdf dist node_modules",
 		"docs": "cd docs && bun run dev",
 		"docs:build": "cd docs && bun run build",
+		"check-types": "tsc -b",
 		"changeset": "changeset",
-		"version": "changeset version"
+		"version": "changeset version",
+		"prepare": "husky"
 	},
 	"dependencies": {
 		"emittery": "^1.2.0",
@@ -46,11 +48,18 @@
 		"@changesets/cli": "^2.29.8",
 		"@types/bun": "latest",
 		"bun-types": "latest",
+		"husky": "^9.1.7",
+		"lint-staged": "^16.2.7",
 		"tsup": "^8.5.1",
 		"ultracite": "^7.2.3"
 	},
 	"peerDependencies": {
 		"typescript": "^5.9.3"
+	},
+	"lint-staged": {
+		"*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
+			"bun x ultracite fix"
+		]
 	},
 	"repository": {
 		"type": "git",
