@@ -9,7 +9,7 @@ import { TimeoutError } from "../lib/errors";
  * @param promise - The promise to race
  * @param ms - Timeout duration in milliseconds
  * @returns The resolved value of the original promise
- * @throws {@link TimeoutError} if the deadline is exceeded
+ * @throws {TimeoutError} if the deadline is exceeded
  */
 export function raceTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 	return Promise.race([
