@@ -252,7 +252,8 @@ export class PatternEngine {
 			return;
 		}
 
-		const elapsed = performance.now() - state.startedAt;
+		const now = performance.now();
+		const elapsed = now - state.startedAt;
 		const cycleDuration = getCycleDuration(state.tracks);
 
 		// Evaluate all tracks before checking cycle completion so the final
@@ -283,10 +284,10 @@ export class PatternEngine {
 			}
 		}
 
-		// Schedule next tick with drift correction
-		const drift = performance.now() - state.expectedTickTime;
+		// Schedule next tick with drift correction using the same timestamp
+		const drift = now - state.expectedTickTime;
 		const nextDelay = Math.max(0, state.tickInterval - drift);
-		state.expectedTickTime = performance.now() + nextDelay;
+		state.expectedTickTime = now + nextDelay;
 		state.timerId = setTimeout(() => this.#tick(state, device), nextDelay);
 	}
 
@@ -352,16 +353,11 @@ export class PatternEngine {
 
 		this.#patterns.delete(state.id);
 
-		// Send zero-value stop commands (fire-and-forget, bypass dedup)
+		// Send stop commands via protocol StopCmd (fire-and-forget, bypass dedup)
 		const device = this.#client.getDevice(state.deviceIndex);
 		if (device) {
 			for (const track of state.tracks) {
-				if (track.outputType === "Position" || track.outputType === "HwPositionWithDuration") {
-					device.stop({ featureIndex: track.featureIndex }).catch(noop);
-				} else {
-					const command = buildScalarCommand(track, track.range[0]);
-					device.output({ featureIndex: track.featureIndex, command }).catch(noop);
-				}
+				device.stop({ featureIndex: track.featureIndex }).catch(noop);
 			}
 		}
 

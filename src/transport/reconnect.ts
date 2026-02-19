@@ -112,9 +112,14 @@ export class ReconnectHandler {
 	}
 
 	/** Safely invokes a user callback, catching and logging any errors. */
-	#safeCallback(name: string, fn: () => void): void {
+	#safeCallback(name: string, fn: () => void | Promise<void>): void {
 		try {
-			fn();
+			const result = fn();
+			if (result instanceof Promise) {
+				result.catch((err) => {
+					this.#logger.error(`Error in async ${name} callback: ${formatError(err)}`);
+				});
+			}
 		} catch (err) {
 			this.#logger.error(`Error in ${name} callback: ${formatError(err)}`);
 		}

@@ -87,6 +87,15 @@ export class MessageRouter {
 					reject(new TimeoutError(`Request (ID ${id})`, this.#timeout));
 				}, this.#timeout);
 
+				// Reject any existing request at this ID so its promise settles
+				const existing = this.#pending.get(id);
+				if (existing) {
+					if (existing.timeout !== null) {
+						clearTimeout(existing.timeout);
+					}
+					existing.reject(new ProtocolError(ErrorCode.MESSAGE, `Request ${id} superseded by new request`));
+				}
+
 				this.#pending.set(id, {
 					resolve,
 					reject: (err: Error) => {

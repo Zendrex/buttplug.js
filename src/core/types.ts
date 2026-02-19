@@ -77,4 +77,6 @@ export interface ReconcileOptions<T extends ReconcilableDevice> {
 	currentDevices: Map<number, T>;
 	/** Raw device descriptors from the latest server message. */
 	incomingRaw: RawDevice[];
+	/** Logger for reconciliation diagnostics. Defaults to no-op. */
+	logger?: Logger;
 }

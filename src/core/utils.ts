@@ -1,5 +1,7 @@
 import type { DeviceFeatures, InputFeature, OutputFeature } from "../protocol/schema";
 
+import { TimeoutError } from "../lib/errors";
+
 /**
  * Races a promise against a timeout, rejecting if the timeout expires first.
  *
@@ -7,12 +9,12 @@ import type { DeviceFeatures, InputFeature, OutputFeature } from "../protocol/sc
  * @param promise - The promise to race
  * @param ms - Timeout duration in milliseconds
  * @returns The resolved value of the original promise
- * @throws Error with message "Timeout" if the deadline is exceeded
+ * @throws {@link TimeoutError} if the deadline is exceeded
  */
 export function raceTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 	return Promise.race([
 		promise,
-		new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), ms)),
+		new Promise<never>((_, reject) => setTimeout(() => reject(new TimeoutError("raceTimeout", ms)), ms)),
 	]);
 }
 

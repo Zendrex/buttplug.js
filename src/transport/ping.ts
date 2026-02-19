@@ -53,6 +53,8 @@ export class PingManager {
 	#pingTimer: ReturnType<typeof setInterval> | null = null;
 	/** Tracks whether a ping request is currently awaiting a response. */
 	#pingInFlight = false;
+	/** Whether the manager is in a stopped state. */
+	#stopped = true;
 	/** Maximum time in ms the server allows between pings. */
 	#maxPingTime = 0;
 
@@ -83,6 +85,7 @@ export class PingManager {
 			this.#cancelPing(new TimeoutError("Ping", 0));
 		}
 		this.stop();
+		this.#stopped = false;
 		this.#maxPingTime = maxPingTime;
 
 		if (!this.#autoPing || maxPingTime <= 0) {
@@ -109,6 +112,8 @@ export class PingManager {
 
 	/** Stops the ping timer and resets in-flight state. */
 	stop(): void {
+		this.#stopped = true;
+
 		if (this.#pingTimer !== null) {
 			clearInterval(this.#pingTimer);
 			this.#pingTimer = null;
@@ -119,17 +124,29 @@ export class PingManager {
 
 	/** Sends a single ping and handles timeout or failure. */
 	async #doPing(): Promise<void> {
+		if (this.#stopped) {
+			return;
+		}
+
 		this.#logger.debug("Sending ping");
 
 		const maxPingTime = this.#maxPingTime || DEFAULT_PING_TIMEOUT_MS;
 
 		const timer = setTimeout(() => {
+			if (this.#stopped) {
+				return;
+			}
 			this.#cancelPing(new TimeoutError("Ping", maxPingTime));
 		}, maxPingTime);
 
 		try {
 			await this.#sendPing();
 		} catch (err) {
+			// After await, the manager may have been stopped — bail out
+			if (this.#stopped) {
+				return;
+			}
+
 			const isTimeout = err instanceof TimeoutError;
 			this.#logger.error(`Ping failed: ${formatError(err)}`);
 			this.#onError(err instanceof Error ? err : new Error(String(err)));

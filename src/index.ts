@@ -42,7 +42,6 @@ export {
 	TimeoutError,
 } from "./lib/errors";
 export { consoleLogger, noopLogger } from "./lib/logger";
-export { getLogger, runWithLogger } from "./lib/context";
 
 // Re-exports from protocol/
 export type {
@@ -131,7 +130,6 @@ export type {
 	PatternEngineClient,
 	PatternInfo,
 	PatternPlayOptions,
-	PlayOptions,
 	PresetInfo,
 	PresetName,
 	PresetPattern,

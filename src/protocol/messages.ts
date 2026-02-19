@@ -1,5 +1,6 @@
 import type { ClientMessage, InputCommandType, InputType, OutputCommand } from "./schema";
 
+import { ErrorCode, ProtocolError } from "../lib/errors";
 import { PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR } from "./constants";
 
 /**
@@ -100,7 +101,7 @@ export function createStopCmd(
 	}
 ): ClientMessage {
 	if (options?.featureIndex !== undefined && options.deviceIndex === undefined) {
-		throw new Error("StopCmd: featureIndex requires deviceIndex to be set");
+		throw new ProtocolError(ErrorCode.MESSAGE, "StopCmd: featureIndex requires deviceIndex to be set");
 	}
 
 	return {

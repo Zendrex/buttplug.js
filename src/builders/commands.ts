@@ -103,12 +103,9 @@ export function buildPositionMessages(options: PositionMessagesOptions): ClientM
 			throw new DeviceError(deviceIndex, "Values array must not be empty");
 		}
 		for (const p of position) {
-			const feature = features[p.index];
+			const feature = features.find((f) => f.index === p.index);
 			if (!feature) {
-				throw new DeviceError(
-					deviceIndex,
-					`Invalid position index ${p.index} (device has ${features.length} position feature(s))`
-				);
+				throw new DeviceError(deviceIndex, `Position feature index ${p.index} not found on device`);
 			}
 			messages.push(
 				buildPositionMessage({
@@ -168,12 +165,9 @@ export function buildRotateMessages(options: RotateMessagesOptions): ClientMessa
 			throw new DeviceError(deviceIndex, "Values array must not be empty");
 		}
 		for (const r of speed) {
-			const feature = features[r.index];
+			const feature = features.find((f) => f.index === r.index);
 			if (!feature) {
-				throw new DeviceError(
-					deviceIndex,
-					`Invalid rotation index ${r.index} (device has ${features.length} rotation feature(s))`
-				);
+				throw new DeviceError(deviceIndex, `Rotation feature index ${r.index} not found on device`);
 			}
 			const validatedValue = validateRange(r.speed, feature.range);
 			const command: OutputCommand =
@@ -248,12 +242,9 @@ export function buildScalarOutputMessages(options: ScalarOutputMessagesOptions):
 		}
 		const messages: ClientMessage[] = [];
 		for (const entry of values) {
-			const feature = features[entry.index];
+			const feature = features.find((f) => f.index === entry.index);
 			if (!feature) {
-				throw new DeviceError(
-					deviceIndex,
-					`Invalid ${errorLabel} index ${entry.index} (device has ${features.length} ${errorLabel} feature(s))`
-				);
+				throw new DeviceError(deviceIndex, `${errorLabel} feature index ${entry.index} not found on device`);
 			}
 			const validatedValue = validateRange(entry.value, feature.range);
 			const id = client.nextId();

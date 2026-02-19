@@ -1,6 +1,7 @@
 import type { OutputCommand } from "../protocol/schema";
 import type { PatternDevice, PatternState, ResolvedKeyframe, ResolvedTrack } from "./types";
 
+import { DeviceError } from "../lib/errors";
 import { ease } from "./easing";
 
 /**
@@ -48,11 +49,12 @@ export function interpolateKeyframes(keyframes: ResolvedKeyframe[], elapsed: num
  * Builds an {@link OutputCommand} for a scalar-type track at the given value.
  *
  * Maps the track's output type to the corresponding protocol command structure.
- * Falls back to Vibrate for unrecognized output types.
+ * Throws a {@link DeviceError} for unrecognized output types.
  *
  * @param track - The resolved track providing output type and direction
  * @param value - The scalar value to send
  * @returns The protocol output command
+ * @throws DeviceError if the track's output type is not supported
  */
 export function buildScalarCommand(track: ResolvedTrack, value: number): OutputCommand {
 	switch (track.outputType) {
@@ -68,8 +70,14 @@ export function buildScalarCommand(track: ResolvedTrack, value: number): OutputC
 			return { Constrict: { Value: value } };
 		case "Position":
 			return { Position: { Value: value } };
+		case "Spray":
+			return { Spray: { Value: value } };
+		case "Temperature":
+			return { Temperature: { Value: value } };
+		case "Led":
+			return { Led: { Value: value } };
 		default:
-			return { Vibrate: { Value: value } };
+			throw new DeviceError(0, `Unsupported output type in pattern: ${track.outputType}`);
 	}
 }
 
@@ -126,7 +134,10 @@ export function evaluateScalarTrack(
 	}
 
 	const command = buildCommand(track, mapped);
-	device.output({ featureIndex, command }).catch((err) => onError(state, err));
+	device.output({ featureIndex, command }).catch((err) => {
+		state.lastSentValues.delete(featureIndex);
+		onError(state, err);
+	});
 	state.lastSentValues.set(featureIndex, mapped);
 }
 

@@ -19,8 +19,8 @@ import {
 } from "./builders/commands";
 import { getInputsByType, getOutputsByType, hasOutputType, parseFeatures } from "./builders/features";
 import { validateRange } from "./builders/validation";
-import { getLogger } from "./lib/context";
 import { DeviceError } from "./lib/errors";
+import { noopLogger } from "./lib/logger";
 import { sensorKey } from "./protocol/types";
 
 /**
@@ -40,8 +40,8 @@ export class Device {
 	constructor(options: DeviceOptions) {
 		this.#client = options.client;
 		this.#raw = options.raw;
-		this.#logger = (options.logger ?? getLogger()).child("device");
-		this.#features = parseFeatures(options.raw);
+		this.#logger = (options.logger ?? noopLogger).child("device");
+		this.#features = parseFeatures(options.raw, this.#logger);
 	}
 
 	/**
