@@ -31,13 +31,15 @@
 	},
 	"scripts": {
 		"build": "tsup",
-		"clean": "git clean -xdf dist node_modules",
+		"check": "bunx ultracite check",
+		"fix": "bunx ultracite fix",
+		"check-types": "tsc -b",
 		"docs": "cd docs && bun run dev",
 		"docs:build": "cd docs && bun run build",
-		"check-types": "tsc -b",
 		"changeset": "changeset",
 		"version": "changeset version",
-		"prepare": "husky"
+		"prepare": "husky",
+		"clean": "git clean -xdf dist node_modules"
 	},
 	"dependencies": {
 		"emittery": "^1.2.0",
