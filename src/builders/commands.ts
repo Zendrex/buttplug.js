@@ -66,21 +66,15 @@ export function buildPositionMessage(options: PositionMessageOptions): ClientMes
 	};
 }
 
-/**
- * Options for building position command messages across multiple features.
- */
+/** Options for building position command messages across multiple features. */
 export interface PositionMessagesOptions {
-	/** Message sender used to generate unique message IDs. */
 	client: DeviceMessageSender;
-	/** Zero-based index of the target device. */
 	deviceIndex: number;
 	/** Movement duration in milliseconds (used when position is a uniform number). */
 	duration: number;
-	/** Array of position features on the device. */
 	features: OutputFeature[];
 	/** Uniform position value or per-feature {@link PositionValue} entries. */
 	position: number | PositionValue[];
-	/** The position output type (e.g. "Position" or "HwPositionWithDuration"). */
 	positionType: OutputType;
 }
 
@@ -103,12 +97,9 @@ export function buildPositionMessages(options: PositionMessagesOptions): ClientM
 			throw new DeviceError(deviceIndex, "Values array must not be empty");
 		}
 		for (const p of position) {
-			const feature = features[p.index];
+			const feature = features.find((f) => f.index === p.index);
 			if (!feature) {
-				throw new DeviceError(
-					deviceIndex,
-					`Invalid position index ${p.index} (device has ${features.length} position feature(s))`
-				);
+				throw new DeviceError(deviceIndex, `Position feature index ${p.index} not found on device`);
 			}
 			messages.push(
 				buildPositionMessage({
@@ -130,19 +121,13 @@ export function buildPositionMessages(options: PositionMessagesOptions): ClientM
 	return messages;
 }
 
-/**
- * Options for building rotation command messages across multiple features.
- */
+/** Options for building rotation command messages across multiple features. */
 export interface RotateMessagesOptions {
-	/** Message sender used to generate unique message IDs. */
 	client: DeviceMessageSender;
 	/** Default rotation direction when using a uniform speed value. */
 	clockwise: boolean;
-	/** Zero-based index of the target device. */
 	deviceIndex: number;
-	/** Array of rotation features on the device. */
 	features: OutputFeature[];
-	/** The rotation output type (e.g. "Rotate" or "RotateWithDirection"). */
 	rotationType: OutputType;
 	/** Uniform speed value or per-feature {@link RotationValue} entries. */
 	speed: number | RotationValue[];
@@ -168,12 +153,9 @@ export function buildRotateMessages(options: RotateMessagesOptions): ClientMessa
 			throw new DeviceError(deviceIndex, "Values array must not be empty");
 		}
 		for (const r of speed) {
-			const feature = features[r.index];
+			const feature = features.find((f) => f.index === r.index);
 			if (!feature) {
-				throw new DeviceError(
-					deviceIndex,
-					`Invalid rotation index ${r.index} (device has ${features.length} rotation feature(s))`
-				);
+				throw new DeviceError(deviceIndex, `Rotation feature index ${r.index} not found on device`);
 			}
 			const validatedValue = validateRange(r.speed, feature.range);
 			const command: OutputCommand =
@@ -212,21 +194,15 @@ export function buildRotateMessages(options: RotateMessagesOptions): ClientMessa
 	return messages;
 }
 
-/**
- * Options for building scalar output command messages across multiple features.
- */
+/** Options for building scalar output command messages across multiple features. */
 export interface ScalarOutputMessagesOptions {
-	/** Message sender used to generate unique message IDs. */
 	client: DeviceMessageSender;
-	/** Zero-based index of the target device. */
 	deviceIndex: number;
-	/** Label for the feature type, used in log messages. */
+	/** Label for the feature type, used in error messages. */
 	errorLabel: string;
-	/** Array of output features on the device. */
 	features: OutputFeature[];
-	/** The output type (e.g. "Vibrate", "Constrict"). */
 	type: OutputType;
-	/** Uniform value for all features, or per-feature {@link FeatureValue} entries targeting specific indices. */
+	/** Uniform value for all features, or per-feature {@link FeatureValue} entries. */
 	values: number | FeatureValue[];
 }
 
@@ -248,12 +224,9 @@ export function buildScalarOutputMessages(options: ScalarOutputMessagesOptions):
 		}
 		const messages: ClientMessage[] = [];
 		for (const entry of values) {
-			const feature = features[entry.index];
+			const feature = features.find((f) => f.index === entry.index);
 			if (!feature) {
-				throw new DeviceError(
-					deviceIndex,
-					`Invalid ${errorLabel} index ${entry.index} (device has ${features.length} ${errorLabel} feature(s))`
-				);
+				throw new DeviceError(deviceIndex, `${errorLabel} feature index ${entry.index} not found on device`);
 			}
 			const validatedValue = validateRange(entry.value, feature.range);
 			const id = client.nextId();
@@ -285,14 +258,7 @@ export function buildScalarOutputMessages(options: ScalarOutputMessagesOptions):
 	return messages;
 }
 
-/**
- * Sends an array of messages through the client.
- *
- * Skips sending when the array is empty to avoid unnecessary protocol roundtrips.
- *
- * @param client - The message sender
- * @param messages - Array of messages to send
- */
+/** Sends an array of messages through the client. Skips empty arrays. */
 export async function sendMessages(client: DeviceMessageSender, messages: ClientMessage[]): Promise<void> {
 	if (messages.length === 0) {
 		return;

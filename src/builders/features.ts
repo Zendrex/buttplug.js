@@ -1,3 +1,4 @@
+import type { Logger } from "../lib/logger";
 import type {
 	DeviceFeatures,
 	InputFeature,
@@ -10,7 +11,7 @@ import type {
 	RawFeatureOutput,
 } from "../protocol/schema";
 
-import { getLogger } from "../lib/context";
+import { noopLogger } from "../lib/logger";
 import { INPUT_TYPE_VALUES, OUTPUT_TYPE_VALUES } from "../protocol/schema";
 
 /** All {@link OutputType} values defined by the buttplug protocol. */
@@ -75,11 +76,10 @@ const KNOWN_OUTPUT_KEYS = new Set<string>(OUTPUT_TYPES);
 const KNOWN_INPUT_KEYS = new Set<string>(INPUT_TYPES);
 
 /** Extracts and validates output features from raw device data. */
-function collectOutputs(feature: RawDeviceFeature): OutputFeature[] {
+function collectOutputs(feature: RawDeviceFeature, logger: Logger): OutputFeature[] {
 	if (!feature.Output) {
 		return [];
 	}
-	const logger = getLogger();
 	const results: OutputFeature[] = [];
 	for (const key of Object.keys(feature.Output)) {
 		if (!KNOWN_OUTPUT_KEYS.has(key)) {
@@ -96,11 +96,10 @@ function collectOutputs(feature: RawDeviceFeature): OutputFeature[] {
 }
 
 /** Extracts and validates input features from raw device data. */
-function collectInputs(feature: RawDeviceFeature): InputFeature[] {
+function collectInputs(feature: RawDeviceFeature, logger: Logger): InputFeature[] {
 	if (!feature.Input) {
 		return [];
 	}
-	const logger = getLogger();
 	const results: InputFeature[] = [];
 	for (const key of Object.keys(feature.Input)) {
 		if (!KNOWN_INPUT_KEYS.has(key)) {
@@ -124,9 +123,10 @@ function collectInputs(feature: RawDeviceFeature): InputFeature[] {
  * Unknown feature types are logged as warnings and skipped.
  *
  * @param raw - The raw device descriptor from the server
+ * @param logger - Optional logger for unknown feature type warnings
  * @returns Parsed and indexed device features
  */
-export function parseFeatures(raw: RawDevice): DeviceFeatures {
+export function parseFeatures(raw: RawDevice, logger: Logger = noopLogger): DeviceFeatures {
 	const outputs: OutputFeature[] = [];
 	const inputs: InputFeature[] = [];
 
@@ -135,10 +135,10 @@ export function parseFeatures(raw: RawDevice): DeviceFeatures {
 	const sortedFeatures = Object.values(features).sort((a, b) => a.FeatureIndex - b.FeatureIndex);
 
 	for (const feature of sortedFeatures) {
-		for (const output of collectOutputs(feature)) {
+		for (const output of collectOutputs(feature, logger)) {
 			outputs.push(output);
 		}
-		for (const input of collectInputs(feature)) {
+		for (const input of collectInputs(feature, logger)) {
 			inputs.push(input);
 		}
 	}
@@ -194,81 +194,36 @@ function parseInputFeature(
 	};
 }
 
-/**
- * Checks whether the device supports the given output type.
- *
- * @param features - The parsed device features
- * @param type - The output type to check for
- */
+/** Checks whether the device supports the given output type. */
 export function hasOutputType(features: DeviceFeatures, type: OutputType): boolean {
 	const idx = getOutputIndex(features);
 	const list = idx.get(type);
 	return list !== undefined && list.length > 0;
 }
 
-/**
- * Checks whether the device supports the given input type.
- *
- * @param features - The parsed device features
- * @param type - The input type to check for
- */
+/** Checks whether the device supports the given input type. */
 export function hasInputType(features: DeviceFeatures, type: InputType): boolean {
 	const idx = getInputIndex(features);
 	const list = idx.get(type);
 	return list !== undefined && list.length > 0;
 }
 
-/**
- * Returns all output features of the given type.
- *
- * @param features - The parsed device features
- * @param type - The output type to filter by
- */
+/** Returns all output features of the given type. */
 export function getOutputsByType(features: DeviceFeatures, type: OutputType): OutputFeature[] {
 	return getOutputIndex(features).get(type) ?? [];
 }
 
-/**
- * Returns all input features of the given type.
- *
- * @param features - The parsed device features
- * @param type - The input type to filter by
- */
+/** Returns all input features of the given type. */
 export function getInputsByType(features: DeviceFeatures, type: InputType): InputFeature[] {
 	return getInputIndex(features).get(type) ?? [];
 }
 
-/** @see {@link getOutputsByType} */
-export function getOutputCapabilities(features: DeviceFeatures, type: OutputType): OutputFeature[] {
-	return getOutputsByType(features, type);
-}
-
-/** @see {@link getInputsByType} */
-export function getInputCapabilities(features: DeviceFeatures, type: InputType): InputFeature[] {
-	return getInputsByType(features, type);
-}
-
-/** @see {@link hasOutputType} */
-export function canOutput(features: DeviceFeatures, type: OutputType): boolean {
-	return hasOutputType(features, type);
-}
-
-/**
- * Checks whether the device supports reading the given sensor type.
- *
- * @param features - The parsed device features
- * @param type - The input type to check
- */
+/** Checks whether the device supports reading the given sensor type. */
 export function canRead(features: DeviceFeatures, type: InputType): boolean {
 	return getInputsByType(features, type).some((f) => f.canRead);
 }
 
-/**
- * Checks whether the device supports subscribing to the given sensor type.
- *
- * @param features - The parsed device features
- * @param type - The input type to check
- */
+/** Checks whether the device supports subscribing to the given sensor type. */
 export function canSubscribe(features: DeviceFeatures, type: InputType): boolean {
 	return getInputsByType(features, type).some((f) => f.canSubscribe);
 }

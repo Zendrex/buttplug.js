@@ -1,0 +1,242 @@
+---
+title: Types
+description: All exported types from @zendrex/buttplug.js.
+---
+
+## Client Types
+
+### ButtplugClientOptions
+
+Configuration options for [ButtplugClient](/docs/reference/buttplug-client).
+
+<AutoTypeTable path="../src/types.ts" name="ButtplugClientOptions" />
+
+### ClientEventMap
+
+Event map for the [ButtplugClient](/docs/reference/buttplug-client) emitter. Each key is an event name and its value is the payload type passed to listeners.
+
+<AutoTypeTable path="../src/types.ts" name="ClientEventMap" />
+
+### DeviceOutputOptions
+
+Options for [Device.output](/docs/reference/device#output). Sends a raw `OutputCommand` to a specific feature on the device.
+
+<AutoTypeTable path="../src/types.ts" name="DeviceOutputOptions" />
+
+### DeviceStopOptions
+
+Options for [Device.stop](/docs/reference/device#stop). Without any options, stops all features on the device.
+
+<AutoTypeTable path="../src/types.ts" name="DeviceStopOptions" />
+
+## Device Types
+
+### DeviceFeatures
+
+Collection of normalized output and input features for a device.
+
+<AutoTypeTable path="../src/protocol/schema.ts" name="DeviceFeatures" />
+
+### OutputFeature
+
+Normalized output feature with type, index, range, and optional duration range.
+
+<AutoTypeTable path="../src/protocol/schema.ts" name="OutputFeature" />
+
+### InputFeature
+
+Normalized input feature with type, index, range, and command capabilities.
+
+<AutoTypeTable path="../src/protocol/schema.ts" name="InputFeature" />
+
+### FeatureValue
+
+Feature index paired with a scalar value, used for batch output commands.
+
+<AutoTypeTable path="../src/protocol/schema.ts" name="FeatureValue" />
+
+### RotationValue
+
+Feature index paired with speed and direction for rotation commands.
+
+<AutoTypeTable path="../src/protocol/schema.ts" name="RotationValue" />
+
+### PositionValue
+
+Feature index paired with position and duration for timed movement commands.
+
+<AutoTypeTable path="../src/protocol/schema.ts" name="PositionValue" />
+
+## Protocol Types
+
+### OutputType
+
+Output actuator type string literal union. All supported output types:
+
+```ts
+type OutputType =
+  | "Vibrate"
+  | "Rotate"
+  | "RotateWithDirection"
+  | "Oscillate"
+  | "Constrict"
+  | "Spray"
+  | "Temperature"
+  | "Led"
+  | "Position"
+  | "HwPositionWithDuration";
+```
+
+### InputType
+
+Input sensor type string literal union. All supported input types:
+
+```ts
+type InputType =
+  | "Battery"
+  | "RSSI"
+  | "Pressure"
+  | "Button"
+  | "Position";
+```
+
+### OutputCommand
+
+Discriminated union of output command payloads, keyed by actuator type. Each variant is a single-key object:
+
+```ts
+type OutputCommand =
+  | { Vibrate: { Value: number } }
+  | { Rotate: { Value: number } }
+  | { RotateWithDirection: { Value: number; Clockwise: boolean } }
+  | { Oscillate: { Value: number } }
+  | { Constrict: { Value: number } }
+  | { Spray: { Value: number } }
+  | { Temperature: { Value: number } }
+  | { Led: { Value: number } }
+  | { Position: { Value: number } }
+  | { HwPositionWithDuration: { Position: number; Duration: number } };
+```
+
+### ServerInfo
+
+Handshake response from the server with capabilities and timing requirements.
+
+<AutoTypeTable path="../src/protocol/schema.ts" name="ServerInfo" />
+
+### InputReading
+
+Server message delivering a sensor reading from a device.
+
+<AutoTypeTable path="../src/protocol/schema.ts" name="InputReading" />
+
+## Pattern Types
+
+### PatternPlayOptions
+
+Options for controlling pattern playback behavior.
+
+<AutoTypeTable path="../src/patterns/types.ts" name="PatternPlayOptions" />
+
+### PatternDescriptor
+
+Discriminated union of pattern descriptors. Uses the `type` field to distinguish between preset and custom patterns.
+
+```ts
+type PatternDescriptor = PresetPattern | CustomPattern;
+```
+
+### PresetPattern
+
+Pattern descriptor that references a built-in preset by name.
+
+<AutoTypeTable path="../src/patterns/types.ts" name="PresetPattern" />
+
+### CustomPattern
+
+Pattern descriptor with user-defined keyframe tracks.
+
+<AutoTypeTable path="../src/patterns/types.ts" name="CustomPattern" />
+
+### Track
+
+A sequence of keyframes bound to a specific device feature.
+
+<AutoTypeTable path="../src/patterns/types.ts" name="Track" />
+
+### Keyframe
+
+A single animation keyframe with a target value, transition duration, and optional easing. A duration of `0` creates an instant jump to the value.
+
+<AutoTypeTable path="../src/patterns/types.ts" name="Keyframe" />
+
+### Easing
+
+Easing curve identifier used for keyframe interpolation:
+
+```ts
+type Easing = "linear" | "easeIn" | "easeOut" | "easeInOut" | "step";
+```
+
+### PatternInfo
+
+Read-only snapshot of a running pattern, returned by `PatternEngine.list()`.
+
+<AutoTypeTable path="../src/patterns/types.ts" name="PatternInfo" />
+
+### PresetInfo
+
+Metadata describing a built-in preset pattern.
+
+<AutoTypeTable path="../src/patterns/types.ts" name="PresetInfo" />
+
+### StopReason
+
+Reason a pattern was stopped, used in `PatternPlayOptions.onStop` callbacks:
+
+```ts
+type StopReason =
+  | "manual"
+  | "complete"
+  | "timeout"
+  | "error"
+  | "disconnect"
+  | "deviceRemoved";
+```
+
+| Value | Triggered when |
+| --- | --- |
+| `"manual"` | `stop()`, `stopAll()`, or `stopByDevice()` was called |
+| `"complete"` | All loop iterations finished naturally |
+| `"timeout"` | Safety timeout elapsed |
+| `"error"` | Device or protocol error during playback |
+| `"disconnect"` | Client disconnected from server |
+| `"deviceRemoved"` | Target device was removed |
+
+## Logger
+
+### Logger
+
+Structured logging interface for Buttplug components. Supports hierarchical prefixes via `child()`.
+
+<AutoTypeTable path="../src/lib/logger.ts" name="Logger" />
+
+Two built-in implementations are exported:
+
+- `consoleLogger` -- Writes to `console` with a `[buttplug]` prefix
+- `noopLogger` -- Silently discards all messages (default)
+
+```ts
+import { ButtplugClient, consoleLogger } from "@zendrex/buttplug.js";
+
+const client = new ButtplugClient("ws://localhost:12345", {
+  logger: consoleLogger,
+});
+```
+
+## Related
+
+- [ButtplugClient](/docs/reference/buttplug-client) -- client API reference
+- [Device](/docs/reference/device) -- device API reference
+- [PatternEngine](/docs/reference/pattern-engine) -- pattern engine API reference
+- [Constants](/docs/reference/constants) -- exported constant values

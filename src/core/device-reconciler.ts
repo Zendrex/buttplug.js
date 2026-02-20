@@ -1,6 +1,6 @@
 import type { ReconcilableDevice, ReconcileOptions } from "./types";
 
-import { getLogger } from "../lib/context";
+import { noopLogger } from "../lib/logger";
 import { featuresEqual } from "./utils";
 
 /**
@@ -15,7 +15,7 @@ import { featuresEqual } from "./utils";
  */
 export function reconcileDevices<T extends ReconcilableDevice>(options: ReconcileOptions<T>): void {
 	const { currentDevices, incomingRaw, createDevice, callbacks } = options;
-	const logger = getLogger();
+	const logger = options.logger ?? noopLogger;
 	const incomingIndices = new Set(incomingRaw.map((d) => d.DeviceIndex));
 	const currentIndices = new Set(currentDevices.keys());
 

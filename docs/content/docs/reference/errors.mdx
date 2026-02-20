@@ -1,0 +1,178 @@
+---
+title: Errors
+description: All errors extend ButtplugError.
+---
+
+Every error thrown by the library extends `ButtplugError`, which itself extends the native `Error`. All error classes accept an optional `cause` parameter for error chaining.
+
+```ts
+import {
+  ButtplugError,
+  ConnectionError,
+  HandshakeError,
+  ProtocolError,
+  DeviceError,
+  TimeoutError,
+} from "@zendrex/buttplug.js";
+```
+
+## Error Hierarchy
+
+| Class | Extends | Additional Properties | Thrown When |
+| --- | --- | --- | --- |
+| `ButtplugError` | `Error` | -- | Base class for all library errors |
+| `ConnectionError` | `ButtplugError` | -- | WebSocket or transport connection fails |
+| `HandshakeError` | `ButtplugError` | -- | Protocol handshake with the server fails |
+| `ProtocolError` | `ButtplugError` | `code: ErrorCode` | Server returns a protocol-level error |
+| `DeviceError` | `ButtplugError` | `deviceIndex: number` | Device-specific operation fails |
+| `TimeoutError` | `ButtplugError` | `operation: string`, `timeoutMs: number` | Operation exceeds its allowed duration |
+
+## ButtplugError
+
+Base error class for all Buttplug-related failures.
+
+```ts
+class ButtplugError extends Error {
+  constructor(message: string, cause?: Error)
+}
+```
+
+## ConnectionError
+
+Thrown when a WebSocket or transport connection fails. Also thrown when calling methods that require an active connection (e.g. `startScanning()`) while disconnected.
+
+```ts
+class ConnectionError extends ButtplugError {
+  constructor(message: string, cause?: Error)
+}
+```
+
+## HandshakeError
+
+Thrown when the initial protocol handshake with the server fails (e.g. incompatible protocol version, server rejection).
+
+```ts
+class HandshakeError extends ButtplugError {
+  constructor(message: string, cause?: Error)
+}
+```
+
+## ProtocolError
+
+Thrown when the server returns a protocol-level error message. Contains the numeric error code from the server.
+
+```ts
+class ProtocolError extends ButtplugError {
+  readonly code: ErrorCode;
+  constructor(code: ErrorCode, message: string, cause?: Error)
+}
+```
+
+## DeviceError
+
+Thrown when a device-specific operation fails (unsupported feature, invalid index, etc.).
+
+```ts
+class DeviceError extends ButtplugError {
+  readonly deviceIndex: number;
+  constructor(deviceIndex: number, message: string, cause?: Error)
+}
+```
+
+## TimeoutError
+
+Thrown when an operation exceeds its allowed duration. The auto-generated message includes the operation name and timeout value.
+
+```ts
+class TimeoutError extends ButtplugError {
+  readonly operation: string;
+  readonly timeoutMs: number;
+  constructor(operation: string, timeoutMs: number, cause?: Error)
+}
+```
+
+## ErrorCode
+
+Numeric error codes returned by the Buttplug protocol, available as a constant object:
+
+```ts
+const ErrorCode = {
+  UNKNOWN: 0,
+  INIT: 1,
+  PING: 2,
+  MESSAGE: 3,
+  DEVICE: 4,
+} as const;
+```
+
+| Code | Value | Description |
+| --- | --- | --- |
+| `UNKNOWN` | `0` | Unknown or unclassified error |
+| `INIT` | `1` | Initialization or handshake error |
+| `PING` | `2` | Ping timeout -- server will halt devices |
+| `MESSAGE` | `3` | Malformed or invalid message |
+| `DEVICE` | `4` | Device-specific protocol error |
+
+## formatError
+
+Utility function that normalizes an unknown thrown value into a human-readable string.
+
+```ts
+function formatError(err: unknown): string
+```
+
+Returns `err.message` for `Error` instances, `String(err)` otherwise.
+
+```ts
+import { formatError } from "@zendrex/buttplug.js";
+
+try {
+  await client.connect();
+} catch (err) {
+  console.error(formatError(err));
+}
+```
+
+## Handling Errors
+
+Use `instanceof` to discriminate between error types:
+
+```ts
+import {
+  ButtplugError,
+  ConnectionError,
+  DeviceError,
+  ProtocolError,
+} from "@zendrex/buttplug.js";
+
+try {
+  await client.connect();
+  await client.startScanning();
+} catch (err) {
+  if (err instanceof ConnectionError) {
+    console.error("Connection failed:", err.message);
+  } else if (err instanceof ProtocolError) {
+    console.error(`Protocol error [${err.code}]:`, err.message);
+  } else if (err instanceof DeviceError) {
+    console.error(`Device ${err.deviceIndex}:`, err.message);
+  } else if (err instanceof ButtplugError) {
+    console.error("Buttplug error:", err.message);
+  } else {
+    throw err;
+  }
+}
+```
+
+The `error` event on [ButtplugClient](/docs/reference/buttplug-client) emits transport and protocol errors that occur outside of direct method calls:
+
+```ts
+client.on("error", ({ error }) => {
+  console.error("Client error:", error.message);
+});
+```
+
+## Related
+
+- [Error Handling](/docs/guide/error-handling) -- error handling patterns and best practices
+- [ButtplugClient](/docs/reference/buttplug-client) -- client API reference
+- [Constants](/docs/reference/constants) -- ErrorCode constant values

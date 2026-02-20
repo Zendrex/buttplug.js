@@ -1,0 +1,12 @@
+{
+	"title": "Reference",
+	"root": true,
+	"pages": [
+		"buttplug-client",
+		"device",
+		"pattern-engine",
+		"types",
+		"errors",
+		"constants"
+	]
+}

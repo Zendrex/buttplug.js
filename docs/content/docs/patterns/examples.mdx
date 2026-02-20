@@ -1,0 +1,111 @@
+---
+title: Examples
+description: Complete real-world pattern recipes.
+---
+
+## Timed Vibration
+
+Play a preset for a fixed duration, then stop. The `timeout` option handles cleanup automatically.
+
+```ts
+const id = await engine.play(device, "wave", {
+  intensity: 0.8,
+  timeout: 5000,
+  onStop: (patternId, reason) => {
+    console.log(`Pattern ${patternId} stopped: ${reason}`);
+  },
+});
+// Pattern auto-stops after 5 seconds with reason "timeout"
+```
+
+## Multi-Motor Pattern
+
+Drive two vibration motors at different intensities using separate [custom tracks](/docs/patterns/custom-tracks). Motor 0 ramps up while motor 1 pulses.
+
+```ts
+await engine.play(device, [
+  {
+    featureIndex: 0,
+    keyframes: [
+      { value: 0.2, duration: 0 },
+      { value: 1, duration: 3000, easing: "easeIn" },
+    ],
+  },
+  {
+    featureIndex: 1,
+    keyframes: [
+      { value: 0, duration: 0 },
+      { value: 0.6, duration: 500 },
+      { value: 0, duration: 500 },
+    ],
+  },
+], { loop: true });
+```
+
+## Position Stroking with Custom Speed
+
+Build a position stroke pattern with asymmetric timing -- slow extend, fast retract.
+
+```ts
+await engine.play(device, [
+  {
+    featureIndex: 0,
+    outputType: "Position",
+    keyframes: [
+      { value: 0, duration: 0 },
+      { value: 1, duration: 1500, easing: "easeInOut" },
+      { value: 0, duration: 600, easing: "easeIn" },
+    ],
+  },
+], { loop: true });
+```
+
+## Pattern Lifecycle Callbacks
+
+Use `onComplete` and `onStop` to react to pattern state changes. `onComplete` fires only when all loops finish naturally. `onStop` fires for every stop regardless of reason.
+
+```ts
+const id = await engine.play(device, "surge", {
+  loop: 3,
+  onComplete: (patternId) => {
+    console.log(`Completed all cycles: ${patternId}`);
+  },
+  onStop: (patternId, reason) => {
+    console.log(`Stopped (${reason}): ${patternId}`);
+    // reason: "complete" | "manual" | "timeout" | "error"
+    //       | "disconnect" | "deviceRemoved"
+  },
+});
+```
+
+<Callout type="warn">
+`onComplete` fires **before** `onStop`. When a pattern completes naturally, both callbacks fire in sequence -- first `onComplete`, then `onStop` with reason `"complete"`.
+</Callout>
+
+## Dynamic Pattern Switching
+
+Starting a new pattern on a device automatically stops any existing pattern on that device. There is no need to call `stop()` first.
+
+```ts
+// Start with a gentle wave
+await engine.play(device, "wave", { intensity: 0.3 });
+
+// Switch to intense pulse -- previous pattern auto-stops
+await engine.play(device, "pulse", { intensity: 1.0 });
+
+// Switch to a custom pattern
+await engine.play(device, [
+  {
+    featureIndex: 0,
+    keyframes: [
+      { value: 0, duration: 0 },
+      { value: 1, duration: 200 },
+      { value: 0.5, duration: 100 },
+      { value: 1, duration: 200 },
+      { value: 0, duration: 500 },
+    ],
+  },
+], { loop: true });
+```
+
+For the full options API, see the [`PatternEngine` reference](/docs/reference/pattern-engine).

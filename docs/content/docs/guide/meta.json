@@ -1,0 +1,14 @@
+{
+	"title": "Guide",
+	"root": true,
+	"pages": [
+		"index",
+		"getting-started",
+		"connecting",
+		"devices",
+		"commands",
+		"sensors",
+		"events",
+		"error-handling"
+	]
+}

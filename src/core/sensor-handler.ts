@@ -49,6 +49,7 @@ export class SensorHandler {
 	 * @param key - Composite sensor key from {@link sensorKey}
 	 * @param callback - Function invoked with the sensor value on each reading
 	 * @param info - Device index, feature index, and input type for the sensor
+	 * @throws {Error} if a subscription already exists for the given key
 	 */
 	register(
 		key: string,

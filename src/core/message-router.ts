@@ -52,11 +52,7 @@ export class MessageRouter {
 		this.#onError = options.onError;
 	}
 
-	/**
-	 * Returns the next message ID, wrapping around at {@link MAX_MESSAGE_ID}.
-	 *
-	 * @returns A monotonically increasing ID for use in outgoing messages
-	 */
+	/** Returns the next auto-incrementing message ID. */
 	nextId(): number {
 		this.#messageId = (this.#messageId % MAX_MESSAGE_ID) + 1;
 		return this.#messageId;
@@ -86,6 +82,15 @@ export class MessageRouter {
 					this.#pending.delete(id);
 					reject(new TimeoutError(`Request (ID ${id})`, this.#timeout));
 				}, this.#timeout);
+
+				// Reject any existing request at this ID so its promise settles
+				const existing = this.#pending.get(id);
+				if (existing) {
+					if (existing.timeout !== null) {
+						clearTimeout(existing.timeout);
+					}
+					existing.reject(new ProtocolError(ErrorCode.MESSAGE, `Request ${id} superseded by new request`));
+				}
 
 				this.#pending.set(id, {
 					resolve,

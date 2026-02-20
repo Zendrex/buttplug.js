@@ -19,8 +19,8 @@ import {
 } from "./builders/commands";
 import { getInputsByType, getOutputsByType, hasOutputType, parseFeatures } from "./builders/features";
 import { validateRange } from "./builders/validation";
-import { getLogger } from "./lib/context";
 import { DeviceError } from "./lib/errors";
+import { noopLogger } from "./lib/logger";
 import { sensorKey } from "./protocol/types";
 
 /**
@@ -40,8 +40,8 @@ export class Device {
 	constructor(options: DeviceOptions) {
 		this.#client = options.client;
 		this.#raw = options.raw;
-		this.#logger = (options.logger ?? getLogger()).child("device");
-		this.#features = parseFeatures(options.raw);
+		this.#logger = (options.logger ?? noopLogger).child("device");
+		this.#features = parseFeatures(options.raw, this.#logger);
 	}
 
 	/**
@@ -319,6 +319,7 @@ export class Device {
 	 *
 	 * @param type - The sensor type to unsubscribe from
 	 * @param sensorIndex - Index of the sensor if the device has multiple of the same type
+	 * @throws {DeviceError} if the sensor does not exist at the given index
 	 */
 	async unsubscribe(type: InputType, sensorIndex = 0): Promise<void> {
 		const features = getInputsByType(this.#features, type);

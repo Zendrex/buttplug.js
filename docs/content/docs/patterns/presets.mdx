@@ -1,0 +1,56 @@
+---
+title: Presets
+description: 7 built-in patterns ready to use.
+---
+
+```ts
+await engine.play(device, "wave");
+```
+
+Play any preset by passing its name as the second argument to `engine.play()`. All motor-type presets (vibrate, rotate, oscillate, constrict) share the same compatible output types. The `stroke` preset targets position-based devices.
+
+| Name | Description | Loops | Output Types |
+|------|-------------|-------|--------------|
+| `pulse` | Square wave on/off cycle | yes | Vibrate, Rotate, RotateWithDirection, Oscillate, Constrict |
+| `wave` | Smooth sine wave oscillation with `easeInOut` curves | yes | same motor types |
+| `ramp_up` | Gradual cubic acceleration to maximum over 3s | no | same motor types |
+| `ramp_down` | Gradual cubic deceleration to zero over 3s | no | same motor types |
+| `heartbeat` | Ba-bump rhythm: sharp peak, dip, secondary peak, rest | yes | same motor types |
+| `surge` | Build over 2.5s, hold 1s at peak, release over 1.5s | no | same motor types |
+| `stroke` | Full-range position strokes with `easeInOut` curves | yes | Position, HwPositionWithDuration |
+
+Presets that loop (`pulse`, `wave`, `heartbeat`, `stroke`) repeat indefinitely by default. Non-looping presets (`ramp_up`, `ramp_down`, `surge`) play once and fire the `onComplete` callback when finished.
+
+Motor-type presets work on any device with vibration, rotation, oscillation, or constriction features. The engine automatically resolves preset tracks to compatible features on the target device. If a device has no compatible features, `play()` throws a `DeviceError`.
+
+## Customizing Presets
+
+Override `intensity`, `speed`, and `loop` through the options parameter. Intensity scales all keyframe values (0-1). Speed multiplies the playback rate (0.25x to 4x). Loop overrides the preset's default behavior.
+
+```ts
+await engine.play(device, "wave", {
+  intensity: 0.5,  // half intensity
+  speed: 2,        // double speed
+  loop: 3,         // play exactly 3 cycles
+});
+```
+
+Pass `loop: false` to force a single cycle on a preset that normally loops. Pass `loop: true` to make a non-looping preset repeat indefinitely.
+
+<Callout type="warn">
+The `speed` option only applies when using preset names. For [custom tracks](/docs/patterns/custom-tracks), adjust keyframe durations directly.
+</Callout>
+
+## Discovering Presets at Runtime
+
+Call `listPresets()` to retrieve metadata for all built-in presets, including compatible output types and default loop behavior.
+
+```ts
+for (const preset of engine.listPresets()) {
+  console.log(preset.name, preset.description);
+  console.log("  loops:", preset.defaultLoop);
+  console.log("  types:", preset.compatibleOutputTypes);
+}
+```
+
+This is useful for building dynamic UIs where available presets are rendered from engine data rather than hardcoded. The returned `PresetInfo` objects include `name`, `description`, `compatibleOutputTypes`, and `defaultLoop` fields. See the [`PatternEngine` reference](/docs/reference/pattern-engine) for type details.

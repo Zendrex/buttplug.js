@@ -1,5 +1,6 @@
 import type { ClientMessage, InputCommandType, InputType, OutputCommand } from "./schema";
 
+import { ErrorCode, ProtocolError } from "../lib/errors";
 import { PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR } from "./constants";
 
 /**
@@ -7,7 +8,6 @@ import { PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR } from "./constants";
  *
  * @param id - Unique message identifier for request/response correlation
  * @param clientName - Human-readable name identifying this client to the server
- * @returns A validated RequestServerInfo client message
  */
 export function createRequestServerInfo(id: number, clientName: string): ClientMessage {
 	return {
@@ -20,60 +20,35 @@ export function createRequestServerInfo(id: number, clientName: string): ClientM
 	};
 }
 
-/**
- * Creates a {@link ClientMessage} to begin scanning for devices.
- *
- * @param id - Unique message identifier for request/response correlation
- * @returns A validated StartScanning client message
- */
+/** Creates a StartScanning {@link ClientMessage}. */
 export function createStartScanning(id: number): ClientMessage {
 	return {
 		StartScanning: { Id: id },
 	};
 }
 
-/**
- * Creates a {@link ClientMessage} to stop an ongoing device scan.
- *
- * @param id - Unique message identifier for request/response correlation
- * @returns A validated StopScanning client message
- */
+/** Creates a StopScanning {@link ClientMessage}. */
 export function createStopScanning(id: number): ClientMessage {
 	return {
 		StopScanning: { Id: id },
 	};
 }
 
-/**
- * Creates a {@link ClientMessage} to request the current list of connected devices.
- *
- * @param id - Unique message identifier for request/response correlation
- * @returns A validated RequestDeviceList client message
- */
+/** Creates a RequestDeviceList {@link ClientMessage}. */
 export function createRequestDeviceList(id: number): ClientMessage {
 	return {
 		RequestDeviceList: { Id: id },
 	};
 }
 
-/**
- * Creates a {@link ClientMessage} to send a keep-alive ping to the server.
- *
- * @param id - Unique message identifier for request/response correlation
- * @returns A validated Ping client message
- */
+/** Creates a Ping {@link ClientMessage}. */
 export function createPing(id: number): ClientMessage {
 	return {
 		Ping: { Id: id },
 	};
 }
 
-/**
- * Creates a {@link ClientMessage} to gracefully disconnect from the server.
- *
- * @param id - Unique message identifier for request/response correlation
- * @returns A validated Disconnect client message
- */
+/** Creates a Disconnect {@link ClientMessage}. */
 export function createDisconnect(id: number): ClientMessage {
 	return {
 		Disconnect: { Id: id },
@@ -88,7 +63,6 @@ export function createDisconnect(id: number): ClientMessage {
  *
  * @param id - Unique message identifier for request/response correlation
  * @param options - Optional targeting filters for the stop command
- * @returns A validated StopCmd client message
  */
 export function createStopCmd(
 	id: number,
@@ -100,7 +74,7 @@ export function createStopCmd(
 	}
 ): ClientMessage {
 	if (options?.featureIndex !== undefined && options.deviceIndex === undefined) {
-		throw new Error("StopCmd: featureIndex requires deviceIndex to be set");
+		throw new ProtocolError(ErrorCode.MESSAGE, "StopCmd: featureIndex requires deviceIndex to be set");
 	}
 
 	return {
@@ -117,8 +91,7 @@ export function createStopCmd(
 /**
  * Creates a {@link ClientMessage} to send an output command to a device feature.
  *
- * @param options - Output command parameters including device/feature targeting and the command payload
- * @returns A validated OutputCmd client message
+ * @param options - Device/feature targeting and the command payload
  */
 export function createOutputCmd(options: {
 	id: number;
@@ -139,8 +112,7 @@ export function createOutputCmd(options: {
 /**
  * Creates a {@link ClientMessage} to send an input command (read/subscribe/unsubscribe) to a device sensor.
  *
- * @param options - Input command parameters including device/feature targeting, sensor type, and command
- * @returns A validated InputCmd client message
+ * @param options - Device/feature targeting, sensor type, and command
  */
 export function createInputCmd(options: {
 	id: number;
@@ -165,20 +137,12 @@ export function createInputCmd(options: {
  *
  * The Buttplug protocol requires messages to be sent as JSON arrays,
  * even when sending a single message.
- *
- * @param message - The client message to serialize
- * @returns JSON string containing a single-element array
  */
 export function serializeMessage(message: ClientMessage): string {
 	return JSON.stringify([message]);
 }
 
-/**
- * Serializes multiple {@link ClientMessage} instances into a JSON array string.
- *
- * @param messages - Array of client messages to serialize
- * @returns JSON string containing the message array
- */
+/** Serializes multiple {@link ClientMessage} instances into a JSON array string. */
 export function serializeMessages(messages: ClientMessage[]): string {
 	return JSON.stringify(messages);
 }

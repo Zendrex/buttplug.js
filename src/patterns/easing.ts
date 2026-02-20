@@ -1,5 +1,6 @@
 import type { Easing } from "./types";
 
+/** Union of supported easing curve names, re-exported from {@link Easing}. */
 export type EasingName = Easing;
 
 /** A function that maps a normalized time value (0-1) to an eased output value. */

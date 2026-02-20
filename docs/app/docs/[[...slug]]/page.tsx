@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page";
 import { createRelativeLink } from "fumadocs-ui/mdx";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { CopyMarkdownButton } from "@/components/copy-markdown-button";
 import { source } from "@/lib/source";
@@ -10,11 +10,9 @@ import { getMDXComponents } from "@/mdx-components";
 
 export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
 	const params = await props.params;
-	if (!params.slug || params.slug.length === 0) {
-		redirect("/docs/client");
-	}
+	const slug = params.slug ?? [];
 
-	const page = source.getPage(params.slug);
+	const page = source.getPage(slug);
 	if (!page) {
 		notFound();
 	}

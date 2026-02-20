@@ -210,11 +210,6 @@ export interface PatternPlayOptions {
 }
 
 /**
- * @deprecated Use {@link PatternPlayOptions} instead.
- */
-export type PlayOptions = PatternPlayOptions;
-
-/**
  * Read-only snapshot of a running pattern, returned by {@link PatternEngine.list}.
  */
 export interface PatternInfo {

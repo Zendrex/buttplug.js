@@ -1,0 +1,149 @@
+---
+title: Constants
+description: Exported constant values.
+---
+
+All constants are exported from the package root:
+
+```ts
+import {
+  OUTPUT_TYPES,
+  INPUT_TYPES,
+  EASING_VALUES,
+  PRESET_NAMES,
+  ErrorCode,
+} from "@zendrex/buttplug.js";
+```
+
+## OUTPUT_TYPES
+
+All output actuator types defined by the Buttplug v4 protocol. Typed as `readonly OutputType[]`.
+
+```ts
+const OUTPUT_TYPES = [
+  "Vibrate",
+  "Rotate",
+  "RotateWithDirection",
+  "Oscillate",
+  "Constrict",
+  "Spray",
+  "Temperature",
+  "Led",
+  "Position",
+  "HwPositionWithDuration",
+] as const;
+```
+
+| Value | Description |
+| --- | --- |
+| `"Vibrate"` | Vibration motor control |
+| `"Rotate"` | Rotation motor (speed only) |
+| `"RotateWithDirection"` | Rotation motor with clockwise/counter-clockwise direction |
+| `"Oscillate"` | Oscillation motor control |
+| `"Constrict"` | Constriction pressure actuator |
+| `"Spray"` | Spray mechanism |
+| `"Temperature"` | Temperature control (signed values: positive = heat, negative = cool) |
+| `"Led"` | LED brightness control |
+| `"Position"` | Linear position actuator |
+| `"HwPositionWithDuration"` | Position actuator with timed movement duration |
+
+## INPUT_TYPES
+
+All input sensor types defined by the Buttplug v4 protocol. Typed as `readonly InputType[]`.
+
+```ts
+const INPUT_TYPES = [
+  "Battery",
+  "RSSI",
+  "Pressure",
+  "Button",
+  "Position",
+] as const;
+```
+
+| Value | Description |
+| --- | --- |
+| `"Battery"` | Battery level percentage |
+| `"RSSI"` | Bluetooth signal strength |
+| `"Pressure"` | Pressure sensor reading |
+| `"Button"` | Physical button state |
+| `"Position"` | Position sensor reading |
+
+## EASING_VALUES
+
+All easing curve identifiers used for keyframe interpolation. Typed as `readonly Easing[]`.
+
+```ts
+const EASING_VALUES = [
+  "linear",
+  "easeIn",
+  "easeOut",
+  "easeInOut",
+  "step",
+] as const;
+```
+
+| Value | Description |
+| --- | --- |
+| `"linear"` | Constant velocity interpolation |
+| `"easeIn"` | Starts slow, accelerates |
+| `"easeOut"` | Starts fast, decelerates |
+| `"easeInOut"` | Slow start and end, fast middle |
+| `"step"` | Instant jump to target value (no interpolation) |
+
+## PRESET_NAMES
+
+All available built-in pattern preset names. Typed as `readonly PresetName[]`.
+
+```ts
+const PRESET_NAMES = [
+  "pulse",
+  "wave",
+  "ramp_up",
+  "ramp_down",
+  "heartbeat",
+  "surge",
+  "stroke",
+] as const;
+```
+
+| Name | Description | Default Loop | Compatible With |
+| --- | --- | --- | --- |
+| `"pulse"` | Square wave on/off | Yes | Vibrate, Rotate, RotateWithDirection, Oscillate, Constrict |
+| `"wave"` | Smooth sine wave oscillation | Yes | Vibrate, Rotate, RotateWithDirection, Oscillate, Constrict |
+| `"ramp_up"` | Gradual increase to maximum | No | Vibrate, Rotate, RotateWithDirection, Oscillate, Constrict |
+| `"ramp_down"` | Gradual decrease to zero | No | Vibrate, Rotate, RotateWithDirection, Oscillate, Constrict |
+| `"heartbeat"` | Ba-bump heartbeat rhythm | Yes | Vibrate, Rotate, RotateWithDirection, Oscillate, Constrict |
+| `"surge"` | Build to peak then release | No | Vibrate, Rotate, RotateWithDirection, Oscillate, Constrict |
+| `"stroke"` | Full-range position strokes | Yes | Position, HwPositionWithDuration |
+
+## ErrorCode
+
+Numeric error codes returned by the Buttplug protocol.
+
+```ts
+const ErrorCode = {
+  UNKNOWN: 0,
+  INIT: 1,
+  PING: 2,
+  MESSAGE: 3,
+  DEVICE: 4,
+} as const;
+```
+
+| Key | Value | Description |
+| --- | --- | --- |
+| `UNKNOWN` | `0` | Unknown or unclassified error |
+| `INIT` | `1` | Initialization or handshake error |
+| `PING` | `2` | Ping timeout -- server will halt devices |
+| `MESSAGE` | `3` | Malformed or invalid message |
+| `DEVICE` | `4` | Device-specific protocol error |
+
+See [Errors](/docs/reference/errors) for the error classes that use these codes.
+
+## Related
+
+- [Types](/docs/reference/types) -- OutputType, InputType, Easing type aliases
+- [PatternEngine](/docs/reference/pattern-engine) -- uses presets and easing values
+- [Errors](/docs/reference/errors) -- ErrorCode usage in ProtocolError
+- [Presets](/docs/patterns/presets) -- preset pattern details and examples
