@@ -1,0 +1,240 @@
+---
+title: ButtplugClient
+description: High-level client for communicating with a Buttplug server over WebSocket.
+---
+
+The `ButtplugClient` class manages the full connection lifecycle: WebSocket transport, protocol handshake, device discovery, ping keep-alive, sensor subscriptions, and optional automatic reconnection.
+
+```ts
+import { ButtplugClient } from "@zendrex/buttplug.js";
+
+const client = new ButtplugClient("ws://localhost:12345");
+await client.connect();
+```
+
+## Constructor
+
+```ts
+new ButtplugClient(url: string, options?: ButtplugClientOptions)
+```
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `url` | `string` | WebSocket URL of the Buttplug server |
+| `options` | `ButtplugClientOptions` | Optional configuration |
+
+### ButtplugClientOptions
+
+<AutoTypeTable path="../src/types.ts" name="ButtplugClientOptions" />
+
+## Properties
+
+### connected
+
+```ts
+get connected(): boolean
+```
+
+Whether the WebSocket transport is currently connected.
+
+### scanning
+
+```ts
+get scanning(): boolean
+```
+
+Whether a device scan is currently in progress.
+
+### serverInfo
+
+```ts
+get serverInfo(): ServerInfo | null
+```
+
+Server information received during handshake, or `null` if not connected. See [ServerInfo](/docs/reference/types#serverinfo) for the shape.
+
+### devices
+
+```ts
+get devices(): Device[]
+```
+
+Snapshot of all currently known [Device](/docs/reference/device) instances.
+
+## Methods
+
+### connect
+
+```ts
+connect(): Promise<void>
+```
+
+Opens a WebSocket connection and performs the Buttplug protocol handshake.
+
+If already connected, returns immediately. If a connection attempt is in progress, returns the existing promise.
+
+**Throws:** `ConnectionError` if the transport fails to connect.
+**Throws:** `HandshakeError` if the server rejects the handshake.
+
+```ts
+const client = new ButtplugClient("ws://localhost:12345");
+await client.connect();
+console.log(client.serverInfo);
+```
+
+### disconnect
+
+```ts
+disconnect(reason?: string): Promise<void>
+```
+
+Gracefully disconnects from the server. Stops all devices, sends a protocol-level disconnect message, then closes the WebSocket. Both stop and disconnect steps are time-bounded so the method does not hang indefinitely.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `reason` | `string` | Optional human-readable reason for the disconnection |
+
+```ts
+await client.disconnect("User requested shutdown");
+```
+
+### startScanning
+
+```ts
+startScanning(): Promise<void>
+```
+
+Begins scanning for devices on the server. Discovered devices emit `deviceAdded` events.
+
+**Throws:** `ConnectionError` if the client is not connected.
+
+```ts
+await client.startScanning();
+// Listen for devices via client.on("deviceAdded", ...)
+```
+
+### stopScanning
+
+```ts
+stopScanning(): Promise<void>
+```
+
+Stops an active device scan on the server.
+
+**Throws:** `ConnectionError` if the client is not connected.
+
+### stopAll
+
+```ts
+stopAll(): Promise<void>
+```
+
+Sends a global stop command to halt all devices on the server.
+
+**Throws:** `ConnectionError` if the client is not connected.
+
+### requestDeviceList
+
+```ts
+requestDeviceList(): Promise<void>
+```
+
+Requests the current device list from the server. Triggers device reconciliation and emits `deviceAdded`, `deviceRemoved`, `deviceUpdated`, and `deviceList` events as needed.
+
+**Throws:** `ConnectionError` if the client is not connected.
+
+### send
+
+```ts
+send(messages: ClientMessage | ClientMessage[]): Promise<ServerMessage[]>
+```
+
+Sends one or more raw protocol messages to the server.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `messages` | `ClientMessage \| ClientMessage[]` | A single message or array of messages to send |
+
+**Returns:** Server response messages.
+**Throws:** `ConnectionError` if the client is not connected.
+
+### nextId
+
+```ts
+nextId(): number
+```
+
+Returns the next monotonically increasing message ID for outgoing protocol messages.
+
+### getDevice
+
+```ts
+getDevice(index: number): Device | undefined
+```
+
+Retrieves a device by its server-assigned index.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `index` | `number` | The device index |
+
+**Returns:** The [Device](/docs/reference/device) instance, or `undefined` if not found.
+
+### dispose
+
+```ts
+dispose(): void
+```
+
+Disposes the client, clearing all event listeners and internal state. Call `disconnect()` first if still connected. Subsequent usage of the client after disposal is undefined behavior.
+
+## Events
+
+`ButtplugClient` extends `Emittery<ClientEventMap>`. Subscribe with `on()`, `once()`, or `events()`.
+
+<AutoTypeTable path="../src/types.ts" name="ClientEventMap" />
+
+### Listening for events
+
+```ts
+client.on("deviceAdded", ({ device }) => {
+  console.log(`Found: ${device.name}`);
+});
+
+client.on("disconnected", ({ reason }) => {
+  console.log(`Disconnected: ${reason}`);
+});
+
+client.on("error", ({ error }) => {
+  console.error(error);
+});
+```
+
+### Reconnection events
+
+When `autoReconnect` is enabled, the client emits `reconnecting` on each attempt and `reconnected` after a successful re-handshake:
+
+```ts
+const client = new ButtplugClient("ws://localhost:12345", {
+  autoReconnect: true,
+  reconnectDelay: 1000,
+  maxReconnectAttempts: 10,
+});
+
+client.on("reconnecting", ({ attempt }) => {
+  console.log(`Reconnect attempt ${attempt}...`);
+});
+
+client.on("reconnected", () => {
+  console.log("Reconnected");
+});
+```
+
+## Related
+
+- [Getting Started](/docs/guide/getting-started) -- installation and first connection
+- [Connecting](/docs/guide/connecting) -- connection lifecycle and reconnection
+- [Events](/docs/guide/events) -- event handling patterns
+- [Device](/docs/reference/device) -- controlling individual devices
+- [Types](/docs/reference/types) -- all exported types
+- [Errors](/docs/reference/errors) -- error hierarchy

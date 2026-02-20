@@ -1,0 +1,85 @@
+---
+title: Commands
+description: Control device outputs — vibration, rotation, position, and more
+---
+
+```ts
+await device.vibrate(0.5);
+```
+
+All output commands on a [`Device`](/docs/reference/device) are async and accept values in the `0.0` to `1.0` range (except position durations, which are in milliseconds). Commands throw a `DeviceError` if the device lacks the required capability.
+
+## Scalar Commands
+
+The scalar commands -- `vibrate()`, `oscillate()`, `constrict()`, `spray()`, `temperature()`, and `led()` -- share the same signature. Pass a single `number` to set all motors/actuators uniformly, or a `FeatureValue[]` to address each one individually.
+
+```ts
+// All motors at 75%
+await device.vibrate(0.75);
+
+// Per-motor control: motor 0 at 50%, motor 1 at 100%
+await device.vibrate([
+  { index: 0, value: 0.5 },
+  { index: 1, value: 1.0 },
+]);
+```
+
+Each scalar type maps to an output type: `vibrate()` sends `Vibrate`, `oscillate()` sends `Oscillate`, and so on. Check support with `device.canOutput("Vibrate")` before calling.
+
+## Rotation
+
+`rotate()` has two overloads. The simple form takes a speed and an optional direction. The array form addresses each motor independently with a `RotationValue[]`.
+
+```ts
+// All motors at 60%, clockwise (default)
+await device.rotate(0.6);
+
+// Counterclockwise
+await device.rotate(0.6, { clockwise: false });
+
+// Per-motor: different speeds and directions
+await device.rotate([
+  { index: 0, speed: 0.5, clockwise: true },
+  { index: 1, speed: 0.8, clockwise: false },
+]);
+```
+
+The client automatically selects `RotateWithDirection` when the device supports it, falling back to `Rotate` otherwise. Use `device.canRotate` to check support.
+
+## Position
+
+`position()` moves linear axes to a target position over a specified duration. The `duration` parameter is **required** for the uniform overload and is specified in milliseconds.
+
+```ts
+// All axes to 80% over 500ms
+await device.position(0.8, { duration: 500 });
+
+// Per-axis control
+await device.position([
+  { index: 0, position: 1.0, duration: 300 },
+  { index: 1, position: 0.2, duration: 600 },
+]);
+```
+
+The client selects `HwPositionWithDuration` when available, falling back to `Position`. Use `device.canPosition` to check support.
+
+## Stopping
+
+Stop a single device or all devices at once:
+
+```ts
+// Stop everything on one device
+await device.stop();
+
+// Stop only outputs (keep sensor subscriptions)
+await device.stop({ outputs: true });
+
+// Stop all devices globally
+await client.stopAll();
+```
+
+`device.stop()` without options halts all features. Pass `DeviceStopOptions` to target a specific feature index or filter by inputs/outputs.
+
+<Callout type="warn">
+  Devices report a `messageTimingGap` -- the minimum interval between commands. Sending commands faster than this interval may cause the server to drop messages. The client logs a warning when this happens but does not throttle automatically.
+</Callout>

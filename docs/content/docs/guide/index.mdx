@@ -1,0 +1,44 @@
+---
+title: Introduction
+description: Modern TypeScript client for the Buttplug protocol v4
+---
+
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+**buttplug.js** is a type-safe TypeScript client for the [Buttplug Intimacy Protocol](https://buttplug.io) v4. It connects to a Buttplug server over WebSocket, discovers devices, and controls them through a high-level API.
+
+```ts
+import { ButtplugClient } from "@zendrex/buttplug.js";
+
+const client = new ButtplugClient("ws://localhost:12345");
+
+client.on("deviceAdded", ({ device }) => {
+  device.vibrate(0.5);
+});
+
+await client.connect();
+await client.startScanning();
+```
+
+## Features
+
+- **Protocol v4** -- 10 output types and 5 sensor input types: vibration, rotation, position, oscillation, constriction, and more
+- **Type-safe API** -- Full TypeScript types with Zod schema validation for autocomplete and compile-time safety
+- **Pattern Engine** -- Keyframe-based pattern playback with built-in presets, custom tracks, easing curves, and loop control
+- **Auto-reconnect** -- Configurable reconnection with exponential backoff, attempt limits, and lifecycle events
+- **Ping Keep-alive** -- Automatic ping management with configurable intervals to maintain server connections
+- **Runtime Agnostic** -- Works in any JavaScript runtime with WebSocket support
+
+## Prerequisites
+
+**[Intiface Central](https://intiface.com/central/)** acts as the Buttplug server. Install and start it before connecting from your application. The default WebSocket address is `ws://localhost:12345`.
+
+Any JavaScript runtime with WebSocket support works: Node.js 18+, Bun, Deno, or modern browsers. The library has zero native dependencies.
+
+## Next Steps
+
+<Cards>
+  <Card title="Getting Started" description="Install, connect, and control your first device" href="/docs/guide/getting-started" />
+  <Card title="Devices" description="Discover devices and inspect their capabilities" href="/docs/guide/devices" />
+  <Card title="Commands" description="Vibrate, rotate, position, and more" href="/docs/guide/commands" />
+</Cards>

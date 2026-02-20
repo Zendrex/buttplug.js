@@ -1,7 +1,9 @@
-import path from "node:path";
-
 import { defineConfig, defineDocs } from "fumadocs-mdx/config";
-import { remarkAutoTypeTable } from "fumadocs-typescript";
+import { createFileSystemGeneratorCache, createGenerator, remarkAutoTypeTable } from "fumadocs-typescript";
+
+const generator = createGenerator({
+	cache: createFileSystemGeneratorCache(".next/fumadocs-typescript"),
+});
 
 export const docs = defineDocs({
 	dir: "content/docs",
@@ -14,15 +16,6 @@ export const docs = defineDocs({
 
 export default defineConfig({
 	mdxOptions: {
-		remarkPlugins: [
-			[
-				remarkAutoTypeTable,
-				{
-					options: {
-						basePath: path.resolve(".."),
-					},
-				},
-			],
-		],
+		remarkPlugins: [[remarkAutoTypeTable, { generator }]],
 	},
 });

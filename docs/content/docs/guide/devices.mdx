@@ -1,0 +1,73 @@
+---
+title: Devices
+description: Discover devices, inspect properties, and check capabilities
+---
+
+```ts
+client.on("deviceAdded", ({ device }) => {
+  console.log(device.name, device.displayName);
+  console.log("Features:", device.features);
+});
+
+await client.startScanning();
+```
+
+Devices are represented by [`Device`](/docs/reference/device) instances, created internally by the client when the server reports new hardware. You never construct a `Device` directly -- they arrive through events and the `client.devices` getter.
+
+## Discovery
+
+Call `startScanning()` to begin device discovery on the server. The server scans all configured protocols (Bluetooth, serial, HID, etc.) and reports each device via the `deviceAdded` event. Scanning continues until you call `stopScanning()` or the server emits `scanningFinished`.
+
+```ts
+await client.startScanning();
+
+client.on("scanningFinished", () => {
+  console.log("Scan complete");
+});
+
+// Stop manually if needed
+await client.stopScanning();
+```
+
+Devices persist across scans. A device only triggers `deviceAdded` once. If the device disconnects, a `deviceRemoved` event fires. If the server updates a device's metadata, `deviceUpdated` fires with both the new and previous `Device` instances.
+
+You can also request the current device list at any time with `client.requestDeviceList()`. This reconciles local state with the server and emits the appropriate add/remove/update events.
+
+## Device Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `index` | `number` | Server-assigned identifier, stable for the session |
+| `name` | `string` | Internal firmware name |
+| `displayName` | `string \| null` | User-facing name from the server, or `null` |
+| `messageTimingGap` | `number` | Minimum interval (ms) between commands recommended by the server |
+| `features` | `DeviceFeatures` | Parsed input and output feature descriptors |
+
+The `features` object contains `inputs` and `outputs` arrays describing every sensor and actuator the device exposes, including their types, ranges, and capabilities.
+
+## Capabilities
+
+Before sending commands, check whether the device supports them:
+
+```ts
+if (device.canOutput("Vibrate")) {
+  await device.vibrate(0.5);
+}
+
+if (device.canRead("Battery")) {
+  const level = await device.readSensor("Battery");
+  console.log(`Battery: ${level}%`);
+}
+```
+
+| Method | Returns | Description |
+|---|---|---|
+| `canOutput(type)` | `boolean` | Has at least one output feature of the given type |
+| `canRead(type)` | `boolean` | Has a sensor that supports one-shot reads |
+| `canSubscribe(type)` | `boolean` | Has a sensor that supports subscriptions |
+| `canRotate` | `boolean` | Supports `Rotate` or `RotateWithDirection` |
+| `canPosition` | `boolean` | Supports `Position` or `HwPositionWithDuration` |
+
+The 10 output types are: `Vibrate`, `Rotate`, `RotateWithDirection`, `Oscillate`, `Constrict`, `Spray`, `Temperature`, `Led`, `Position`, `HwPositionWithDuration`. The 5 sensor types are: `Battery`, `RSSI`, `Pressure`, `Button`, `Position`.
+
+For controlling devices, see [Commands](/docs/guide/commands). For sensor reads, see [Sensors](/docs/guide/sensors).

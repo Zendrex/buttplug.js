@@ -1,0 +1,97 @@
+---
+title: Error Handling
+description: Catch, identify, and recover from Buttplug protocol errors
+---
+
+```ts
+import { ButtplugError, ConnectionError } from "@zendrex/buttplug.js";
+
+try {
+  await client.connect();
+} catch (err) {
+  if (err instanceof ConnectionError) {
+    console.error("Failed to connect:", err.message);
+  }
+}
+```
+
+All errors thrown by the library extend [`ButtplugError`](/docs/reference/errors), which itself extends the native `Error` class. This gives you a single base class for catching any library error, plus specific subclasses for targeted handling.
+
+## Error Hierarchy
+
+```
+ButtplugError
+  ConnectionError      — WebSocket or transport failure
+  HandshakeError       — Server rejected the protocol handshake
+  ProtocolError        — Server returned an error message (has .code)
+  DeviceError          — Device-specific operation failed (has .deviceIndex)
+  TimeoutError         — Operation exceeded its time limit (has .operation, .timeoutMs)
+```
+
+Each subclass carries contextual properties. `ProtocolError` includes an `ErrorCode`, `DeviceError` includes the `deviceIndex`, and `TimeoutError` includes the `operation` name and `timeoutMs` duration.
+
+## Type Narrowing
+
+Use `instanceof` to narrow errors and access subclass-specific properties:
+
+```ts
+try {
+  await device.vibrate(0.5);
+} catch (err) {
+  if (err instanceof DeviceError) {
+    console.error(`Device ${err.deviceIndex}: ${err.message}`);
+  } else if (err instanceof TimeoutError) {
+    console.error(`${err.operation} timed out after ${err.timeoutMs}ms`);
+  } else if (err instanceof ButtplugError) {
+    console.error("Buttplug error:", err.message);
+  }
+}
+```
+
+Order matters -- check specific subclasses before the base `ButtplugError` since all subclasses pass an `instanceof ButtplugError` check.
+
+## Error Codes
+
+`ProtocolError` carries a numeric `code` from the server. The `ErrorCode` constant defines all valid values:
+
+| Code | Name | Description |
+|---|---|---|
+| `0` | `UNKNOWN` | Unclassified server error |
+| `1` | `INIT` | Initialization failure |
+| `2` | `PING` | Ping timeout (server will disconnect) |
+| `3` | `MESSAGE` | Malformed or invalid message |
+| `4` | `DEVICE` | Device-level failure reported by server |
+
+```ts
+import { ProtocolError, ErrorCode } from "@zendrex/buttplug.js";
+
+if (err instanceof ProtocolError && err.code === ErrorCode.PING) {
+  console.error("Server ping timeout — reconnecting");
+}
+```
+
+## Recovery Strategies
+
+**Connection failures** -- Enable `autoReconnect` in the client options. The client will retry with exponential backoff and emit `reconnecting` / `reconnected` events. See [Connecting](/docs/guide/connecting).
+
+**Device errors** -- These typically indicate the device disconnected or does not support the requested operation. Check capabilities with `canOutput()`, `canRead()`, or `canSubscribe()` before sending commands.
+
+**Timeouts** -- Increase `requestTimeout` in the client options if operations consistently exceed the default. For one-off slow operations, consider wrapping the call in your own timeout logic.
+
+**Protocol errors** -- Log the `ErrorCode` and `message` for debugging. A `PING` error is terminal -- the server will disconnect and halt all devices.
+
+## `formatError()`
+
+The `formatError()` utility normalizes any caught value into a string, handling both `Error` instances and non-Error throws:
+
+```ts
+import { formatError } from "@zendrex/buttplug.js";
+
+try {
+  await client.connect();
+} catch (err) {
+  console.error(formatError(err));
+}
+```
+
+For the full error API and type definitions, see the [Errors reference](/docs/reference/errors).

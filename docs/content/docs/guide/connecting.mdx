@@ -1,0 +1,74 @@
+---
+title: Connecting
+description: Configure WebSocket connections, auto-reconnect, and ping keep-alive
+---
+
+```ts
+import { ButtplugClient } from "@zendrex/buttplug.js";
+
+const client = new ButtplugClient("ws://localhost:12345", {
+  autoReconnect: true,
+  maxReconnectAttempts: 10,
+});
+
+await client.connect();
+```
+
+The [`ButtplugClient`](/docs/reference/buttplug-client) constructor takes a WebSocket URL and an optional configuration object. Calling `connect()` opens the WebSocket and performs the Buttplug protocol handshake. The returned promise resolves once the handshake succeeds, or rejects with a `ConnectionError` or `HandshakeError`.
+
+## Client Options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `clientName` | `string` | `"buttplug.js"` | Display name sent to the server during handshake |
+| `autoPing` | `boolean` | `true` | Send automatic pings to keep the connection alive |
+| `autoReconnect` | `boolean` | `false` | Reconnect automatically on connection loss |
+| `reconnectDelay` | `number` | -- | Initial delay (ms) before first reconnection attempt |
+| `maxReconnectDelay` | `number` | -- | Maximum delay (ms) between attempts (exponential backoff cap) |
+| `maxReconnectAttempts` | `number` | -- | Give up after this many consecutive failures |
+| `requestTimeout` | `number` | -- | Timeout (ms) for individual protocol requests |
+| `logger` | `Logger` | `noopLogger` | Logger instance for client diagnostics |
+
+## Auto-Reconnect
+
+When `autoReconnect` is enabled, the client uses exponential backoff to re-establish the WebSocket connection after an unexpected disconnect. On each attempt, a `reconnecting` event fires with the attempt number. After a successful reconnection, the client re-handshakes, requests the device list, and emits `reconnected`.
+
+```ts
+const client = new ButtplugClient("ws://localhost:12345", {
+  autoReconnect: true,
+  reconnectDelay: 1000,
+  maxReconnectDelay: 30_000,
+  maxReconnectAttempts: 5,
+});
+
+client.on("reconnecting", ({ attempt }) => {
+  console.log(`Reconnect attempt ${attempt}`);
+});
+client.on("reconnected", () => {
+  console.log("Reconnected -- devices will be re-discovered");
+});
+```
+
+Device state resets on reconnection. The client reconciles the device list with the server and emits fresh `deviceAdded` events for any devices still present.
+
+## Ping Keep-alive
+
+The Buttplug protocol requires periodic pings to keep the connection alive. With `autoPing: true` (the default), the client handles this automatically using the interval the server specifies during the handshake. If the server does not receive pings in time, it will disconnect the client and stop all devices.
+
+<Callout type="warn">
+  Disabling `autoPing` means you must send pings manually via `client.send()`. If the server's ping timer expires, it will halt all devices and close the connection per the Buttplug spec.
+</Callout>
+
+## Disconnecting
+
+```ts
+await client.disconnect("Session ended");
+```
+
+`disconnect()` stops all devices, sends a protocol-level disconnect message, then closes the WebSocket. Both steps are time-bounded so the call never hangs indefinitely. The optional `reason` string is included in the `disconnected` event payload.
+
+<Callout type="warn">
+  The Buttplug specification requires servers to stop all running devices when a client disconnects. This is server-side behavior and cannot be overridden from the client.
+</Callout>
+
+After disconnecting, call `client.dispose()` to clear all event listeners and internal state if you do not plan to reconnect.

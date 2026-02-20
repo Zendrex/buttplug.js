@@ -72,16 +72,16 @@ export default function HomePage() {
 				<div className="mt-2 flex flex-wrap justify-center gap-3">
 					<Link
 						className="inline-flex items-center gap-2 rounded-lg bg-fd-primary px-6 py-3 font-medium text-fd-primary-foreground transition-colors hover:bg-fd-primary/90"
-						href="/docs"
+						href="/docs/guide"
 					>
 						Get Started
 						<ChevronRight className="size-4" />
 					</Link>
 					<Link
 						className="inline-flex items-center gap-2 rounded-lg border border-fd-border px-6 py-3 font-medium transition-colors hover:bg-fd-accent"
-						href="/docs/client/api/client"
+						href="https://github.com/zendrex/buttplug.js"
 					>
-						API Reference
+						GitHub
 					</Link>
 				</div>
 				<div className="mt-6 text-left">
@@ -137,16 +137,16 @@ export default function HomePage() {
 				<div className="flex flex-wrap justify-center gap-3">
 					<Link
 						className="inline-flex items-center gap-2 rounded-lg bg-fd-primary px-6 py-3 font-medium text-fd-primary-foreground transition-colors hover:bg-fd-primary/90"
-						href="/docs/client/getting-started"
+						href="/docs/guide"
 					>
 						Read the Guide
 						<ChevronRight className="size-4" />
 					</Link>
 					<Link
 						className="inline-flex items-center gap-2 rounded-lg border border-fd-border px-6 py-3 font-medium transition-colors hover:bg-fd-accent"
-						href="/docs/patterns"
+						href="https://github.com/zendrex/buttplug.js"
 					>
-						Explore Patterns
+						GitHub
 					</Link>
 				</div>
 			</section>

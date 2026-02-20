@@ -1,0 +1,91 @@
+---
+title: Getting Started
+description: Install buttplug.js and connect to your first device
+---
+
+## Installation
+
+<Tabs items={["bun", "npm", "pnpm"]}>
+  <Tab value="bun">
+    ```bash
+    bun add @zendrex/buttplug.js
+    ```
+  </Tab>
+  <Tab value="npm">
+    ```bash
+    npm install @zendrex/buttplug.js
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @zendrex/buttplug.js
+    ```
+  </Tab>
+</Tabs>
+
+## Setup
+
+<Steps>
+  <Step>
+    ### Install the package
+
+    Add `@zendrex/buttplug.js` to your project using the command above.
+  </Step>
+
+  <Step>
+    ### Start Intiface Central
+
+    Download and launch [Intiface Central](https://intiface.com/central/). Click **Start Server** -- it listens on `ws://localhost:12345` by default.
+  </Step>
+
+  <Step>
+    ### Connect and scan
+
+    Create a [`ButtplugClient`](/docs/reference/buttplug-client), connect to the server, and start scanning for devices.
+
+    ```ts
+    import { ButtplugClient } from "@zendrex/buttplug.js";
+
+    const client = new ButtplugClient("ws://localhost:12345");
+    await client.connect();
+    await client.startScanning();
+    ```
+  </Step>
+
+  <Step>
+    ### Control a device
+
+    Listen for the `deviceAdded` event and send commands to discovered devices.
+
+    ```ts
+    client.on("deviceAdded", async ({ device }) => {
+      console.log(`Found: ${device.name}`);
+      await device.vibrate(0.5);
+    });
+    ```
+  </Step>
+</Steps>
+
+## Full Example
+
+```ts
+import { ButtplugClient } from "@zendrex/buttplug.js";
+
+const client = new ButtplugClient("ws://localhost:12345");
+
+client.on("deviceAdded", async ({ device }) => {
+  console.log(`Found: ${device.name}`);
+  if (device.canOutput("Vibrate")) {
+    await device.vibrate(0.5);
+  }
+});
+
+await client.connect();
+await client.startScanning();
+```
+
+The client connects over WebSocket, performs a protocol handshake, and begins scanning for devices. When a device is found, the `deviceAdded` event fires with a [`Device`](/docs/reference/device) instance that exposes typed control methods.
+
+Scanning runs until you call `client.stopScanning()` or the server emits `scanningFinished`. Devices persist across scans -- you only receive `deviceAdded` once per device until it disconnects.
+
+For connection options like auto-reconnect and custom timeouts, see [Connecting](/docs/guide/connecting). For the full device control API, see [Devices](/docs/guide/devices).

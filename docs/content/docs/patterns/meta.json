@@ -1,14 +1,5 @@
 {
-	"title": "Pattern Engine",
-	"description": "Keyframe pattern playback",
+	"title": "Patterns",
 	"root": true,
-	"pages": [
-		"---Overview---",
-		"index",
-		"---API References---",
-		"api/playback",
-		"api/presets",
-		"api/custom-patterns",
-		"api/reference"
-	]
+	"pages": ["index", "presets", "custom-tracks", "easing", "examples"]
 }

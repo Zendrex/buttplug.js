@@ -1,0 +1,220 @@
+---
+title: PatternEngine
+description: Orchestrates pattern playback on devices using tick-based keyframe scheduling.
+---
+
+The `PatternEngine` manages the lifecycle of active patterns: loop handling, drift-corrected tick scheduling, deduplication of redundant commands, and automatic cleanup on disconnect or device removal.
+
+```ts
+import { ButtplugClient, PatternEngine } from "@zendrex/buttplug.js";
+
+const client = new ButtplugClient("ws://localhost:12345");
+await client.connect();
+
+const engine = new PatternEngine(client);
+```
+
+## Constructor
+
+```ts
+new PatternEngine(client: PatternEngineClient, options?: { defaultTimeout?: number })
+```
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `client` | `PatternEngineClient` | Client providing device access and event hooks |
+| `options.defaultTimeout` | `number` | Safety timeout in milliseconds (default: 30 minutes) |
+
+The default safety timeout automatically stops patterns after 30 minutes to prevent unattended devices from running indefinitely.
+
+The engine subscribes to client `disconnected` and `deviceRemoved` events. When the client disconnects, all patterns are stopped with reason `"disconnect"`. When a device is removed, its patterns are stopped with reason `"deviceRemoved"`.
+
+## Methods
+
+### play
+
+The `play` method has three overloads for different pattern specification styles. All return a unique pattern ID (UUID string) for later control.
+
+#### Overload 1: Preset name
+
+```ts
+play(
+  device: PatternDevice | number,
+  preset: PresetName,
+  options?: PatternPlayOptions
+): Promise<string>
+```
+
+Starts a built-in preset pattern by name.
+
+```ts
+const id = await engine.play(device, "wave", {
+  intensity: 0.7,
+  speed: 1.5,
+  loop: true,
+});
+```
+
+#### Overload 2: Custom tracks
+
+```ts
+play(
+  device: PatternDevice | number,
+  tracks: Track[],
+  options?: PatternPlayOptions
+): Promise<string>
+```
+
+Starts a custom pattern defined by keyframe tracks.
+
+```ts
+const id = await engine.play(device, [
+  {
+    featureIndex: 0,
+    keyframes: [
+      { value: 0, duration: 0 },
+      { value: 1, duration: 500, easing: "easeIn" },
+      { value: 0, duration: 500, easing: "easeOut" },
+    ],
+  },
+], { loop: true });
+```
+
+#### Overload 3: Full descriptor
+
+```ts
+play(
+  device: PatternDevice | number,
+  descriptor: PatternDescriptor,
+  options?: PatternPlayOptions
+): Promise<string>
+```
+
+Starts a pattern from a full `PatternDescriptor` object (either preset or custom).
+
+```ts
+const id = await engine.play(device, {
+  type: "preset",
+  preset: "heartbeat",
+  intensity: 0.8,
+  loop: true,
+});
+```
+
+#### Parameters
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `device` | `PatternDevice \| number` | Target device instance or device index |
+| `preset` | `PresetName` | Built-in preset name (overload 1) |
+| `tracks` | `Track[]` | Custom keyframe tracks (overload 2) |
+| `descriptor` | `PatternDescriptor` | Full pattern descriptor (overload 3) |
+| `options` | `PatternPlayOptions` | Playback options |
+
+**Returns:** Unique pattern instance ID (UUID string).
+**Throws:** `DeviceError` if the engine is disposed, device not found, or no compatible features.
+
+Starting a new pattern on a device automatically stops any existing patterns on that device.
+
+### PatternPlayOptions
+
+<AutoTypeTable path="../src/patterns/types.ts" name="PatternPlayOptions" />
+
+### stop
+
+```ts
+stop(patternId: string): Promise<void>
+```
+
+Stops a specific pattern by its ID. No-op if the pattern ID is not found (already stopped or never started).
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `patternId` | `string` | The pattern instance ID returned by `play()` |
+
+```ts
+const id = await engine.play(device, "pulse");
+// Later
+await engine.stop(id);
+```
+
+### stopAll
+
+```ts
+stopAll(): number
+```
+
+Stops all active patterns.
+
+**Returns:** Number of patterns that were stopped.
+
+### stopByDevice
+
+```ts
+stopByDevice(deviceIndex: number): number
+```
+
+Stops all active patterns targeting a specific device.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `deviceIndex` | `number` | The device index to stop patterns for |
+
+**Returns:** Number of patterns that were stopped.
+
+### list
+
+```ts
+list(): PatternInfo[]
+```
+
+Returns a snapshot of all active patterns.
+
+<AutoTypeTable path="../src/patterns/types.ts" name="PatternInfo" />
+
+### listPresets
+
+```ts
+listPresets(): PresetInfo[]
+```
+
+Returns metadata for all available built-in presets.
+
+<AutoTypeTable path="../src/patterns/types.ts" name="PresetInfo" />
+
+### dispose
+
+```ts
+dispose(): void
+```
+
+Disposes the engine, stopping all patterns and unsubscribing from client events. Subsequent calls to `play()` will throw. Idempotent.
+
+```ts
+engine.dispose();
+```
+
+## Lifecycle Callbacks
+
+Use `onComplete` and `onStop` in `PatternPlayOptions` to react to pattern lifecycle events:
+
+```ts
+const id = await engine.play(device, "surge", {
+  onComplete: (patternId) => {
+    console.log(`Pattern ${patternId} finished`);
+  },
+  onStop: (patternId, reason) => {
+    console.log(`Pattern ${patternId} stopped: ${reason}`);
+  },
+});
+```
+
+The `reason` parameter is a `StopReason` string: `"manual"`, `"complete"`, `"timeout"`, `"error"`, `"disconnect"`, or `"deviceRemoved"`.
+
+## Related
+
+- [Patterns](/docs/patterns) -- pattern concepts and usage guides
+- [Presets](/docs/patterns/presets) -- built-in preset patterns
+- [Custom Tracks](/docs/patterns/custom-tracks) -- defining custom keyframe tracks
+- [Easing](/docs/patterns/easing) -- easing curve reference
+- [Types](/docs/reference/types) -- PatternDescriptor, Track, Keyframe, and more

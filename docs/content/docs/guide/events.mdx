@@ -1,0 +1,85 @@
+---
+title: Events
+description: Listen for connection, device, and error events
+---
+
+```ts
+client.on("deviceAdded", ({ device }) => {
+  console.log(`Connected: ${device.name}`);
+});
+```
+
+[`ButtplugClient`](/docs/reference/buttplug-client) extends [Emittery](https://github.com/sindresorhus/emittery) and emits typed events defined in `ClientEventMap`. Every `on()` call returns an unsubscribe function for cleanup.
+
+## Event Reference
+
+### Connection Events
+
+| Event | Payload | Description |
+|---|---|---|
+| `connected` | -- | WebSocket opened and handshake completed |
+| `disconnected` | `{ reason?: string }` | Connection closed (includes optional reason) |
+| `reconnecting` | `{ attempt: number }` | Reconnection attempt started (requires `autoReconnect`) |
+| `reconnected` | -- | Re-handshake completed after reconnection |
+
+### Device Events
+
+| Event | Payload | Description |
+|---|---|---|
+| `deviceAdded` | `{ device: Device }` | New device discovered during scan |
+| `deviceRemoved` | `{ device: Device }` | Device disconnected or removed |
+| `deviceUpdated` | `{ device: Device, previousDevice: Device }` | Server updated device metadata |
+| `deviceList` | `{ devices: Device[] }` | Full device list after reconciliation |
+| `scanningFinished` | -- | Server completed device scanning |
+
+### Other Events
+
+| Event | Payload | Description |
+|---|---|---|
+| `error` | `{ error: Error }` | Transport or protocol error |
+| `inputReading` | `{ reading: InputReading }` | Server pushed a sensor reading |
+
+## Listening for Events
+
+The `on()` method registers a listener and returns an unsubscribe function. Payloads are fully typed -- TypeScript knows the exact shape for each event name.
+
+```ts
+const unsub = client.on("disconnected", ({ reason }) => {
+  console.log(`Disconnected: ${reason ?? "unknown"}`);
+});
+```
+
+For one-time events, Emittery provides `once()` which returns a promise:
+
+```ts
+await client.once("connected");
+console.log("Connection established");
+```
+
+## Device Lifecycle
+
+A typical device lifecycle produces this event sequence:
+
+1. `connected` -- client connects to the server
+2. `deviceAdded` -- each device triggers its own event during scanning
+3. `deviceList` -- fires after a reconciliation pass with all current devices
+4. `scanningFinished` -- the server completes its scan
+5. `deviceRemoved` -- fires when a device physically disconnects
+6. `disconnected` -- fires when the client disconnects (also triggers `deviceRemoved` for each remaining device)
+
+On reconnection, all devices are cleared and `deviceRemoved` fires for each one. After the re-handshake, the client requests the device list and fresh `deviceAdded` events fire for devices still present.
+
+## Cleanup
+
+Always remove listeners you no longer need. The unsubscribe function returned by `on()` is the simplest approach:
+
+```ts
+const unsub = client.on("error", ({ error }) => {
+  console.error(error.message);
+});
+
+// When done
+unsub();
+```
+
+Calling `client.dispose()` clears all listeners and internal state at once. Use this when tearing down the client entirely.

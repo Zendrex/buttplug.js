@@ -1,0 +1,351 @@
+---
+title: Device
+description: Represents a single device connected to a Buttplug server.
+---
+
+The `Device` class provides typed methods for controlling outputs (vibration, rotation, position, etc.) and reading or subscribing to input sensors. Device instances are created internally by [ButtplugClient](/docs/reference/buttplug-client) when devices are discovered.
+
+```ts
+client.on("deviceAdded", ({ device }) => {
+  console.log(device.name, device.features);
+  await device.vibrate(0.5);
+});
+```
+
+## Properties
+
+### index
+
+```ts
+get index(): number
+```
+
+Server-assigned device index.
+
+### name
+
+```ts
+get name(): string
+```
+
+Internal device name from firmware.
+
+### displayName
+
+```ts
+get displayName(): string | null
+```
+
+User-facing display name, or `null` if the server did not provide one.
+
+### messageTimingGap
+
+```ts
+get messageTimingGap(): number
+```
+
+Minimum interval in milliseconds between messages recommended by the server. Commands sent faster than this interval may be dropped.
+
+### features
+
+```ts
+get features(): DeviceFeatures
+```
+
+Parsed input and output feature descriptors for this device. See [DeviceFeatures](/docs/reference/types#devicefeatures) for the shape.
+
+### canRotate
+
+```ts
+get canRotate(): boolean
+```
+
+Whether this device supports any form of rotation output (`Rotate` or `RotateWithDirection`).
+
+### canPosition
+
+```ts
+get canPosition(): boolean
+```
+
+Whether this device supports any form of position output (`Position` or `HwPositionWithDuration`).
+
+## Output Methods
+
+All scalar output methods accept either a single `number` (applied to all motors/actuators) or a `FeatureValue[]` array for per-feature control.
+
+### vibrate
+
+```ts
+vibrate(intensity: number | FeatureValue[]): Promise<void>
+```
+
+Sets vibration intensity on all or individual motors.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `intensity` | `number \| FeatureValue[]` | Single value for all motors, or per-motor entries |
+
+**Throws:** `DeviceError` if the device does not support vibration.
+
+```ts
+// All motors at 50%
+await device.vibrate(0.5);
+
+// Per-motor control
+await device.vibrate([
+  { index: 0, value: 80 },
+  { index: 1, value: 40 },
+]);
+```
+
+### oscillate
+
+```ts
+oscillate(speed: number | FeatureValue[]): Promise<void>
+```
+
+Sets oscillation speed on all or individual motors.
+
+**Throws:** `DeviceError` if the device does not support oscillation.
+
+### constrict
+
+```ts
+constrict(value: number | FeatureValue[]): Promise<void>
+```
+
+Sets constriction pressure on all or individual actuators.
+
+**Throws:** `DeviceError` if the device does not support constriction.
+
+### spray
+
+```ts
+spray(value: number | FeatureValue[]): Promise<void>
+```
+
+Controls spray output on all or individual actuators.
+
+**Throws:** `DeviceError` if the device does not support spraying.
+
+### temperature
+
+```ts
+temperature(value: number | FeatureValue[]): Promise<void>
+```
+
+Sets temperature on all or individual actuators.
+
+**Throws:** `DeviceError` if the device does not support temperature control.
+
+### led
+
+```ts
+led(value: number | FeatureValue[]): Promise<void>
+```
+
+Controls LED brightness on all or individual actuators.
+
+**Throws:** `DeviceError` if the device does not support LED control.
+
+### rotate
+
+Rotation has two overloads:
+
+```ts
+// Uniform speed on all motors
+rotate(speed: number, options?: { clockwise?: boolean }): Promise<void>
+
+// Per-motor control
+rotate(values: RotationValue[]): Promise<void>
+```
+
+Sets rotation speed and direction. Automatically selects `RotateWithDirection` if the device supports it, falling back to `Rotate` otherwise.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `speed` | `number` | Single speed for all motors |
+| `options.clockwise` | `boolean` | Direction (defaults to `true`) |
+| `values` | `RotationValue[]` | Per-motor entries with speed, direction, and index |
+
+**Throws:** `DeviceError` if the device does not support rotation.
+
+```ts
+await device.rotate(0.7, { clockwise: false });
+
+await device.rotate([
+  { index: 0, speed: 80, clockwise: true },
+  { index: 1, speed: 40, clockwise: false },
+]);
+```
+
+### position
+
+Position has two overloads:
+
+```ts
+// Uniform position on all axes
+position(position: number, options: { duration: number }): Promise<void>
+
+// Per-axis control
+position(values: PositionValue[]): Promise<void>
+```
+
+Moves all axes to a position over a given duration. Automatically selects `HwPositionWithDuration` if the device supports it.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `position` | `number` | Single position value for all axes |
+| `options.duration` | `number` | Movement duration in milliseconds (required for uniform) |
+| `values` | `PositionValue[]` | Per-axis entries with position, duration, and index |
+
+**Throws:** `DeviceError` if the device does not support position control.
+
+```ts
+await device.position(0.8, { duration: 500 });
+
+await device.position([
+  { index: 0, position: 100, duration: 300 },
+]);
+```
+
+### stop
+
+```ts
+stop(options?: DeviceStopOptions): Promise<void>
+```
+
+Stops activity on this device. Without options, stops all features. Can target a specific feature index or filter by input/output type.
+
+<AutoTypeTable path="../src/types.ts" name="DeviceStopOptions" />
+
+**Throws:** `DeviceError` if the specified feature index does not exist.
+
+```ts
+await device.stop();
+await device.stop({ featureIndex: 0 });
+await device.stop({ outputs: true, inputs: false });
+```
+
+### output
+
+```ts
+output(options: DeviceOutputOptions): Promise<void>
+```
+
+Sends a raw output command to a specific feature. Values are validated against the feature's declared range and clamped if out of bounds.
+
+<AutoTypeTable path="../src/types.ts" name="DeviceOutputOptions" />
+
+**Throws:** `DeviceError` if no matching output feature exists at the given index.
+
+```ts
+await device.output({
+  featureIndex: 0,
+  command: { Vibrate: { Value: 50 } },
+});
+```
+
+## Sensor Methods
+
+### readSensor
+
+```ts
+readSensor(type: InputType, sensorIndex?: number): Promise<number>
+```
+
+Performs a one-shot read of a sensor value.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `type` | `InputType` | Sensor type (e.g. `"Battery"`, `"RSSI"`) |
+| `sensorIndex` | `number` | Index if the device has multiple sensors of the same type (default `0`) |
+
+**Returns:** The numeric sensor value.
+**Throws:** `DeviceError` if the sensor does not exist or does not support reading.
+
+```ts
+const battery = await device.readSensor("Battery");
+console.log(`Battery: ${battery}%`);
+```
+
+### subscribeSensor
+
+```ts
+subscribeSensor(
+  type: InputType,
+  callback: (reading: InputReading) => void,
+  sensorIndex?: number
+): Promise<() => Promise<void>>
+```
+
+Subscribes to continuous sensor readings.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `type` | `InputType` | Sensor type to subscribe to |
+| `callback` | `(reading: InputReading) => void` | Called on each new reading |
+| `sensorIndex` | `number` | Index if multiple sensors of the same type (default `0`) |
+
+**Returns:** An async unsubscribe function that stops the subscription.
+**Throws:** `DeviceError` if the sensor does not exist or does not support subscriptions.
+
+```ts
+const unsubscribe = await device.subscribeSensor(
+  "Battery",
+  (reading) => console.log(reading)
+);
+
+// Later
+await unsubscribe();
+```
+
+### unsubscribe
+
+```ts
+unsubscribe(type: InputType, sensorIndex?: number): Promise<void>
+```
+
+Explicitly unsubscribes from a sensor subscription by type and sensor index.
+
+**Throws:** `DeviceError` if the sensor does not exist at the given index.
+
+## Capability Checks
+
+### canOutput
+
+```ts
+canOutput(type: OutputType): boolean
+```
+
+Checks whether this device supports a given output type.
+
+```ts
+if (device.canOutput("Vibrate")) {
+  await device.vibrate(0.5);
+}
+```
+
+### canRead
+
+```ts
+canRead(type: InputType): boolean
+```
+
+Checks whether this device can perform a one-shot read of a given sensor type.
+
+### canSubscribe
+
+```ts
+canSubscribe(type: InputType): boolean
+```
+
+Checks whether this device supports subscriptions for a given sensor type.
+
+## Related
+
+- [Devices](/docs/guide/devices) -- discovering devices and inspecting capabilities
+- [Commands](/docs/guide/commands) -- output command patterns
+- [Sensors](/docs/guide/sensors) -- reading and subscribing to sensors
+- [Types](/docs/reference/types) -- FeatureValue, RotationValue, PositionValue, and more

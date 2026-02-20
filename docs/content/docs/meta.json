@@ -1,4 +1,11 @@
 {
-	"title": "Documentation",
-	"pages": ["client", "patterns"]
+	"root": true,
+	"pages": [
+		"---Guide---",
+		"guide",
+		"---Reference---",
+		"reference",
+		"---Patterns---",
+		"patterns"
+	]
 }

@@ -1,0 +1,50 @@
+---
+title: Easing
+description: 5 interpolation curves for smooth transitions between keyframe values.
+---
+
+```ts
+{ value: 1, duration: 1000, easing: "easeInOut" }
+```
+
+Each keyframe can specify an `easing` curve that controls how values interpolate over the transition duration. The easing function maps normalized time (0-1) to an output value that blends between the previous keyframe's value and the current target.
+
+## Curves
+
+**linear** -- Constant rate of change. The default when `easing` is omitted.
+
+**easeIn** -- Cubic acceleration (`t^3`). Starts slow, finishes fast. Used by the `ramp_up` preset for gradual intensity builds.
+
+**easeOut** -- Cubic deceleration (`1 - (1-t)^3`). Starts fast, finishes slow. Used by `ramp_down` for natural wind-downs.
+
+**easeInOut** -- Smooth cubic acceleration followed by deceleration. Produces the most natural-feeling transitions. Both the `wave` and `stroke` presets use this curve.
+
+**step** -- Discrete jump at the end of the duration. Holds the previous value until the transition completes, then snaps to the target (`t < 1 ? 0 : 1`). Useful for timed delays before an instant change.
+
+## Usage in Keyframes
+
+Easing is optional on every `Keyframe`. When omitted, `linear` is used. Zero-duration keyframes ignore easing entirely since there is no transition to interpolate.
+
+```ts
+const keyframes = [
+  { value: 0, duration: 0 },                       // instant start
+  { value: 1, duration: 1000, easing: "easeIn" },  // accelerate up
+  { value: 1, duration: 500 },                      // hold (linear)
+  { value: 0, duration: 1000, easing: "easeOut" },  // decelerate down
+];
+```
+
+Mixing easing curves within a single track creates complex feel profiles. Combine `easeIn` on the attack with `easeOut` on the release for a surge-like shape, or use `step` to hold a value for a precise delay before transitioning.
+
+## Runtime Access
+
+The `EASING_FUNCTIONS` export provides direct access to each curve as a `(t: number) => number` function, keyed by name.
+
+```ts
+import { EASING_FUNCTIONS } from "@zendrex/buttplug.js";
+
+const eased = EASING_FUNCTIONS.easeInOut(0.5); // 0.5
+const stepped = EASING_FUNCTIONS.step(0.99);   // 0
+```
+
+All functions accept values in the 0-1 range and clamp out-of-bounds inputs. See the [`PatternEngine` reference](/docs/reference/pattern-engine) for the full `Easing` type definition.
