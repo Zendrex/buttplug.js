@@ -29,7 +29,8 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
 			<DocsBody>
 				<MDX
 					components={getMDXComponents({
-						a: createRelativeLink(source, page),
+						// biome-ignore lint/suspicious/noExplicitAny: fumadocs LoaderOutput generic variance issue
+						a: createRelativeLink(source as any, page),
 					})}
 				/>
 			</DocsBody>
