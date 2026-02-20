@@ -51,7 +51,7 @@ Before sending commands, check whether the device supports them:
 
 ```ts
 if (device.canOutput("Vibrate")) {
-  await device.vibrate(0.5);
+  await device.vibrate(50);
 }
 
 if (device.canRead("Battery")) {
@@ -60,13 +60,13 @@ if (device.canRead("Battery")) {
 }
 ```
 
-| Method | Returns | Description |
+| Capability | Returns | Description |
 |---|---|---|
 | `canOutput(type)` | `boolean` | Has at least one output feature of the given type |
 | `canRead(type)` | `boolean` | Has a sensor that supports one-shot reads |
 | `canSubscribe(type)` | `boolean` | Has a sensor that supports subscriptions |
-| `canRotate` | `boolean` | Supports `Rotate` or `RotateWithDirection` |
-| `canPosition` | `boolean` | Supports `Position` or `HwPositionWithDuration` |
+| `canRotate` | `boolean` | Supports `Rotate` or `RotateWithDirection` (getter, not a method) |
+| `canPosition` | `boolean` | Supports `Position` or `HwPositionWithDuration` (getter, not a method) |
 
 The 10 output types are: `Vibrate`, `Rotate`, `RotateWithDirection`, `Oscillate`, `Constrict`, `Spray`, `Temperature`, `Led`, `Position`, `HwPositionWithDuration`. The 5 sensor types are: `Battery`, `RSSI`, `Pressure`, `Button`, `Position`.
 

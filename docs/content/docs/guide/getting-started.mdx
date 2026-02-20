@@ -60,7 +60,7 @@ description: Install buttplug.js and connect to your first device
     ```ts
     client.on("deviceAdded", async ({ device }) => {
       console.log(`Found: ${device.name}`);
-      await device.vibrate(0.5);
+      await device.vibrate(50);
     });
     ```
   </Step>
@@ -76,7 +76,7 @@ const client = new ButtplugClient("ws://localhost:12345");
 client.on("deviceAdded", async ({ device }) => {
   console.log(`Found: ${device.name}`);
   if (device.canOutput("Vibrate")) {
-    await device.vibrate(0.5);
+    await device.vibrate(50);
   }
 });
 

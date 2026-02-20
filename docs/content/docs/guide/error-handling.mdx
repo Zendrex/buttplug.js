@@ -36,7 +36,7 @@ Use `instanceof` to narrow errors and access subclass-specific properties:
 
 ```ts
 try {
-  await device.vibrate(0.5);
+  await device.vibrate(50);
 } catch (err) {
   if (err instanceof DeviceError) {
     console.error(`Device ${err.deviceIndex}: ${err.message}`);

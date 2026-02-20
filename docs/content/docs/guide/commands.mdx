@@ -4,10 +4,10 @@ description: Control device outputs — vibration, rotation, position, and more
 ---
 
 ```ts
-await device.vibrate(0.5);
+await device.vibrate(50);
 ```
 
-All output commands on a [`Device`](/docs/reference/device) are async and accept values in the `0.0` to `1.0` range (except position durations, which are in milliseconds). Commands throw a `DeviceError` if the device lacks the required capability.
+All output commands on a [`Device`](/docs/reference/device) are async and accept integer values within the device's feature range (typically `0` to `100`, except position durations which are in milliseconds). The valid range is defined per-feature in `device.features.outputs`. Values are rounded and clamped to the feature range automatically. Commands throw a `DeviceError` if the device lacks the required capability.
 
 ## Scalar Commands
 
@@ -15,12 +15,12 @@ The scalar commands -- `vibrate()`, `oscillate()`, `constrict()`, `spray()`, `te
 
 ```ts
 // All motors at 75%
-await device.vibrate(0.75);
+await device.vibrate(75);
 
 // Per-motor control: motor 0 at 50%, motor 1 at 100%
 await device.vibrate([
-  { index: 0, value: 0.5 },
-  { index: 1, value: 1.0 },
+  { index: 0, value: 50 },
+  { index: 1, value: 100 },
 ]);
 ```
 
@@ -32,15 +32,15 @@ Each scalar type maps to an output type: `vibrate()` sends `Vibrate`, `oscillate
 
 ```ts
 // All motors at 60%, clockwise (default)
-await device.rotate(0.6);
+await device.rotate(60);
 
 // Counterclockwise
-await device.rotate(0.6, { clockwise: false });
+await device.rotate(60, { clockwise: false });
 
 // Per-motor: different speeds and directions
 await device.rotate([
-  { index: 0, speed: 0.5, clockwise: true },
-  { index: 1, speed: 0.8, clockwise: false },
+  { index: 0, speed: 50, clockwise: true },
+  { index: 1, speed: 80, clockwise: false },
 ]);
 ```
 
@@ -52,12 +52,12 @@ The client automatically selects `RotateWithDirection` when the device supports 
 
 ```ts
 // All axes to 80% over 500ms
-await device.position(0.8, { duration: 500 });
+await device.position(80, { duration: 500 });
 
 // Per-axis control
 await device.position([
-  { index: 0, position: 1.0, duration: 300 },
-  { index: 1, position: 0.2, duration: 600 },
+  { index: 0, position: 100, duration: 300 },
+  { index: 1, position: 20, duration: 600 },
 ]);
 ```
 

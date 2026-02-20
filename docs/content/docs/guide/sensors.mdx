@@ -14,11 +14,11 @@ Sensors provide input data from a [`Device`](/docs/reference/device). The librar
 
 | Type | Description | Typical Values |
 |---|---|---|
-| `Battery` | Battery charge level | `0.0` -- `1.0` (percentage) |
+| `Battery` | Battery charge level | Integer in device range (e.g. `0` -- `100`) |
 | `RSSI` | Bluetooth signal strength | Negative integer (dBm) |
-| `Pressure` | Pressure sensor reading | `0.0` -- `1.0` |
+| `Pressure` | Pressure sensor reading | Integer in device range |
 | `Button` | Physical button state | `0` (released) or `1` (pressed) |
-| `Position` | Position sensor reading | `0.0` -- `1.0` |
+| `Position` | Position sensor reading | Integer in device range |
 
 Not every device exposes every sensor type. Always check capabilities before reading.
 

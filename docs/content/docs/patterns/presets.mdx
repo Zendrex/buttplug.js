@@ -16,7 +16,7 @@ Play any preset by passing its name as the second argument to `engine.play()`. A
 | `ramp_up` | Gradual cubic acceleration to maximum over 3s | no | same motor types |
 | `ramp_down` | Gradual cubic deceleration to zero over 3s | no | same motor types |
 | `heartbeat` | Ba-bump rhythm: sharp peak, dip, secondary peak, rest | yes | same motor types |
-| `surge` | Build over 2s, hold 1s at peak, release over 1.5s | no | same motor types |
+| `surge` | Build over 2.5s, hold 1s at peak, release over 1.5s | no | same motor types |
 | `stroke` | Full-range position strokes with `easeInOut` curves | yes | Position, HwPositionWithDuration |
 
 Presets that loop (`pulse`, `wave`, `heartbeat`, `stroke`) repeat indefinitely by default. Non-looping presets (`ramp_up`, `ramp_down`, `surge`) play once and fire the `onComplete` callback when finished.

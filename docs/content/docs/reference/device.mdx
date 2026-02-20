@@ -8,7 +8,7 @@ The `Device` class provides typed methods for controlling outputs (vibration, ro
 ```ts
 client.on("deviceAdded", ({ device }) => {
   console.log(device.name, device.features);
-  await device.vibrate(0.5);
+  await device.vibrate(50);
 });
 ```
 
@@ -90,7 +90,7 @@ Sets vibration intensity on all or individual motors.
 
 ```ts
 // All motors at 50%
-await device.vibrate(0.5);
+await device.vibrate(50);
 
 // Per-motor control
 await device.vibrate([
@@ -172,7 +172,7 @@ Sets rotation speed and direction. Automatically selects `RotateWithDirection` i
 **Throws:** `DeviceError` if the device does not support rotation.
 
 ```ts
-await device.rotate(0.7, { clockwise: false });
+await device.rotate(70, { clockwise: false });
 
 await device.rotate([
   { index: 0, speed: 80, clockwise: true },
@@ -203,7 +203,7 @@ Moves all axes to a position over a given duration. Automatically selects `HwPos
 **Throws:** `DeviceError` if the device does not support position control.
 
 ```ts
-await device.position(0.8, { duration: 500 });
+await device.position(80, { duration: 500 });
 
 await device.position([
   { index: 0, position: 100, duration: 300 },
@@ -275,7 +275,7 @@ console.log(`Battery: ${battery}%`);
 ```ts
 subscribeSensor(
   type: InputType,
-  callback: (reading: InputReading) => void,
+  callback: (value: number) => void,
   sensorIndex?: number
 ): Promise<() => Promise<void>>
 ```
@@ -285,7 +285,7 @@ Subscribes to continuous sensor readings.
 | Parameter | Type | Description |
 | --- | --- | --- |
 | `type` | `InputType` | Sensor type to subscribe to |
-| `callback` | `(reading: InputReading) => void` | Called on each new reading |
+| `callback` | `(value: number) => void` | Called with the numeric sensor value on each new reading |
 | `sensorIndex` | `number` | Index if multiple sensors of the same type (default `0`) |
 
 **Returns:** An async unsubscribe function that stops the subscription.
@@ -294,7 +294,7 @@ Subscribes to continuous sensor readings.
 ```ts
 const unsubscribe = await device.subscribeSensor(
   "Battery",
-  (reading) => console.log(reading)
+  (value) => console.log(value)
 );
 
 // Later
@@ -323,7 +323,7 @@ Checks whether this device supports a given output type.
 
 ```ts
 if (device.canOutput("Vibrate")) {
-  await device.vibrate(0.5);
+  await device.vibrate(50);
 }
 ```
 
