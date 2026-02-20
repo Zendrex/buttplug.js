@@ -1,6 +1,6 @@
 {
 	"name": "@zendrex/buttplug.js",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Modern TypeScript client for the Buttplug protocol v4",
 	"author": "zendrex",
 	"license": "MIT",
