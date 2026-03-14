@@ -46,7 +46,7 @@
 		"clean": "git clean -xdf dist node_modules"
 	},
 	"dependencies": {
-		"emittery": "^1.2.0",
+		"emittery": "^2.0.0",
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
