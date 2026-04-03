@@ -58,7 +58,7 @@ description: Install buttplug.js and connect to your first device
     Listen for the `deviceAdded` event and send commands to discovered devices.
 
     ```ts
-    client.on("deviceAdded", async ({ device }) => {
+    client.on("deviceAdded", async ({ data: { device } }) => {
       console.log(`Found: ${device.name}`);
       await device.vibrate(50);
     });
@@ -73,7 +73,7 @@ import { ButtplugClient } from "@zendrex/buttplug.js";
 
 const client = new ButtplugClient("ws://localhost:12345");
 
-client.on("deviceAdded", async ({ device }) => {
+client.on("deviceAdded", async ({ data: { device } }) => {
   console.log(`Found: ${device.name}`);
   if (device.canOutput("Vibrate")) {
     await device.vibrate(50);

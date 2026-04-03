@@ -171,7 +171,10 @@ export interface PatternEngineClient {
 	 * @param handler - Callback invoked on disconnect
 	 * @returns Unsubscribe function
 	 */
-	on(event: "disconnected", handler: (data: { reason?: string }) => void): () => void;
+	on(
+		event: "disconnected",
+		handler: (event: { name: "disconnected"; data: { reason?: string } }) => void
+	): () => void;
 	/**
 	 * Subscribes to the device removed event.
 	 *
@@ -179,7 +182,10 @@ export interface PatternEngineClient {
 	 * @param handler - Callback invoked when a {@link PatternDevice} is removed
 	 * @returns Unsubscribe function
 	 */
-	on(event: "deviceRemoved", handler: (data: { device: PatternDevice }) => void): () => void;
+	on(
+		event: "deviceRemoved",
+		handler: (event: { name: "deviceRemoved"; data: { device: PatternDevice } }) => void
+	): () => void;
 }
 
 /** Reason a pattern was stopped, used in {@link PatternPlayOptions.onStop} callbacks. */

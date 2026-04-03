@@ -197,15 +197,15 @@ Disposes the client, clearing all event listeners and internal state. Call `disc
 ### Listening for events
 
 ```ts
-client.on("deviceAdded", ({ device }) => {
+client.on("deviceAdded", ({ data: { device } }) => {
   console.log(`Found: ${device.name}`);
 });
 
-client.on("disconnected", ({ reason }) => {
+client.on("disconnected", ({ data: { reason } }) => {
   console.log(`Disconnected: ${reason}`);
 });
 
-client.on("error", ({ error }) => {
+client.on("error", ({ data: { error } }) => {
   console.error(error);
 });
 ```
@@ -221,7 +221,7 @@ const client = new ButtplugClient("ws://localhost:12345", {
   maxReconnectAttempts: 10,
 });
 
-client.on("reconnecting", ({ attempt }) => {
+client.on("reconnecting", ({ data: { attempt } }) => {
   console.log(`Reconnect attempt ${attempt}...`);
 });
 

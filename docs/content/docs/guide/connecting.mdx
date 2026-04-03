@@ -41,7 +41,7 @@ const client = new ButtplugClient("ws://localhost:12345", {
   maxReconnectAttempts: 5,
 });
 
-client.on("reconnecting", ({ attempt }) => {
+client.on("reconnecting", ({ data: { attempt } }) => {
   console.log(`Reconnect attempt ${attempt}`);
 });
 client.on("reconnected", () => {

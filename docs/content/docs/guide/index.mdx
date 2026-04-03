@@ -12,7 +12,7 @@ import { ButtplugClient } from "@zendrex/buttplug.js";
 
 const client = new ButtplugClient("ws://localhost:12345");
 
-client.on("deviceAdded", ({ device }) => {
+client.on("deviceAdded", ({ data: { device } }) => {
   device.vibrate(50);
 });
 

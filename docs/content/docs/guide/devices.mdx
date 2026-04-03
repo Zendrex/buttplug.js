@@ -4,7 +4,7 @@ description: Discover devices, inspect properties, and check capabilities
 ---
 
 ```ts
-client.on("deviceAdded", ({ device }) => {
+client.on("deviceAdded", ({ data: { device } }) => {
   console.log(device.name, device.displayName);
   console.log("Features:", device.features);
 });

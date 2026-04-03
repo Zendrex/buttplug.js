@@ -36,7 +36,7 @@ const client = new ButtplugClient("ws://127.0.0.1:12345", {
 
 await client.connect();
 
-client.on("deviceAdded", async ({ device }) => {
+client.on("deviceAdded", async ({ data: { device } }) => {
   console.log(`Found: ${device.displayName ?? device.name}`);
 
   if (device.canOutput("Vibrate")) {

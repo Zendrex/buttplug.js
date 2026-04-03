@@ -57,7 +57,7 @@ export class PatternEngine {
 		this.#unsubDisconnect = client.on("disconnected", () => {
 			this.#stopMatchingPatterns("disconnect");
 		});
-		this.#unsubDeviceRemoved = client.on("deviceRemoved", ({ device }) => {
+		this.#unsubDeviceRemoved = client.on("deviceRemoved", ({ data: { device } }) => {
 			this.#stopMatchingPatterns("deviceRemoved", device.index);
 		});
 	}

@@ -166,7 +166,7 @@ try {
 The `error` event on [ButtplugClient](/docs/reference/buttplug-client) emits transport and protocol errors that occur outside of direct method calls:
 
 ```ts
-client.on("error", ({ error }) => {
+client.on("error", ({ data: { error } }) => {
   console.error("Client error:", error.message);
 });
 ```

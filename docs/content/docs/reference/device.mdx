@@ -6,7 +6,7 @@ description: Represents a single device connected to a Buttplug server.
 The `Device` class provides typed methods for controlling outputs (vibration, rotation, position, etc.) and reading or subscribing to input sensors. Device instances are created internally by [ButtplugClient](/docs/reference/buttplug-client) when devices are discovered.
 
 ```ts
-client.on("deviceAdded", ({ device }) => {
+client.on("deviceAdded", ({ data: { device } }) => {
   console.log(device.name, device.features);
   await device.vibrate(50);
 });

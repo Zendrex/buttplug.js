@@ -4,18 +4,20 @@ description: Listen for connection, device, and error events
 ---
 
 ```ts
-client.on("deviceAdded", ({ device }) => {
+client.on("deviceAdded", ({ data: { device } }) => {
   console.log(`Connected: ${device.name}`);
 });
 ```
 
 [`ButtplugClient`](/docs/reference/buttplug-client) extends [Emittery](https://github.com/sindresorhus/emittery) and emits typed events defined in `ClientEventMap`. Every `on()` call returns an unsubscribe function for cleanup.
 
+With Emittery v2, listener callbacks receive an object with `name` (the event name) and `data` (the event payload). Use `{ data: { ... } }` to destructure the payload fields you need.
+
 ## Event Reference
 
 ### Connection Events
 
-| Event | Payload | Description |
+| Event | `data` | Description |
 |---|---|---|
 | `connected` | -- | WebSocket opened and handshake completed |
 | `disconnected` | `{ reason?: string }` | Connection closed (includes optional reason) |
@@ -24,7 +26,7 @@ client.on("deviceAdded", ({ device }) => {
 
 ### Device Events
 
-| Event | Payload | Description |
+| Event | `data` | Description |
 |---|---|---|
 | `deviceAdded` | `{ device: Device }` | New device discovered during scan |
 | `deviceRemoved` | `{ device: Device }` | Device disconnected or removed |
@@ -34,17 +36,17 @@ client.on("deviceAdded", ({ device }) => {
 
 ### Other Events
 
-| Event | Payload | Description |
+| Event | `data` | Description |
 |---|---|---|
 | `error` | `{ error: Error }` | Transport or protocol error |
 | `inputReading` | `{ reading: InputReading }` | Server pushed a sensor reading |
 
 ## Listening for Events
 
-The `on()` method registers a listener and returns an unsubscribe function. Payloads are fully typed -- TypeScript knows the exact shape for each event name.
+The `on()` method registers a listener and returns an unsubscribe function. Listeners receive `{ name, data }` where `data` contains the event-specific payload. TypeScript knows the exact shape for each event name.
 
 ```ts
-const unsub = client.on("disconnected", ({ reason }) => {
+const unsub = client.on("disconnected", ({ data: { reason } }) => {
   console.log(`Disconnected: ${reason ?? "unknown"}`);
 });
 ```
@@ -74,7 +76,7 @@ On reconnection, all devices are cleared and `deviceRemoved` fires for each one.
 Always remove listeners you no longer need. The unsubscribe function returned by `on()` is the simplest approach:
 
 ```ts
-const unsub = client.on("error", ({ error }) => {
+const unsub = client.on("error", ({ data: { error } }) => {
   console.error(error.message);
 });
 
