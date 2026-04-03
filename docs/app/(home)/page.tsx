@@ -1,3 +1,4 @@
+import { ServerCodeBlock } from "fumadocs-ui/components/codeblock.rsc";
 import { Cable, ChevronRight, Gamepad2, Puzzle, Radio, RefreshCw, Shield, Vibrate } from "lucide-react";
 import Link from "next/link";
 
@@ -91,17 +92,7 @@ export default function HomePage() {
 
 			{/* Code Preview */}
 			<section className="mx-auto w-full max-w-4xl px-6 pb-16">
-				<div className="overflow-hidden rounded-xl border border-fd-border bg-fd-card shadow-lg">
-					<div className="flex items-center gap-2 border-fd-border border-b px-4 py-3">
-						<div className="size-3 rounded-full bg-fd-muted-foreground/20" />
-						<div className="size-3 rounded-full bg-fd-muted-foreground/20" />
-						<div className="size-3 rounded-full bg-fd-muted-foreground/20" />
-						<span className="ml-2 text-fd-muted-foreground text-xs">quickstart.ts</span>
-					</div>
-					<pre className="overflow-x-auto p-6 font-mono text-[13px] text-fd-foreground leading-relaxed">
-						<code>{codeExample}</code>
-					</pre>
-				</div>
+				<ServerCodeBlock code={codeExample} lang="ts" />
 			</section>
 
 			{/* Features */}
