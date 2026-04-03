@@ -1,5 +1,11 @@
 # @zendrex/buttplug.js
 
+## 0.2.1
+
+### Patch Changes
+
+- [`bb8e36d`](https://github.com/Zendrex/buttplug.js/commit/bb8e36da8accc0c19155a52c095b34488ab9c109) Thanks [@Zendrex](https://github.com/Zendrex)! - Fix event destructuring for emittery v2: update PatternEngine deviceRemoved handler, PatternEngineClient interface types, and all documentation examples to use the `{ data: { ... } }` callback pattern.
+
 ## 0.2.0
 
 ### Minor Changes
