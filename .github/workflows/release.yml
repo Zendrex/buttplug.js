@@ -15,6 +15,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/ci-setup
@@ -31,8 +32,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create GitHub Release
-        id: github-release
+      - name: Check if release needed
+        id: check-release
         if: steps.changesets.outputs.hasChangesets == 'false'
         run: |
           VERSION=$(jq -r '.version' package.json)
@@ -40,23 +41,32 @@ jobs:
 
           if git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
             echo "Tag $TAG already exists on remote, skipping"
-            echo "released=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Build
+        if: steps.check-release.outputs.should_release == 'true'
+        run: bun run build
+
+      - uses: actions/setup-node@v5
+        if: steps.check-release.outputs.should_release == 'true'
+        with:
+          node-version: lts/*
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish to npm
+        if: steps.check-release.outputs.should_release == 'true'
+        run: npm publish --provenance --access public
+
+      - name: Create GitHub Release
+        if: steps.check-release.outputs.should_release == 'true'
+        run: |
+          TAG="${{ steps.check-release.outputs.tag }}"
           git tag "$TAG"
           git push origin "$TAG"
           gh release create "$TAG" --generate-notes --title "$TAG"
-          echo "released=true" >> "$GITHUB_OUTPUT"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build
-        if: steps.github-release.outputs.released == 'true'
-        run: bun run build
-
-      - name: Publish to npm
-        if: steps.github-release.outputs.released == 'true'
-        run: bun publish --access public --ignore-scripts
-        env:
-          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}

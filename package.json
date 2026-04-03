@@ -70,12 +70,12 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/zendrex/buttplug.js.git"
+		"url": "git+https://github.com/Zendrex/buttplug.js.git"
 	},
 	"bugs": {
-		"url": "https://github.com/zendrex/buttplug.js/issues"
+		"url": "https://github.com/Zendrex/buttplug.js/issues"
 	},
-	"homepage": "https://github.com/zendrex/buttplug.js#readme",
+	"homepage": "https://github.com/Zendrex/buttplug.js#readme",
 	"keywords": [
 		"buttplug",
 		"intiface",
