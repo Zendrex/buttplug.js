@@ -1,9 +1,8 @@
-import type { Logger } from "../lib/logger";
-import type { Transport } from "./types";
-
 import { formatError } from "../lib/errors";
 import { noopLogger } from "../lib/logger";
 import { ReconnectDefaults } from "./constants";
+import type { Logger } from "../lib/logger";
+import type { Transport } from "./types";
 
 /** Maximum safe exponent to prevent integer overflow in backoff calculation. */
 const MAX_BACKOFF_EXPONENT = 30;

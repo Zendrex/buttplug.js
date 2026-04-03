@@ -1,7 +1,3 @@
-import type { Logger } from "../lib/logger";
-import type { ClientMessage, ErrorMsg, InputReading, RawDevice, ServerMessage } from "../protocol/schema";
-import type { MessageRouterOptions, PendingRequest } from "./types";
-
 import { ErrorCode, formatError, ProtocolError, TimeoutError } from "../lib/errors";
 import { noopLogger } from "../lib/logger";
 import { DEFAULT_REQUEST_TIMEOUT, MAX_MESSAGE_ID } from "../protocol/constants";
@@ -19,6 +15,9 @@ import {
 	isServerInfo,
 	parseServerMessages,
 } from "../protocol/parser";
+import type { Logger } from "../lib/logger";
+import type { ClientMessage, ErrorMsg, InputReading, RawDevice, ServerMessage } from "../protocol/schema";
+import type { MessageRouterOptions, PendingRequest } from "./types";
 
 /**
  * Routes buttplug protocol messages between the client and server.

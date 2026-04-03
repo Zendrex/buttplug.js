@@ -1,6 +1,5 @@
-import type { DeviceFeatures, InputFeature, OutputFeature } from "../protocol/schema";
-
 import { TimeoutError } from "../lib/errors";
+import type { DeviceFeatures, InputFeature, OutputFeature } from "../protocol/schema";
 
 /**
  * Races a promise against a timeout, rejecting if the timeout expires first.

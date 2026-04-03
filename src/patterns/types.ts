@@ -1,9 +1,8 @@
-import type { DeviceFeatures, OutputType } from "../protocol/schema";
-import type { DeviceOutputOptions, DeviceStopOptions } from "../types";
-
 import { z } from "zod";
 
 import { OutputTypeSchema } from "../protocol/schema";
+import type { DeviceFeatures, OutputType } from "../protocol/schema";
+import type { DeviceOutputOptions, DeviceStopOptions } from "../types";
 
 /**
  * Minimal device interface required by {@link PatternEngine}.

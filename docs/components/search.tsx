@@ -11,8 +11,8 @@ import {
 	SearchDialogInput,
 	SearchDialogList,
 	SearchDialogOverlay,
-	type SharedProps,
 } from "fumadocs-ui/components/dialog/search";
+import type { SharedProps } from "fumadocs-ui/components/dialog/search";
 
 function initOrama() {
 	return create({
@@ -37,7 +37,7 @@ export default function DefaultSearchDialog(props: SharedProps) {
 					<SearchDialogInput />
 					<SearchDialogClose />
 				</SearchDialogHeader>
-				<SearchDialogList items={query.data !== "empty" ? query.data : null} />
+				<SearchDialogList items={query.data === "empty" ? null : query.data} />
 			</SearchDialogContent>
 		</SearchDialog>
 	);

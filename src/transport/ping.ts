@@ -1,7 +1,6 @@
-import type { Logger } from "../lib/logger";
-
 import { formatError, TimeoutError } from "../lib/errors";
 import { noopLogger } from "../lib/logger";
+import type { Logger } from "../lib/logger";
 
 const MIN_PING_INTERVAL_MS = 100;
 const DEFAULT_PING_TIMEOUT_MS = 5000;

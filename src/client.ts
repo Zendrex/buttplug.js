@@ -1,17 +1,3 @@
-import type { MessageRouterOptions } from "./core/types";
-import type { Logger } from "./lib/logger";
-import type {
-	ClientMessage,
-	ErrorMsg,
-	InputReading,
-	InputType,
-	RawDevice,
-	ServerInfo,
-	ServerMessage,
-} from "./protocol/schema";
-import type { DeviceMessageSender, SensorCallback } from "./protocol/types";
-import type { ButtplugClientOptions, ClientEventMap } from "./types";
-
 import Emittery from "emittery";
 
 import { reconcileDevices } from "./core/device-reconciler";
@@ -35,6 +21,19 @@ import { getDeviceList, isDeviceList } from "./protocol/parser";
 import { WebSocketTransport } from "./transport/connection";
 import { PingManager } from "./transport/ping";
 import { ReconnectHandler } from "./transport/reconnect";
+import type { MessageRouterOptions } from "./core/types";
+import type { Logger } from "./lib/logger";
+import type {
+	ClientMessage,
+	ErrorMsg,
+	InputReading,
+	InputType,
+	RawDevice,
+	ServerInfo,
+	ServerMessage,
+} from "./protocol/schema";
+import type { DeviceMessageSender, SensorCallback } from "./protocol/types";
+import type { ButtplugClientOptions, ClientEventMap } from "./types";
 
 /** Grace period for stopping all devices before disconnecting. */
 const STOP_DEVICES_TIMEOUT_MS = 2000;
@@ -174,7 +173,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 				this.#reconnectHandler.start();
 			}
 		});
-		this.on("deviceRemoved", ({ device }) => {
+		this.on("deviceRemoved", ({ data: { device } }) => {
 			this.#sensorHandler.unsubscribeDevice({
 				deviceIndex: device.index,
 				router: this.#messageRouter,

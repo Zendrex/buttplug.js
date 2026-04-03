@@ -1,8 +1,7 @@
+import { sensorKey } from "../protocol/types";
 import type { Logger } from "../lib/logger";
 import type { ClientMessage, InputReading, InputType, ServerMessage } from "../protocol/schema";
 import type { SensorCallback } from "../protocol/types";
-
-import { sensorKey } from "../protocol/types";
 
 /**
  * Internal state for a single sensor subscription.

@@ -1,8 +1,7 @@
-import type { Metadata } from "next";
-
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page";
 import { createRelativeLink } from "fumadocs-ui/mdx";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 
 import { CopyMarkdownButton } from "@/components/copy-markdown-button";
 import { source } from "@/lib/source";

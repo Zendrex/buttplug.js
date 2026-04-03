@@ -1,3 +1,8 @@
+import { DeviceError, ProtocolError } from "../lib/errors";
+import { getPresetInfo, PRESETS } from "./presets";
+import { buildScalarCommand, evaluateHwPositionTrack, evaluateScalarTrack, getCycleDuration } from "./scheduler";
+import { resolveTracks } from "./track-resolver";
+import { PatternDescriptorSchema } from "./types";
 import type {
 	PatternDescriptor,
 	PatternDevice,
@@ -10,12 +15,6 @@ import type {
 	StopReason,
 	Track,
 } from "./types";
-
-import { DeviceError, ProtocolError } from "../lib/errors";
-import { getPresetInfo, PRESETS } from "./presets";
-import { buildScalarCommand, evaluateHwPositionTrack, evaluateScalarTrack, getCycleDuration } from "./scheduler";
-import { resolveTracks } from "./track-resolver";
-import { PatternDescriptorSchema } from "./types";
 
 /** Default safety timeout: 30 minutes. */
 const DEFAULT_TIMEOUT_MS = 1_800_000;
@@ -326,9 +325,9 @@ export class PatternEngine {
 	/** Stops all patterns, optionally filtered by device index. */
 	#stopMatchingPatterns(reason: StopReason, deviceIndex?: number): number {
 		const patterns =
-			deviceIndex !== undefined
-				? [...this.#patterns.values()].filter((s) => s.deviceIndex === deviceIndex)
-				: [...this.#patterns.values()];
+			deviceIndex === undefined
+				? [...this.#patterns.values()]
+				: [...this.#patterns.values()].filter((s) => s.deviceIndex === deviceIndex);
 		for (const state of patterns) {
 			this.#stopPatternInternal(state, reason);
 		}

@@ -1,3 +1,5 @@
+import { noopLogger } from "../lib/logger";
+import { INPUT_TYPE_VALUES, OUTPUT_TYPE_VALUES } from "../protocol/schema";
 import type { Logger } from "../lib/logger";
 import type {
 	DeviceFeatures,
@@ -10,9 +12,6 @@ import type {
 	RawFeatureInput,
 	RawFeatureOutput,
 } from "../protocol/schema";
-
-import { noopLogger } from "../lib/logger";
-import { INPUT_TYPE_VALUES, OUTPUT_TYPE_VALUES } from "../protocol/schema";
 
 /** All {@link OutputType} values defined by the buttplug protocol. */
 export const OUTPUT_TYPES: readonly OutputType[] = OUTPUT_TYPE_VALUES;

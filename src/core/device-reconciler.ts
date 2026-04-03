@@ -1,7 +1,6 @@
-import type { ReconcilableDevice, ReconcileOptions } from "./types";
-
 import { noopLogger } from "../lib/logger";
 import { featuresEqual } from "./utils";
+import type { ReconcilableDevice, ReconcileOptions } from "./types";
 
 /**
  * Diffs the current device map against an incoming raw device list and applies changes.

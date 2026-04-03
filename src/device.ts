@@ -1,3 +1,14 @@
+import {
+	buildPositionMessages,
+	buildRotateMessages,
+	buildScalarOutputMessages,
+	sendMessages,
+} from "./builders/commands";
+import { getInputsByType, getOutputsByType, hasOutputType, parseFeatures } from "./builders/features";
+import { validateRange } from "./builders/validation";
+import { DeviceError } from "./lib/errors";
+import { noopLogger } from "./lib/logger";
+import { sensorKey } from "./protocol/types";
 import type { Logger } from "./lib/logger";
 import type {
 	DeviceFeatures,
@@ -10,18 +21,6 @@ import type {
 } from "./protocol/schema";
 import type { DeviceMessageSender, SensorCallback } from "./protocol/types";
 import type { DeviceOptions, DeviceOutputOptions, DeviceStopOptions } from "./types";
-
-import {
-	buildPositionMessages,
-	buildRotateMessages,
-	buildScalarOutputMessages,
-	sendMessages,
-} from "./builders/commands";
-import { getInputsByType, getOutputsByType, hasOutputType, parseFeatures } from "./builders/features";
-import { validateRange } from "./builders/validation";
-import { DeviceError } from "./lib/errors";
-import { noopLogger } from "./lib/logger";
-import { sensorKey } from "./protocol/types";
 
 /**
  * Represents a single device connected to a Buttplug server.

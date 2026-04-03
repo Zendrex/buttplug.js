@@ -1,8 +1,7 @@
-import type { Logger } from "../lib/logger";
-import type { DeviceList, ErrorMsg, InputReading, Ok, ScanningFinished, ServerInfo, ServerMessage } from "./schema";
-
 import { noopLogger } from "../lib/logger";
 import { ServerMessageSchema } from "./schema";
+import type { Logger } from "../lib/logger";
+import type { DeviceList, ErrorMsg, InputReading, Ok, ScanningFinished, ServerInfo, ServerMessage } from "./schema";
 
 /**
  * Union of all top-level keys that can appear in a {@link ServerMessage}.

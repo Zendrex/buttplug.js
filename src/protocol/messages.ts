@@ -1,7 +1,6 @@
-import type { ClientMessage, InputCommandType, InputType, OutputCommand } from "./schema";
-
 import { ErrorCode, ProtocolError } from "../lib/errors";
 import { PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR } from "./constants";
+import type { ClientMessage, InputCommandType, InputType, OutputCommand } from "./schema";
 
 /**
  * Creates a {@link ClientMessage} to initiate the handshake with a Buttplug server.

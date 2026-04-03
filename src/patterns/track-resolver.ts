@@ -1,3 +1,6 @@
+import { getOutputsByType } from "../builders/features";
+import { DeviceError } from "../lib/errors";
+import { PRESETS } from "./presets";
 import type { OutputFeature, OutputType } from "../protocol/schema";
 import type {
 	CustomPattern,
@@ -7,10 +10,6 @@ import type {
 	ResolvedKeyframe,
 	ResolvedTrack,
 } from "./types";
-
-import { getOutputsByType } from "../builders/features";
-import { DeviceError } from "../lib/errors";
-import { PRESETS } from "./presets";
 
 /**
  * Resolves a pattern descriptor into concrete {@link ResolvedTrack} arrays bound to device features.

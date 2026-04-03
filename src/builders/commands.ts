@@ -1,3 +1,5 @@
+import { DeviceError } from "../lib/errors";
+import { validateRange } from "./validation";
 import type {
 	ClientMessage,
 	FeatureValue,
@@ -8,9 +10,6 @@ import type {
 	RotationValue,
 } from "../protocol/schema";
 import type { DeviceMessageSender } from "../protocol/types";
-
-import { DeviceError } from "../lib/errors";
-import { validateRange } from "./validation";
 
 /**
  * Options for building a single position command message.

@@ -1,8 +1,7 @@
-import type { OutputCommand } from "../protocol/schema";
-import type { PatternDevice, PatternState, ResolvedKeyframe, ResolvedTrack } from "./types";
-
 import { DeviceError } from "../lib/errors";
 import { ease } from "./easing";
+import type { OutputCommand } from "../protocol/schema";
+import type { PatternDevice, PatternState, ResolvedKeyframe, ResolvedTrack } from "./types";
 
 /**
  * Interpolates a normalized value (0-1) from a keyframe sequence at the given elapsed time.

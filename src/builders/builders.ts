@@ -1,3 +1,4 @@
+import { validateRange } from "./validation";
 import type {
 	ClientMessage,
 	InputCommandType,
@@ -7,8 +8,6 @@ import type {
 	OutputType,
 	StopCmd,
 } from "../protocol/schema";
-
-import { validateRange } from "./validation";
 
 /** Builder state for {@link OutputCommandBuilder}. */
 interface OutputBuilderState {

@@ -1,13 +1,12 @@
-import type { Logger } from "../lib/logger";
-import type { ServerInfo, ServerMessage } from "../protocol/schema";
-import type { PingManager } from "../transport/ping";
-import type { MessageRouter } from "./message-router";
-
 import { HandshakeError } from "../lib/errors";
 import { noopLogger } from "../lib/logger";
 import { PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR } from "../protocol/constants";
 import { createRequestServerInfo } from "../protocol/messages";
 import { getServerInfo, isServerInfo } from "../protocol/parser";
+import type { Logger } from "../lib/logger";
+import type { ServerInfo, ServerMessage } from "../protocol/schema";
+import type { PingManager } from "../transport/ping";
+import type { MessageRouter } from "./message-router";
 
 /**
  * Result of a successful handshake containing server capabilities.

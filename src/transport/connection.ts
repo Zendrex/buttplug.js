@@ -1,8 +1,7 @@
-import type { Logger } from "../lib/logger";
-import type { Transport, TransportEventName, TransportEvents, TransportState } from "./types";
-
 import { ConnectionError, formatError } from "../lib/errors";
 import { noopLogger } from "../lib/logger";
+import type { Logger } from "../lib/logger";
+import type { Transport, TransportEventName, TransportEvents, TransportState } from "./types";
 
 /**
  * Configuration for {@link WebSocketTransport}.

@@ -1,5 +1,5 @@
 {
-	"$schema": "https://turbo.build/schema.json",
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"extends": ["ultracite/biome/core"],
 	"vcs": {
 		"enabled": false,
@@ -8,7 +8,13 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["!**/dist", "!**/out", "!**/.next", "!**/.source"]
+		"includes": [
+			"!**/dist",
+			"!**/out",
+			"!**/.turbo",
+			"!**/.next",
+			"!**/.source"
+		]
 	},
 	"formatter": {
 		"enabled": true,
@@ -18,13 +24,25 @@
 	},
 	"linter": {
 		"enabled": true,
+		"domains": {
+			"project": "recommended"
+		},
 		"rules": {
 			"recommended": true,
 			"suspicious": {
 				"noConsole": "info"
 			},
+			"performance": {
+				"noBarrelFile": "info"
+			},
 			"correctness": {
 				"useExhaustiveDependencies": "info"
+			},
+			"style": {
+				"useImportType": {
+					"level": "on",
+					"options": { "style": "separatedType" }
+				}
 			}
 		}
 	},
@@ -38,17 +56,28 @@
 					"options": {
 						"groups": [
 							{
-								"type": true
+								"type": false,
+								"source": [":BUN:", ":NODE:"]
 							},
+							[":BUN:", ":NODE:"],
 							":BLANK_LINE:",
-							":BUN:",
-							":NODE:",
+							{
+								"type": false,
+								"source": [":PACKAGE:"]
+							},
+							[":PACKAGE:"],
 							":BLANK_LINE:",
-							":PACKAGE:",
+							{
+								"type": false,
+								"source": [":ALIAS:"]
+							},
+							[":ALIAS:"],
 							":BLANK_LINE:",
-							":ALIAS:",
-							":BLANK_LINE:",
-							":PATH:"
+							{
+								"type": false,
+								"source": [":PATH:"]
+							},
+							[":PATH:"]
 						]
 					}
 				}
@@ -58,10 +87,14 @@
 	"javascript": {
 		"globals": ["Bun"],
 		"formatter": {
+			"enabled": true,
 			"quoteStyle": "double"
 		}
 	},
 	"json": {
+		"parser": {
+			"allowComments": true
+		},
 		"formatter": {
 			"enabled": true,
 			"indentStyle": "tab"
