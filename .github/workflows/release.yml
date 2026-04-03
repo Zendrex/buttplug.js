@@ -51,7 +51,7 @@ jobs:
         if: steps.check-release.outputs.should_release == 'true'
         run: bun run build
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         if: steps.check-release.outputs.should_release == 'true'
         with:
           node-version: lts/*
