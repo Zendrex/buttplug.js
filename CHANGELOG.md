@@ -1,5 +1,11 @@
 # @zendrex/buttplug.js
 
+## 0.2.0
+
+### Minor Changes
+
+- [`f9ad886`](https://github.com/Zendrex/buttplug.js/commit/f9ad8860e9bfbaec14c89c0cb7a30f5921ecf0c7) Thanks [@Zendrex](https://github.com/Zendrex)! - Migrate build tooling from tsup to tsdown, upgrade emittery to v2 (breaking: event payloads now wrapped in `{ data }`) and typescript to v6, enforce separated type imports via biome, and fix deviceRemoved event destructuring.
+
 ## 0.1.1
 
 ### Patch Changes
