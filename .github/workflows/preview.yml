@@ -1,31 +1,51 @@
 name: Preview Release
 
 on:
-    pull_request:
-        paths:
-            - "src/**"
-            - "package.json"
-            - "bun.lock"
-            - "tsconfig.json"
-            - "tsdown.config.ts"
+    workflow_run:
+        workflows: [CI]
+        types: [completed]
+        branches-ignore: [main]
 
 permissions: {}
 
 concurrency:
-    group: preview-${{ github.ref }}
+    group: preview-${{ github.event.workflow_run.head_sha }}
     cancel-in-progress: true
 
 jobs:
     preview:
         name: Preview Release
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: >-
+            github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.event == 'pull_request'
         runs-on: ubuntu-latest
         timeout-minutes: 5
         permissions:
             pull-requests: write
+            actions: read
         steps:
             - uses: actions/checkout@v6
+              with:
+                  ref: ${{ github.event.workflow_run.head_sha }}
             - uses: ./.github/actions/setup-bun
+
+            - name: Get PR number
+              id: pr
+              uses: actions/github-script@v8
+              with:
+                  result-encoding: string
+                  script: |
+                      const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        commit_sha: context.payload.workflow_run.head_sha,
+                      });
+                      const open = prs.find((pr) => pr.state === 'open');
+                      if (!open) {
+                        core.setFailed('No open PR found for this commit');
+                        return;
+                      }
+                      return String(open.number);
 
             - name: Build
               run: bun run build
@@ -40,11 +60,10 @@ jobs:
                       const fs = require('fs');
                       const output = JSON.parse(fs.readFileSync('output.json', 'utf8'));
                       const url = output.packages[0].url;
-                      const baseSha = context.payload.pull_request.base.sha;
-                      const headSha = context.payload.pull_request.head.sha;
+                      const prNumber = parseInt('${{ steps.pr.outputs.result }}', 10);
+                      const headSha = '${{ github.event.workflow_run.head_sha }}';
                       const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}`;
                       const commitUrl = `${repoUrl}/commit/${headSha}`;
-                      const compareUrl = `${repoUrl}/compare/${baseSha.slice(0, 7)}...${headSha.slice(0, 7)}`;
 
                       const body = `**Preview published** — install with:
 
@@ -58,13 +77,13 @@ jobs:
                       npm install ${url}
                       \`\`\`
 
-                      <sub>Built from [${headSha.slice(0, 7)}](${commitUrl}) ([${baseSha.slice(0, 7)}...${headSha.slice(0, 7)}](${compareUrl}))</sub>`;
+                      <sub>Built from [${headSha.slice(0, 7)}](${commitUrl})</sub>`;
 
                       const identifier = '**Preview published**';
                       const { data: comments } = await github.rest.issues.listComments({
                         owner: context.repo.owner,
                         repo: context.repo.repo,
-                        issue_number: context.issue.number,
+                        issue_number: prNumber,
                       });
                       const existing = comments.find((c) => c.body.includes(identifier));
 
@@ -76,5 +95,5 @@ jobs:
                       if (existing) {
                         await github.rest.issues.updateComment({ ...params, comment_id: existing.id, body });
                       } else {
-                        await github.rest.issues.createComment({ ...params, issue_number: context.issue.number, body });
+                        await github.rest.issues.createComment({ ...params, issue_number: prNumber, body });
                       }

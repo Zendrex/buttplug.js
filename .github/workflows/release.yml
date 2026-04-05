@@ -73,7 +73,7 @@ jobs:
 
             - name: Publish to npm
               if: steps.check-release.outputs.should_release == 'true'
-              run: npm publish --provenance --access public --tag ${{ steps.pre-release.outputs.npm_tag }}
+              run: npm publish --provenance --tag ${{ steps.pre-release.outputs.npm_tag }}
 
             - name: Create GitHub Release
               if: steps.check-release.outputs.should_release == 'true'
