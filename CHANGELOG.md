@@ -1,5 +1,11 @@
 # @zendrex/buttplug.js
 
+## 0.3.1
+
+### Patch Changes
+
+- [#22](https://github.com/Zendrex/buttplug.js/pull/22) [`5b97496`](https://github.com/Zendrex/buttplug.js/commit/5b97496b57f891dd37c138a71b2e580334a2c4ab) Thanks [@Zendrex](https://github.com/Zendrex)! - Expose the raw device descriptor via the `Device.raw` getter, providing access to the unprocessed device data from the server.
+
 ## 0.3.0
 
 ### Minor Changes
