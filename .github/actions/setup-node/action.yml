@@ -1,0 +1,21 @@
+name: Setup Node
+description: Setup Node.js environment
+
+inputs:
+    node-version:
+        description: Node version
+        required: false
+        default: lts/*
+    registry-url:
+        description: npm registry URL
+        required: false
+        default: https://registry.npmjs.org
+
+runs:
+    using: composite
+    steps:
+        - name: Setup Node ${{ inputs.node-version }}
+          uses: actions/setup-node@v6
+          with:
+              node-version: ${{ inputs.node-version }}
+              registry-url: ${{ inputs.registry-url }}
