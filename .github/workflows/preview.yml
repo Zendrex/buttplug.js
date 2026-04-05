@@ -1,0 +1,123 @@
+name: Preview Release
+
+on:
+    workflow_run:
+        workflows: [CI]
+        types: [completed]
+        branches-ignore: [main]
+
+permissions: {}
+
+concurrency:
+    group: preview-${{ github.event.workflow_run.head_sha }}
+    cancel-in-progress: true
+
+jobs:
+    preview:
+        name: Preview Release
+        if: >-
+            github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.event == 'pull_request'
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        permissions:
+            pull-requests: write
+            actions: read
+        steps:
+            - name: Check for source changes
+              id: check
+              uses: actions/github-script@v8
+              with:
+                  script: |
+                      const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        commit_sha: context.payload.workflow_run.head_sha,
+                      });
+                      const open = prs.find((pr) => pr.state === 'open');
+                      if (!open) {
+                        core.info('No open PR found — skipping');
+                        return;
+                      }
+                      core.setOutput('pr-number', String(open.number));
+
+                      const files = await github.paginate(github.rest.pulls.listFiles, {
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: open.number,
+                      });
+                      const buildRelevant = [
+                        'src/',
+                        'package.json',
+                        'bun.lock',
+                        'tsconfig.json',
+                        'tsdown.config.ts',
+                      ];
+                      const hasCodeChanges = files.some((f) =>
+                        buildRelevant.some((p) => f.filename === p || f.filename.startsWith(p))
+                      );
+                      core.setOutput('has-code-changes', String(hasCodeChanges));
+                      core.info(`Code changes detected: ${hasCodeChanges}`);
+
+            - uses: actions/checkout@v6
+              if: steps.check.outputs.has-code-changes == 'true'
+              with:
+                  ref: ${{ github.event.workflow_run.head_sha }}
+            - uses: ./.github/actions/setup-bun
+              if: steps.check.outputs.has-code-changes == 'true'
+
+            - name: Build
+              if: steps.check.outputs.has-code-changes == 'true'
+              run: bun run build
+
+            - name: Publish preview
+              if: steps.check.outputs.has-code-changes == 'true'
+              run: bunx pkg-pr-new publish --comment=off --json output.json --packageManager=bun
+
+            - name: Comment on PR
+              if: steps.check.outputs.has-code-changes == 'true'
+              uses: actions/github-script@v8
+              with:
+                  script: |
+                      const fs = require('fs');
+                      const output = JSON.parse(fs.readFileSync('output.json', 'utf8'));
+                      const url = output.packages[0].url;
+                      const prNumber = parseInt('${{ steps.check.outputs.pr-number }}', 10);
+                      const headSha = '${{ github.event.workflow_run.head_sha }}';
+                      const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}`;
+                      const commitUrl = `${repoUrl}/commit/${headSha}`;
+
+                      const body = [
+                        '**Preview published** — install with:',
+                        '',
+                        '**bun**',
+                        '```sh',
+                        `bun add ${url}`,
+                        '```',
+                        '',
+                        '**npm**',
+                        '```sh',
+                        `npm install ${url}`,
+                        '```',
+                        '',
+                        `<sub>Built from [${headSha.slice(0, 7)}](${commitUrl})</sub>`,
+                      ].join('\n');
+
+                      const identifier = '**Preview published**';
+                      const { data: comments } = await github.rest.issues.listComments({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: prNumber,
+                      });
+                      const existing = comments.find((c) => c.body.includes(identifier));
+
+                      const params = {
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                      };
+
+                      if (existing) {
+                        await github.rest.issues.updateComment({ ...params, comment_id: existing.id, body });
+                      } else {
+                        await github.rest.issues.createComment({ ...params, issue_number: prNumber, body });
+                      }

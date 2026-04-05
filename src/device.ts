@@ -16,6 +16,7 @@ import type {
 	InputType,
 	OutputType,
 	PositionValue,
+	RawDevice,
 	RotationValue,
 	ServerMessage,
 } from "./protocol/schema";
@@ -377,6 +378,10 @@ export class Device {
 	/** Whether this device supports any form of position output. */
 	get canPosition(): boolean {
 		return this.canOutput("Position") || this.canOutput("HwPositionWithDuration");
+	}
+	/** Raw device descriptor. */
+	get raw(): RawDevice {
+		return this.#raw;
 	}
 
 	/**
