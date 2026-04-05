@@ -46,7 +46,16 @@ jobs:
                         repo: context.repo.repo,
                         pull_number: open.number,
                       });
-                      const hasCodeChanges = files.some((f) => f.filename.startsWith('src/'));
+                      const buildRelevant = [
+                        'src/',
+                        'package.json',
+                        'bun.lock',
+                        'tsconfig.json',
+                        'tsdown.config.ts',
+                      ];
+                      const hasCodeChanges = files.some((f) =>
+                        buildRelevant.some((p) => f.filename === p || f.filename.startsWith(p))
+                      );
                       core.setOutput('has-code-changes', String(hasCodeChanges));
                       core.info(`Code changes detected: ${hasCodeChanges}`);
 
