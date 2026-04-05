@@ -2,6 +2,12 @@ name: Preview Release
 
 on:
     pull_request:
+        paths:
+            - "src/**"
+            - "package.json"
+            - "bun.lock"
+            - "tsconfig.json"
+            - "tsdown.config.ts"
 
 permissions: {}
 
