@@ -43,6 +43,7 @@ jobs:
                       const baseSha = context.payload.pull_request.base.sha;
                       const headSha = context.payload.pull_request.head.sha;
                       const repoUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}`;
+                      const commitUrl = `${repoUrl}/commit/${headSha}`;
                       const compareUrl = `${repoUrl}/compare/${baseSha.slice(0, 7)}...${headSha.slice(0, 7)}`;
 
                       const body = `**Preview published** — install with:
@@ -57,7 +58,7 @@ jobs:
                       npm install ${url}
                       \`\`\`
 
-                      <sub>Built from [${baseSha.slice(0, 7)}...${headSha.slice(0, 7)}](${compareUrl})</sub>`;
+                      <sub>Built from [${headSha.slice(0, 7)}](${commitUrl}) ([${baseSha.slice(0, 7)}...${headSha.slice(0, 7)}](${compareUrl}))</sub>`;
 
                       const identifier = '**Preview published**';
                       const { data: comments } = await github.rest.issues.listComments({
