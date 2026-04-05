@@ -1,5 +1,15 @@
 # @zendrex/buttplug.js
 
+## 0.3.0
+
+### Minor Changes
+
+- [#19](https://github.com/Zendrex/buttplug.js/pull/19) [`0ea4919`](https://github.com/Zendrex/buttplug.js/commit/0ea4919186b4db0834c0a5c7f3622f1a7afaafe8) Thanks [@Zendrex](https://github.com/Zendrex)! - Remove built-in device message timing gap limit since the interface server already handles dropping commands outside of the device's command window.
+
+  - Removed `messageTimingGap` getter from `Device`
+  - Removed `messageTimingGap` from `PatternDevice` interface
+  - Pattern engine tick interval defaults to 50ms (20Hz), configurable per-pattern via `tickInterval` in `PatternPlayOptions`
+
 ## 0.2.1
 
 ### Patch Changes
