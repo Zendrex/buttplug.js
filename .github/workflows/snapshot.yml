@@ -28,7 +28,7 @@ jobs:
               run: bunx pkg-pr-new publish --comment=off --json output.json --packageManager=bun
 
             - name: Comment on PR
-              uses: actions/github-script@v7
+              uses: actions/github-script@v8
               with:
                   script: |
                       const fs = require('fs');
