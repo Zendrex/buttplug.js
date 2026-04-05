@@ -1,26 +1,30 @@
 name: Release
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 jobs:
   release:
     name: Release
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
       pull-requests: write
       id-token: write
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/ci-setup
         with:
-          bun-version: latest
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: ./.github/actions/setup-bun
 
       - name: Create release PR
         id: changesets
@@ -47,26 +51,39 @@ jobs:
             echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Detect pre-release
+        id: pre-release
+        if: steps.check-release.outputs.should_release == 'true'
+        run: |
+          if [ -f ".changeset/pre.json" ]; then
+            echo "npm_tag=$(jq -r '.tag' .changeset/pre.json)" >> "$GITHUB_OUTPUT"
+            echo "is_pre=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "npm_tag=latest" >> "$GITHUB_OUTPUT"
+            echo "is_pre=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build
         if: steps.check-release.outputs.should_release == 'true'
         run: bun run build
 
-      - uses: actions/setup-node@v6
+      - uses: ./.github/actions/setup-node
         if: steps.check-release.outputs.should_release == 'true'
-        with:
-          node-version: lts/*
-          registry-url: https://registry.npmjs.org
 
       - name: Publish to npm
         if: steps.check-release.outputs.should_release == 'true'
-        run: npm publish --provenance --access public
+        run: npm publish --provenance --access public --tag ${{ steps.pre-release.outputs.npm_tag }}
 
       - name: Create GitHub Release
         if: steps.check-release.outputs.should_release == 'true'
         run: |
           TAG="${{ steps.check-release.outputs.tag }}"
-          git tag "$TAG"
-          git push origin "$TAG"
-          gh release create "$TAG" --generate-notes --title "$TAG"
+          FLAGS=(--generate-notes --title "$TAG" --target "${{ github.event.workflow_run.head_sha }}")
+
+          if [ "${{ steps.pre-release.outputs.is_pre }}" = "true" ]; then
+            FLAGS+=(--prerelease)
+          fi
+
+          gh release create "$TAG" "${FLAGS[@]}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

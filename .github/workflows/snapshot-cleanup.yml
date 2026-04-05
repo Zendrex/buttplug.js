@@ -1,0 +1,61 @@
+name: Snapshot Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    name: Deprecate Snapshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node
+
+      - name: Resolve snapshot versions
+        id: snapshot
+        run: |
+          TAG="pr-${{ github.event.pull_request.number }}"
+          PR_NUM="${{ github.event.pull_request.number }}"
+
+          # Check if the dist-tag exists
+          TAGGED_VERSION=$(npm dist-tag ls @zendrex/buttplug.js 2>/dev/null | grep "^${TAG}:" | cut -d' ' -f2)
+
+          # Find all snapshot versions from this PR
+          ALL_VERSIONS=$(npm view @zendrex/buttplug.js versions --json 2>/dev/null \
+            | jq -r ".[] | select(contains(\"pr-${PR_NUM}-\"))" 2>/dev/null)
+
+          if [ -z "$TAGGED_VERSION" ] && [ -z "$ALL_VERSIONS" ]; then
+            echo "No snapshots found for PR #${PR_NUM}, skipping"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            echo "has_tag=$( [ -n "$TAGGED_VERSION" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Write versions to a file for the next step
+          echo "$ALL_VERSIONS" > /tmp/snapshot-versions.txt
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Deprecate snapshot versions
+        if: steps.snapshot.outputs.found == 'true'
+        run: |
+          while IFS= read -r VERSION; do
+            [ -z "$VERSION" ] && continue
+            echo "Deprecating $VERSION"
+            npm deprecate "@zendrex/buttplug.js@${VERSION}" "Snapshot from PR #${{ github.event.pull_request.number }} — use a stable release instead"
+          done < /tmp/snapshot-versions.txt
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Remove snapshot dist-tag
+        if: steps.snapshot.outputs.has_tag == 'true'
+        run: npm dist-tag rm @zendrex/buttplug.js "${{ steps.snapshot.outputs.tag }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

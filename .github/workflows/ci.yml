@@ -9,32 +9,28 @@ permissions:
   contents: read
 
 concurrency:
-  group: code-quality-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/ci-setup
-        with:
-          bun-version: latest
+      - uses: ./.github/actions/setup-bun
 
       - name: Typecheck
         run: bun run check-types
 
-
   lint:
     name: Lint & Format
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/ci-setup
-        with:
-          bun-version: latest
+      - uses: ./.github/actions/setup-bun
 
       - name: Run Ultracite
         run: bunx ultracite check

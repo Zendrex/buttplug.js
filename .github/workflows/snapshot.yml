@@ -1,0 +1,108 @@
+name: Snapshot Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number
+        required: true
+        type: number
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: snapshot-${{ github.event.issue.number || github.event.inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  snapshot:
+    name: Snapshot Release
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request &&
+       startsWith(github.event.comment.body, '/snapshot') &&
+       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - name: Acknowledge
+        if: github.event_name == 'issue_comment'
+        run: |
+          gh api "repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions" \
+            -f content='eyes' --silent
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve PR number
+        id: context
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "pr=${{ inputs.pr_number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "pr=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Require passing CI
+        run: |
+          STATE=$(gh api "repos/${{ github.repository }}/commits/$(gh api "repos/${{ github.repository }}/pulls/${{ steps.context.outputs.pr }}" --jq '.head.sha')/status" --jq '.state')
+          if [ "$STATE" != "success" ]; then
+            echo "::error::CI has not passed on this PR (status: $STATE). Push a passing commit before publishing a snapshot."
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get PR head ref
+        id: pr
+        run: |
+          REF=$(gh api "repos/${{ github.repository }}/pulls/${{ steps.context.outputs.pr }}" --jq '.head.ref')
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.pr.outputs.ref }}
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Check for changesets
+        run: |
+          COUNT=$(find .changeset -name '*.md' ! -name 'README.md' | wc -l)
+          if [ "$COUNT" -eq 0 ]; then
+            echo "::error::No changesets found on this branch. Add one with: bunx changeset"
+            exit 1
+          fi
+
+      - name: Create snapshot version
+        run: bunx changeset version --snapshot "pr-${{ steps.context.outputs.pr }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build
+        run: bun run build
+
+      - uses: ./.github/actions/setup-node
+
+      - name: Publish to npm
+        run: npm publish --tag "pr-${{ steps.context.outputs.pr }}" --provenance --access public
+
+      - name: Comment on PR
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          PR="${{ steps.context.outputs.pr }}"
+          BODY="**Snapshot published** — install with:
+
+          \`\`\`sh
+          npm install @zendrex/buttplug.js@${VERSION}
+          # or
+          npm install @zendrex/buttplug.js@pr-${PR}
+          \`\`\`"
+
+          gh pr comment "$PR" --body "$BODY"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

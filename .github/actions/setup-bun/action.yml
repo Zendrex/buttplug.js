@@ -1,8 +1,8 @@
-name: Setup CI
+name: Setup Bun
 
 inputs:
   bun-version:
-    description: "Bun version"
+    description: Bun version
     required: false
     default: latest
 
