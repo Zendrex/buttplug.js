@@ -34,7 +34,6 @@ export class Device {
 	readonly #raw: DeviceOptions["raw"];
 	readonly #features: DeviceFeatures;
 	readonly #logger: Logger;
-	#lastCommandTime = 0;
 
 	constructor(options: DeviceOptions) {
 		this.#client = options.client;
@@ -117,7 +116,6 @@ export class Device {
 	 */
 	async rotate(speed: number, options?: { clockwise?: boolean }): Promise<void>;
 	async rotate(speed: number | RotationValue[], options?: { clockwise?: boolean }): Promise<void> {
-		this.#checkTimingGap();
 		if (!this.canRotate) {
 			throw new DeviceError(this.index, "Device does not support rotation");
 		}
@@ -155,7 +153,6 @@ export class Device {
 	 */
 	async position(position: number, options: { duration: number }): Promise<void>;
 	async position(position: number | PositionValue[], options?: { duration?: number }): Promise<void> {
-		this.#checkTimingGap();
 		if (!this.canPosition) {
 			throw new DeviceError(this.index, "Device does not support position control");
 		}
@@ -191,7 +188,6 @@ export class Device {
 	 * @throws DeviceError if the specified feature index does not exist
 	 */
 	async stop(options?: DeviceStopOptions): Promise<void> {
-		this.#checkTimingGap();
 		if (options?.featureIndex !== undefined) {
 			const isOutput = this.#features.outputs.some((f) => f.index === options.featureIndex);
 			const isInput = this.#features.inputs.some((f) => f.index === options.featureIndex);
@@ -234,7 +230,6 @@ export class Device {
 	 * @throws DeviceError if no matching output feature exists at the given index
 	 */
 	async output(options: DeviceOutputOptions): Promise<void> {
-		this.#checkTimingGap();
 		const { featureIndex, command } = options;
 		// Type assertion safe: OutputCommand is a record with a single OutputType key
 		const commandType = Object.keys(command)[0] as OutputType;
@@ -371,10 +366,6 @@ export class Device {
 	get displayName(): string | null {
 		return this.#raw.DeviceDisplayName ?? null;
 	}
-	/** Minimum interval in milliseconds between messages recommended by the server. */
-	get messageTimingGap(): number {
-		return this.#raw.DeviceMessageTimingGap;
-	}
 	/** Parsed input and output feature descriptors for this device. */
 	get features(): DeviceFeatures {
 		return this.#features;
@@ -386,22 +377,6 @@ export class Device {
 	/** Whether this device supports any form of position output. */
 	get canPosition(): boolean {
 		return this.canOutput("Position") || this.canOutput("HwPositionWithDuration");
-	}
-
-	/** Warns when commands are sent faster than the device's timing gap. */
-	#checkTimingGap(): void {
-		const gap = this.#raw.DeviceMessageTimingGap;
-		if (gap <= 0) {
-			return;
-		}
-		const now = Date.now();
-		const elapsed = now - this.#lastCommandTime;
-		if (this.#lastCommandTime > 0 && elapsed < gap) {
-			this.#logger.warn(
-				`Command sent ${elapsed}ms after previous (timing gap is ${gap}ms) — server may drop this command`
-			);
-		}
-		this.#lastCommandTime = now;
 	}
 
 	/**
@@ -448,7 +423,6 @@ export class Device {
 		errorLabel: string;
 		values: number | FeatureValue[];
 	}): Promise<void> {
-		this.#checkTimingGap();
 		const { type, errorLabel, values } = params;
 		if (!this.canOutput(type)) {
 			throw new DeviceError(this.index, `Device does not support ${errorLabel}`);

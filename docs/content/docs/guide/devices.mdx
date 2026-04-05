@@ -40,7 +40,6 @@ You can also request the current device list at any time with `client.requestDev
 | `index` | `number` | Server-assigned identifier, stable for the session |
 | `name` | `string` | Internal firmware name |
 | `displayName` | `string \| null` | User-facing name from the server, or `null` |
-| `messageTimingGap` | `number` | Minimum interval (ms) between commands recommended by the server |
 | `features` | `DeviceFeatures` | Parsed input and output feature descriptors |
 
 The `features` object contains `inputs` and `outputs` arrays describing every sensor and actuator the device exposes, including their types, ranges, and capabilities.

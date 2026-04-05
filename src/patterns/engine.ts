@@ -19,8 +19,8 @@ import type {
 /** Default safety timeout: 30 minutes. */
 const DEFAULT_TIMEOUT_MS = 1_800_000;
 
-/** Minimum tick interval to prevent overwhelming slow devices. */
-const MIN_TICK_INTERVAL_MS = 50;
+/** Default tick interval in milliseconds between pattern evaluations. */
+const DEFAULT_TICK_INTERVAL_MS = 50;
 
 // biome-ignore lint/suspicious/noEmptyBlockStatements: fire-and-forget error swallowing for stop commands
 const noop = () => {};
@@ -139,7 +139,7 @@ export class PatternEngine {
 		}
 
 		const id = crypto.randomUUID();
-		const tickInterval = Math.max(resolvedDevice.messageTimingGap, MIN_TICK_INTERVAL_MS);
+		const tickInterval = options?.tickInterval ?? DEFAULT_TICK_INTERVAL_MS;
 		const now = performance.now();
 		const state: PatternState = {
 			id,
