@@ -79,7 +79,3 @@ await client.stopAll();
 ```
 
 `device.stop()` without options halts all features. Pass `DeviceStopOptions` to target a specific feature index or filter by inputs/outputs.
-
-<Callout type="warn">
-  Devices report a `messageTimingGap` -- the minimum interval between commands. Sending commands faster than this interval may cause the server to drop messages. The client logs a warning when this happens but does not throttle automatically.
-</Callout>

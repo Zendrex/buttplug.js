@@ -15,8 +15,6 @@ export interface PatternDevice {
 	readonly features: DeviceFeatures;
 	/** Device index in the server's device list. */
 	readonly index: number;
-	/** Minimum interval in milliseconds between consecutive messages to this device. */
-	readonly messageTimingGap: number;
 	/** Human-readable device name. */
 	readonly name: string;
 	/**
@@ -210,6 +208,8 @@ export interface PatternPlayOptions {
 	onStop?: (patternId: string, reason: StopReason) => void;
 	/** Speed multiplier (0.25-4x). Only applies to preset shorthand. */
 	speed?: number;
+	/** Tick interval in milliseconds between pattern evaluations. Defaults to 50ms (20Hz). */
+	tickInterval?: number;
 	/** Maximum playback duration in milliseconds before auto-stop. */
 	timeout?: number;
 }
@@ -277,7 +277,7 @@ export interface PatternState {
 	startedAt: number;
 	/** Whether this pattern has been stopped. */
 	stopped: boolean;
-	/** Tick interval in milliseconds, derived from device timing gap. */
+	/** Tick interval in milliseconds between pattern evaluations. */
 	readonly tickInterval: number;
 	/** Handle for the next scheduled tick. */
 	timerId: ReturnType<typeof setTimeout> | null;
