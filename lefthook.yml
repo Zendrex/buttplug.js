@@ -1,0 +1,7 @@
+pre-commit:
+  parallel: true
+  commands:
+    lint-fix:
+      glob: "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}"
+      run: bunx ultracite fix {staged_files}
+      stage_fixed: true
