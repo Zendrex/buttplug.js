@@ -17,11 +17,10 @@ export { ButtplugClient } from "./client";
 export { Device } from "./device";
 
 // Client types
+export type { DeviceOutputOptions, DeviceStopOptions } from "./device";
 export type {
 	ButtplugClientOptions,
 	ClientEventMap,
-	DeviceOutputOptions,
-	DeviceStopOptions,
 } from "./types";
 
 // Errors
