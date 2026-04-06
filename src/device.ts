@@ -14,6 +14,7 @@ import type {
 	DeviceFeatures,
 	FeatureValue,
 	InputType,
+	OutputCommand,
 	OutputType,
 	PositionValue,
 	RawDevice,
@@ -21,7 +22,45 @@ import type {
 	ServerMessage,
 } from "./protocol/schema";
 import type { DeviceMessageSender, SensorCallback } from "./protocol/types";
-import type { DeviceOptions, DeviceOutputOptions, DeviceStopOptions } from "./types";
+
+/**
+ * Construction options for a {@link Device} instance.
+ */
+export interface DeviceOptions {
+	/** The {@link DeviceMessageSender} used to route messages to the server. */
+	client: DeviceMessageSender;
+	/** Optional logger for device-level diagnostics. */
+	logger?: Logger;
+	/** Raw device descriptor received from the server during enumeration. */
+	raw: RawDevice;
+}
+
+/**
+ * Options for {@link Device.stop}.
+ *
+ * Without any options, stops all features on the device.
+ * Provide filters to target specific features or feature types.
+ */
+export interface DeviceStopOptions {
+	/** Stop a specific feature by index. */
+	featureIndex?: number;
+	/** Stop only input features (unsubscribes sensors). */
+	inputs?: boolean;
+	/** Stop only output features. */
+	outputs?: boolean;
+}
+
+/**
+ * Options for {@link Device.output}.
+ *
+ * Sends a raw {@link OutputCommand} to a specific feature on the device.
+ */
+export interface DeviceOutputOptions {
+	/** The output command payload. */
+	command: OutputCommand;
+	/** Target feature index on this device. */
+	featureIndex: number;
+}
 
 /**
  * Represents a single device connected to a Buttplug server.
