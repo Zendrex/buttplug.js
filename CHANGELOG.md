@@ -1,5 +1,11 @@
 # @zendrex/buttplug.js
 
+## 0.3.3
+
+### Patch Changes
+
+- [#26](https://github.com/Zendrex/buttplug.js/pull/26) [`6c002fc`](https://github.com/Zendrex/buttplug.js/commit/6c002fcab16cbcc5976e2c5d9a20e297d4f99eb2) Thanks [@Zendrex](https://github.com/Zendrex)! - Fixed Proxy compatibility for all classes by replacing JS `#private` fields with TypeScript `private` keyword fields. Wrapping instances (e.g. `Device`, `ButtplugClient`) in a `Proxy` no longer throws `TypeError` when accessing properties or calling methods.
+
 ## 0.3.2
 
 ### Patch Changes
