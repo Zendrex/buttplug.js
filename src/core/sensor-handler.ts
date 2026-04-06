@@ -32,14 +32,14 @@ interface SensorRouter {
  */
 export class SensorHandler {
 	/** Active subscriptions keyed by composite sensor key. */
-	readonly #subscriptions = new Map<string, SensorSubscription>();
-	readonly #logger: Logger;
+	private readonly subscriptions = new Map<string, SensorSubscription>();
+	private readonly logger: Logger;
 
 	/**
 	 * @param logger - Logger instance for subscription lifecycle events
 	 */
 	constructor(logger: Logger) {
-		this.#logger = logger.child("sensor");
+		this.logger = logger.child("sensor");
 	}
 
 	/**
@@ -55,11 +55,11 @@ export class SensorHandler {
 		callback: SensorCallback,
 		info: { deviceIndex: number; featureIndex: number; type: InputType }
 	): void {
-		if (this.#subscriptions.has(key)) {
+		if (this.subscriptions.has(key)) {
 			throw new Error(`Sensor subscription already exists: ${key}. Unsubscribe before re-subscribing.`);
 		}
-		this.#subscriptions.set(key, { callback, ...info });
-		this.#logger.debug(`Registered sensor subscription: ${key}`);
+		this.subscriptions.set(key, { callback, ...info });
+		this.logger.debug(`Registered sensor subscription: ${key}`);
 	}
 
 	/**
@@ -68,8 +68,8 @@ export class SensorHandler {
 	 * @param key - Composite sensor key to unregister
 	 */
 	unregister(key: string): void {
-		this.#subscriptions.delete(key);
-		this.#logger.debug(`Unregistered sensor subscription: ${key}`);
+		this.subscriptions.delete(key);
+		this.logger.debug(`Unregistered sensor subscription: ${key}`);
 	}
 
 	/**
@@ -89,7 +89,7 @@ export class SensorHandler {
 		// Type assertion safe: readingKey is a property of Reading which uses InputType as keys
 		const type = readingKey as InputType;
 		const subKey = sensorKey(reading.DeviceIndex, reading.FeatureIndex, type);
-		const sub = this.#subscriptions.get(subKey);
+		const sub = this.subscriptions.get(subKey);
 		if (sub) {
 			// Type assertion safe: readingData follows wire format with {Value: number} sensor values
 			const wrapper = (readingData as Record<string, { Value: number }>)[type];
@@ -115,7 +115,7 @@ export class SensorHandler {
 			return;
 		}
 		try {
-			for (const [, sub] of this.#subscriptions) {
+			for (const [, sub] of this.subscriptions) {
 				if (sub.deviceIndex === deviceIndex) {
 					const id = router.nextId();
 					router
@@ -145,19 +145,19 @@ export class SensorHandler {
 	 */
 	cleanupDevice(deviceIndex: number): void {
 		const keysToDelete: string[] = [];
-		for (const [key, sub] of this.#subscriptions) {
+		for (const [key, sub] of this.subscriptions) {
 			if (sub.deviceIndex === deviceIndex) {
 				keysToDelete.push(key);
 			}
 		}
 		for (const key of keysToDelete) {
-			this.#subscriptions.delete(key);
-			this.#logger.debug(`Cleaned up subscription on device removal: ${key}`);
+			this.subscriptions.delete(key);
+			this.logger.debug(`Cleaned up subscription on device removal: ${key}`);
 		}
 	}
 
 	/** Removes all sensor subscriptions — used during client shutdown. */
 	clear(): void {
-		this.#subscriptions.clear();
+		this.subscriptions.clear();
 	}
 }
