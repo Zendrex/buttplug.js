@@ -34,31 +34,31 @@ const noop = () => {};
  */
 export class PatternEngine {
 	/** Client interface for device access and event subscription. */
-	readonly #client: PatternEngineClient;
+	private readonly client: PatternEngineClient;
 	/** Active pattern states keyed by pattern ID. */
-	readonly #patterns: Map<string, PatternState> = new Map();
+	private readonly patterns: Map<string, PatternState> = new Map();
 	/** Default safety timeout in milliseconds. */
-	readonly #defaultTimeout: number;
+	private readonly defaultTimeout: number;
 	/** Unsubscribe function for the client disconnect event. */
-	readonly #unsubDisconnect: () => void;
+	private readonly unsubDisconnect: () => void;
 	/** Unsubscribe function for the device removed event. */
-	readonly #unsubDeviceRemoved: () => void;
+	private readonly unsubDeviceRemoved: () => void;
 	/** Whether this engine has been disposed. */
-	#disposed = false;
+	private disposed = false;
 
 	/**
 	 * @param client - Client providing device access and event hooks
 	 * @param options - Optional configuration for default timeout behavior
 	 */
 	constructor(client: PatternEngineClient, options?: { defaultTimeout?: number }) {
-		this.#client = client;
-		this.#defaultTimeout = options?.defaultTimeout ?? DEFAULT_TIMEOUT_MS;
+		this.client = client;
+		this.defaultTimeout = options?.defaultTimeout ?? DEFAULT_TIMEOUT_MS;
 
-		this.#unsubDisconnect = client.on("disconnected", () => {
-			this.#stopMatchingPatterns("disconnect");
+		this.unsubDisconnect = client.on("disconnected", () => {
+			this.stopMatchingPatterns("disconnect");
 		});
-		this.#unsubDeviceRemoved = client.on("deviceRemoved", ({ data: { device } }) => {
-			this.#stopMatchingPatterns("deviceRemoved", device.index);
+		this.unsubDeviceRemoved = client.on("deviceRemoved", ({ data: { device } }) => {
+			this.stopMatchingPatterns("deviceRemoved", device.index);
 		});
 	}
 
@@ -101,15 +101,15 @@ export class PatternEngine {
 	): Promise<string> {
 		const deviceIndex = typeof device === "number" ? device : device.index;
 
-		if (this.#disposed) {
+		if (this.disposed) {
 			throw new DeviceError(deviceIndex, "PatternEngine has been disposed");
 		}
 
 		// Build descriptor from shorthand forms
-		const descriptor = this.#buildDescriptor(pattern, options);
+		const descriptor = this.buildDescriptor(pattern, options);
 		const parsed = PatternDescriptorSchema.parse(descriptor);
 
-		const resolvedDevice = typeof device === "number" ? this.#client.getDevice(device) : device;
+		const resolvedDevice = typeof device === "number" ? this.client.getDevice(device) : device;
 		if (!resolvedDevice) {
 			throw new DeviceError(deviceIndex, `Device at index ${deviceIndex} not found`);
 		}
@@ -120,9 +120,9 @@ export class PatternEngine {
 		}
 
 		// Auto-stop all existing patterns on the same device
-		for (const s of this.#patterns.values()) {
+		for (const s of this.patterns.values()) {
 			if (s.deviceIndex === deviceIndex) {
-				this.#stopPatternInternal(s, "manual");
+				this.stopPatternInternal(s, "manual");
 			}
 		}
 
@@ -159,13 +159,13 @@ export class PatternEngine {
 			options: options ?? {},
 		};
 
-		this.#patterns.set(id, state);
+		this.patterns.set(id, state);
 
-		const timeout = options?.timeout ?? this.#defaultTimeout;
+		const timeout = options?.timeout ?? this.defaultTimeout;
 		if (timeout > 0) {
-			state.safetyTimerId = setTimeout(() => this.#stopPatternInternal(state, "timeout"), timeout);
+			state.safetyTimerId = setTimeout(() => this.stopPatternInternal(state, "timeout"), timeout);
 		}
-		state.timerId = setTimeout(() => this.#tick(state, resolvedDevice), 0);
+		state.timerId = setTimeout(() => this.tick(state, resolvedDevice), 0);
 		return id;
 	}
 
@@ -178,11 +178,11 @@ export class PatternEngine {
 	 */
 	// biome-ignore lint/suspicious/useAwait: async API contract per spec
 	async stop(patternId: string): Promise<void> {
-		const state = this.#patterns.get(patternId);
+		const state = this.patterns.get(patternId);
 		if (!state) {
 			return;
 		}
-		this.#stopPatternInternal(state, "manual");
+		this.stopPatternInternal(state, "manual");
 	}
 
 	/**
@@ -191,7 +191,7 @@ export class PatternEngine {
 	 * @returns Number of patterns that were stopped
 	 */
 	stopAll(): number {
-		return this.#stopMatchingPatterns("manual");
+		return this.stopMatchingPatterns("manual");
 	}
 
 	/**
@@ -201,7 +201,7 @@ export class PatternEngine {
 	 * @returns Number of patterns that were stopped
 	 */
 	stopByDevice(deviceIndex: number): number {
-		return this.#stopMatchingPatterns("manual", deviceIndex);
+		return this.stopMatchingPatterns("manual", deviceIndex);
 	}
 
 	/**
@@ -211,7 +211,7 @@ export class PatternEngine {
 	 */
 	list(): PatternInfo[] {
 		const now = performance.now();
-		return [...this.#patterns.values()].map((state) => ({
+		return [...this.patterns.values()].map((state) => ({
 			id: state.id,
 			deviceIndex: state.deviceIndex,
 			featureIndices: state.tracks.map((t) => t.featureIndex),
@@ -236,17 +236,17 @@ export class PatternEngine {
 	 * Subsequent calls to {@link play} will throw. Idempotent.
 	 */
 	dispose(): void {
-		if (this.#disposed) {
+		if (this.disposed) {
 			return;
 		}
-		this.#disposed = true;
-		this.#unsubDisconnect();
-		this.#unsubDeviceRemoved();
-		this.#stopMatchingPatterns("manual");
+		this.disposed = true;
+		this.unsubDisconnect();
+		this.unsubDeviceRemoved();
+		this.stopMatchingPatterns("manual");
 	}
 
 	/** Evaluates all tracks at the current time and schedules the next tick. */
-	#tick(state: PatternState, device: PatternDevice): void {
+	private tick(state: PatternState, device: PatternDevice): void {
 		if (state.stopped) {
 			return;
 		}
@@ -258,7 +258,7 @@ export class PatternEngine {
 		// Evaluate all tracks before checking cycle completion so the final
 		// tick's keyframe values are sent before stopping.
 		const cycleElapsed = cycleDuration > 0 && elapsed >= cycleDuration ? cycleDuration : elapsed;
-		const onError = (s: PatternState, err: unknown) => this.#handleOutputError(s, err);
+		const onError = (s: PatternState, err: unknown) => this.handleOutputError(s, err);
 
 		for (const track of state.tracks) {
 			if (track.outputType === "HwPositionWithDuration") {
@@ -278,7 +278,7 @@ export class PatternEngine {
 				state.startedAt += cycleDuration;
 				state.lastSentKeyframeIndex.clear();
 			} else {
-				this.#stopPatternInternal(state, "complete", true);
+				this.stopPatternInternal(state, "complete", true);
 				return;
 			}
 		}
@@ -287,11 +287,11 @@ export class PatternEngine {
 		const drift = now - state.expectedTickTime;
 		const nextDelay = Math.max(0, state.tickInterval - drift);
 		state.expectedTickTime = now + nextDelay;
-		state.timerId = setTimeout(() => this.#tick(state, device), nextDelay);
+		state.timerId = setTimeout(() => this.tick(state, device), nextDelay);
 	}
 
 	/** Builds a {@link PatternDescriptor} from the shorthand pattern argument and options. */
-	#buildDescriptor(
+	private buildDescriptor(
 		pattern: PresetName | Track[] | PatternDescriptor,
 		options?: PatternPlayOptions
 	): PatternDescriptor {
@@ -316,26 +316,26 @@ export class PatternEngine {
 	}
 
 	/** Stops the pattern on device or protocol errors; ignores transient failures. */
-	#handleOutputError(state: PatternState, err: unknown): void {
+	private handleOutputError(state: PatternState, err: unknown): void {
 		if (err instanceof DeviceError || err instanceof ProtocolError) {
-			this.#stopPatternInternal(state, "error");
+			this.stopPatternInternal(state, "error");
 		}
 	}
 
 	/** Stops all patterns, optionally filtered by device index. */
-	#stopMatchingPatterns(reason: StopReason, deviceIndex?: number): number {
+	private stopMatchingPatterns(reason: StopReason, deviceIndex?: number): number {
 		const patterns =
 			deviceIndex === undefined
-				? [...this.#patterns.values()]
-				: [...this.#patterns.values()].filter((s) => s.deviceIndex === deviceIndex);
+				? [...this.patterns.values()]
+				: [...this.patterns.values()].filter((s) => s.deviceIndex === deviceIndex);
 		for (const state of patterns) {
-			this.#stopPatternInternal(state, reason);
+			this.stopPatternInternal(state, reason);
 		}
 		return patterns.length;
 	}
 
 	/** Stops a pattern, clears its timers, sends zero-value stop commands, and fires callbacks. */
-	#stopPatternInternal(state: PatternState, reason: StopReason, complete = false): void {
+	private stopPatternInternal(state: PatternState, reason: StopReason, complete = false): void {
 		if (state.stopped) {
 			return;
 		}
@@ -350,10 +350,10 @@ export class PatternEngine {
 			state.safetyTimerId = null;
 		}
 
-		this.#patterns.delete(state.id);
+		this.patterns.delete(state.id);
 
 		// Send stop commands via protocol StopCmd (fire-and-forget, bypass dedup)
-		const device = this.#client.getDevice(state.deviceIndex);
+		const device = this.client.getDevice(state.deviceIndex);
 		if (device) {
 			for (const track of state.tracks) {
 				device.stop({ featureIndex: track.featureIndex }).catch(noop);

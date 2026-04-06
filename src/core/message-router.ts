@@ -28,33 +28,33 @@ import type { MessageRouterOptions, PendingRequest } from "./types";
  */
 export class MessageRouter {
 	/** In-flight requests awaiting server responses, keyed by message ID. */
-	readonly #pending = new Map<number, PendingRequest>();
-	readonly #send: (data: string) => void;
-	readonly #timeout: number;
-	readonly #logger: Logger;
-	readonly #onDeviceList?: (devices: RawDevice[]) => void;
-	readonly #onScanningFinished?: () => void;
-	readonly #onInputReading?: (reading: InputReading) => void;
-	readonly #onError?: (error: ErrorMsg) => void;
-	#messageId = 0;
+	private readonly pending = new Map<number, PendingRequest>();
+	private readonly _send: (data: string) => void;
+	private readonly timeout: number;
+	private readonly logger: Logger;
+	private readonly onDeviceList?: (devices: RawDevice[]) => void;
+	private readonly onScanningFinished?: () => void;
+	private readonly onInputReading?: (reading: InputReading) => void;
+	private readonly onError?: (error: ErrorMsg) => void;
+	private messageId = 0;
 
 	/**
 	 * @param options - Router configuration including transport function and event callbacks
 	 */
 	constructor(options: MessageRouterOptions) {
-		this.#send = options.send;
-		this.#timeout = options.timeout ?? DEFAULT_REQUEST_TIMEOUT;
-		this.#logger = (options.logger ?? noopLogger).child("router");
-		this.#onDeviceList = options.onDeviceList;
-		this.#onScanningFinished = options.onScanningFinished;
-		this.#onInputReading = options.onInputReading;
-		this.#onError = options.onError;
+		this._send = options.send;
+		this.timeout = options.timeout ?? DEFAULT_REQUEST_TIMEOUT;
+		this.logger = (options.logger ?? noopLogger).child("router");
+		this.onDeviceList = options.onDeviceList;
+		this.onScanningFinished = options.onScanningFinished;
+		this.onInputReading = options.onInputReading;
+		this.onError = options.onError;
 	}
 
 	/** Returns the next auto-incrementing message ID. */
 	nextId(): number {
-		this.#messageId = (this.#messageId % MAX_MESSAGE_ID) + 1;
-		return this.#messageId;
+		this.messageId = (this.messageId % MAX_MESSAGE_ID) + 1;
+		return this.messageId;
 	}
 
 	/**
@@ -72,18 +72,18 @@ export class MessageRouter {
 		const messages = Array.isArray(input) ? input : [input];
 		const serialized = serializeMessages(messages);
 		const label = messages.length === 1 ? "message" : `batch (${messages.length})`;
-		this.#logger.debug(`Sending ${label}: ${serialized}`);
+		this.logger.debug(`Sending ${label}: ${serialized}`);
 
 		const promises = messages.map((message) => {
-			const id = this.#extractMessageId(message);
+			const id = this.extractMessageId(message);
 			return new Promise<ServerMessage>((resolve, reject) => {
 				const timeoutHandle = setTimeout(() => {
-					this.#pending.delete(id);
-					reject(new TimeoutError(`Request (ID ${id})`, this.#timeout));
-				}, this.#timeout);
+					this.pending.delete(id);
+					reject(new TimeoutError(`Request (ID ${id})`, this.timeout));
+				}, this.timeout);
 
 				// Reject any existing request at this ID so its promise settles
-				const existing = this.#pending.get(id);
+				const existing = this.pending.get(id);
 				if (existing) {
 					if (existing.timeout !== null) {
 						clearTimeout(existing.timeout);
@@ -91,7 +91,7 @@ export class MessageRouter {
 					existing.reject(new ProtocolError(ErrorCode.MESSAGE, `Request ${id} superseded by new request`));
 				}
 
-				this.#pending.set(id, {
+				this.pending.set(id, {
 					resolve,
 					reject: (err: Error) => {
 						clearTimeout(timeoutHandle);
@@ -103,15 +103,15 @@ export class MessageRouter {
 		});
 
 		try {
-			this.#send(serialized);
+			this._send(serialized);
 		} catch (err) {
-			const ids = messages.map((m) => this.#extractMessageId(m));
+			const ids = messages.map((m) => this.extractMessageId(m));
 			for (const id of ids) {
-				const pending = this.#pending.get(id);
+				const pending = this.pending.get(id);
 				if (pending?.timeout) {
 					clearTimeout(pending.timeout);
 				}
-				this.#pending.delete(id);
+				this.pending.delete(id);
 			}
 			throw err instanceof Error ? err : new Error(String(err));
 		}
@@ -128,16 +128,16 @@ export class MessageRouter {
 	 * @param raw - The raw JSON string received from the server
 	 */
 	handleMessage(raw: string): void {
-		this.#logger.debug(`Received message: ${raw}`);
+		this.logger.debug(`Received message: ${raw}`);
 		let messages: ServerMessage[];
 		try {
-			messages = parseServerMessages(raw, this.#logger);
+			messages = parseServerMessages(raw, this.logger);
 		} catch (err) {
-			this.#logger.error(`Failed to parse message: ${formatError(err)}`);
+			this.logger.error(`Failed to parse message: ${formatError(err)}`);
 			return;
 		}
 		for (const message of messages) {
-			this.#processMessage(message);
+			this.processMessage(message);
 		}
 	}
 
@@ -148,12 +148,12 @@ export class MessageRouter {
 	 * @param error - The error to reject the pending promise with
 	 */
 	cancelPending(id: number, error: Error): void {
-		const pending = this.#pending.get(id);
+		const pending = this.pending.get(id);
 		if (pending) {
 			if (pending.timeout !== null) {
 				clearTimeout(pending.timeout);
 			}
-			this.#pending.delete(id);
+			this.pending.delete(id);
 			pending.reject(error);
 		}
 	}
@@ -164,8 +164,8 @@ export class MessageRouter {
 	 * @param error - The error to reject all pending promises with
 	 */
 	cancelAll(error: Error): void {
-		const entries = Array.from(this.#pending.values());
-		this.#pending.clear();
+		const entries = Array.from(this.pending.values());
+		this.pending.clear();
 		for (const pending of entries) {
 			if (pending.timeout !== null) {
 				clearTimeout(pending.timeout);
@@ -176,35 +176,35 @@ export class MessageRouter {
 
 	/** Resets the message ID counter — required after reconnect to avoid collision with old IDs. */
 	resetId(): void {
-		this.#messageId = 0;
+		this.messageId = 0;
 	}
 
 	/** Number of in-flight requests currently awaiting responses. */
 	get pendingCount(): number {
-		return this.#pending.size;
+		return this.pending.size;
 	}
 
 	/**
 	 * Routes a parsed message to its pending request or to the event handler.
 	 * Messages with ID 0 or unmatched IDs are treated as unsolicited events.
 	 */
-	#processMessage(message: ServerMessage): void {
+	private processMessage(message: ServerMessage): void {
 		const id = extractId(message);
 		if (id === 0) {
-			this.#routeEvent(message);
+			this.routeEvent(message);
 			return;
 		}
 
-		const pending = this.#pending.get(id);
+		const pending = this.pending.get(id);
 		if (!pending) {
-			this.#routeEvent(message);
+			this.routeEvent(message);
 			return;
 		}
 
 		if (pending.timeout !== null) {
 			clearTimeout(pending.timeout);
 		}
-		this.#pending.delete(id);
+		this.pending.delete(id);
 
 		if (isOk(message) || isServerInfo(message) || isInputReading(message)) {
 			pending.resolve(message);
@@ -219,7 +219,7 @@ export class MessageRouter {
 			pending.resolve(message);
 			return;
 		}
-		this.#logger.warn(`Unexpected response type for pending request ${id}`);
+		this.logger.warn(`Unexpected response type for pending request ${id}`);
 		pending.resolve(message);
 	}
 
@@ -227,34 +227,34 @@ export class MessageRouter {
 	 * Dispatches an unsolicited server event to the appropriate callback.
 	 * Logs a warning if the message type has no registered handler.
 	 */
-	#routeEvent(message: ServerMessage): void {
+	private routeEvent(message: ServerMessage): void {
 		if (isDeviceList(message)) {
 			const deviceList = getDeviceList(message);
-			this.#onDeviceList?.(Object.values(deviceList.Devices));
+			this.onDeviceList?.(Object.values(deviceList.Devices));
 			return;
 		}
 		if (isScanningFinished(message)) {
-			this.#onScanningFinished?.();
+			this.onScanningFinished?.();
 			return;
 		}
 		if (isInputReading(message)) {
 			const reading = getInputReading(message);
-			this.#onInputReading?.(reading);
+			this.onInputReading?.(reading);
 			return;
 		}
 		if (isError(message)) {
 			const error = getError(message);
-			this.#onError?.(error);
+			this.onError?.(error);
 			return;
 		}
-		this.#logger.warn(`Unexpected message type: ${JSON.stringify(message)}`);
+		this.logger.warn(`Unexpected message type: ${JSON.stringify(message)}`);
 	}
 
 	/**
 	 * Extracts the numeric message ID from a client message envelope.
 	 * @throws {ProtocolError} if the message is malformed or missing an ID
 	 */
-	#extractMessageId(message: ClientMessage): number {
+	private extractMessageId(message: ClientMessage): number {
 		const keys = Object.keys(message);
 		if (keys.length !== 1) {
 			throw new ProtocolError(ErrorCode.MESSAGE, "Invalid message: expected exactly one key");

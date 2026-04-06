@@ -48,58 +48,58 @@ const DISCONNECT_TIMEOUT_MS = 3000;
  * Emits events defined in {@link ClientEventMap}.
  */
 export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMessageSender {
-	readonly #url: string;
-	readonly #clientName: string;
-	readonly #baseLogger: Logger;
-	readonly #logger: Logger;
-	readonly #transport: WebSocketTransport;
-	readonly #messageRouter: MessageRouter;
-	readonly #pingManager: PingManager;
-	readonly #sensorHandler: SensorHandler;
-	readonly #reconnectHandler: ReconnectHandler | null;
-	readonly #devices = new Map<number, Device>();
-	#scanning = false;
-	#serverInfo: ServerInfo | null = null;
-	#connectPromise: Promise<void> | null = null;
-	#isHandshaking = false;
-	#disconnecting = false;
+	private readonly url: string;
+	private readonly clientName: string;
+	private readonly baseLogger: Logger;
+	private readonly logger: Logger;
+	private readonly transport: WebSocketTransport;
+	private readonly messageRouter: MessageRouter;
+	private readonly pingManager: PingManager;
+	private readonly sensorHandler: SensorHandler;
+	private readonly reconnectHandler: ReconnectHandler | null;
+	private readonly _devices = new Map<number, Device>();
+	private _scanning = false;
+	private _serverInfo: ServerInfo | null = null;
+	private connectPromise: Promise<void> | null = null;
+	private isHandshaking = false;
+	private disconnecting = false;
 
 	constructor(url: string, options: ButtplugClientOptions = {}) {
 		super();
-		this.#url = url;
-		this.#clientName = options.clientName ?? DEFAULT_CLIENT_NAME;
-		this.#baseLogger = options.logger ?? noopLogger;
-		this.#logger = this.#baseLogger.child("client");
+		this.url = url;
+		this.clientName = options.clientName ?? DEFAULT_CLIENT_NAME;
+		this.baseLogger = options.logger ?? noopLogger;
+		this.logger = this.baseLogger.child("client");
 
-		this.#transport = new WebSocketTransport({ logger: this.#baseLogger });
+		this.transport = new WebSocketTransport({ logger: this.baseLogger });
 
-		this.#transport.on("message", (data: string) => {
-			this.#messageRouter.handleMessage(data);
+		this.transport.on("message", (data: string) => {
+			this.messageRouter.handleMessage(data);
 		});
 
-		this.#transport.on("close", (_code: number, reason: string) => {
+		this.transport.on("close", (_code: number, reason: string) => {
 			// Server-side safety: the Buttplug spec requires servers to stop all
 			// devices when a client disconnects, so no client-side stop is needed.
-			this.#pingManager.stop();
-			if (!this.#disconnecting) {
+			this.pingManager.stop();
+			if (!this.disconnecting) {
 				this.emit("disconnected", { reason });
 			}
 		});
 
-		this.#transport.on("error", (error: Error) => {
+		this.transport.on("error", (error: Error) => {
 			this.emit("error", { error });
 		});
 
 		const routerOpts: MessageRouterOptions = {
-			send: (data: string) => this.#transport.send(data),
+			send: (data: string) => this.transport.send(data),
 			timeout: options.requestTimeout,
-			logger: this.#baseLogger,
+			logger: this.baseLogger,
 			onDeviceList: (devices: RawDevice[]) =>
 				reconcileDevices({
-					currentDevices: this.#devices,
+					currentDevices: this._devices,
 					incomingRaw: devices,
-					createDevice: (raw) => new Device({ client: this, raw, logger: this.#baseLogger }),
-					logger: this.#logger,
+					createDevice: (raw) => new Device({ client: this, raw, logger: this.baseLogger }),
+					logger: this.logger,
 					callbacks: {
 						onAdded: (d) => this.emit("deviceAdded", { device: d }),
 						onRemoved: (d) => this.emit("deviceRemoved", { device: d }),
@@ -108,76 +108,76 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 					},
 				}),
 			onScanningFinished: () => {
-				this.#scanning = false;
+				this._scanning = false;
 				this.emit("scanningFinished", undefined);
 			},
 			onInputReading: (reading: InputReading) => {
-				this.#sensorHandler.handleReading(reading, (r) => this.emit("inputReading", { reading: r }));
+				this.sensorHandler.handleReading(reading, (r) => this.emit("inputReading", { reading: r }));
 			},
 			onError: (error: ErrorMsg) => {
-				this.#logger.warn(`System error from server: [${error.ErrorCode}] ${error.ErrorMessage}`);
+				this.logger.warn(`System error from server: [${error.ErrorCode}] ${error.ErrorMessage}`);
 				this.emit("error", { error: new ProtocolError(error.ErrorCode, error.ErrorMessage) });
 				if (error.ErrorCode === ErrorCode.PING) {
-					this.#logger.error("Server ping timeout — server will halt devices and disconnect");
+					this.logger.error("Server ping timeout — server will halt devices and disconnect");
 					this.disconnect("Server ping timeout");
 				}
 			},
 		};
-		this.#messageRouter = new MessageRouter(routerOpts);
-		this.#pingManager = new PingManager({
+		this.messageRouter = new MessageRouter(routerOpts);
+		this.pingManager = new PingManager({
 			sendPing: async () => {
-				await this.#messageRouter.send(createPing(this.#messageRouter.nextId()));
+				await this.messageRouter.send(createPing(this.messageRouter.nextId()));
 			},
-			cancelPing: (error: Error) => this.#messageRouter.cancelAll(error),
-			logger: this.#baseLogger,
+			cancelPing: (error: Error) => this.messageRouter.cancelAll(error),
+			logger: this.baseLogger,
 			autoPing: options.autoPing ?? true,
 			onError: (error) => this.emit("error", { error }),
 			onDisconnect: (reason) => this.disconnect(reason),
 			isConnected: () => this.connected,
 		});
-		this.#sensorHandler = new SensorHandler(this.#baseLogger);
+		this.sensorHandler = new SensorHandler(this.baseLogger);
 
 		if (options.autoReconnect) {
-			this.#reconnectHandler = new ReconnectHandler({
-				url: this.#url,
-				transport: this.#transport,
+			this.reconnectHandler = new ReconnectHandler({
+				url: this.url,
+				transport: this.transport,
 				reconnectDelay: options.reconnectDelay,
 				maxReconnectDelay: options.maxReconnectDelay,
 				maxReconnectAttempts: options.maxReconnectAttempts,
-				logger: this.#baseLogger,
+				logger: this.baseLogger,
 				onReconnecting: (attempt) => {
-					this.#pingManager.stop();
+					this.pingManager.stop();
 					this.emit("reconnecting", { attempt });
 				},
-				onReconnected: () => this.#handleReconnected(),
+				onReconnected: () => this.handleReconnected(),
 				onFailed: (reason) => {
-					this.#logger.error(`Reconnection failed: ${reason}`);
+					this.logger.error(`Reconnection failed: ${reason}`);
 					this.emit("error", { error: new ConnectionError(reason) });
 				},
 			});
 		} else {
-			this.#reconnectHandler = null;
+			this.reconnectHandler = null;
 		}
 
 		this.on("disconnected", () => {
-			this.#scanning = false;
-			this.#serverInfo = null;
-			this.#sensorHandler.clear();
+			this._scanning = false;
+			this._serverInfo = null;
+			this.sensorHandler.clear();
 			// Emit deviceRemoved for each device before clearing
-			for (const device of this.#devices.values()) {
+			for (const device of this._devices.values()) {
 				this.emit("deviceRemoved", { device });
 			}
-			this.#devices.clear();
+			this._devices.clear();
 
-			if (this.#reconnectHandler) {
-				this.#reconnectHandler.start();
+			if (this.reconnectHandler) {
+				this.reconnectHandler.start();
 			}
 		});
 		this.on("deviceRemoved", ({ data: { device } }) => {
-			this.#sensorHandler.unsubscribeDevice({
+			this.sensorHandler.unsubscribeDevice({
 				deviceIndex: device.index,
-				router: this.#messageRouter,
-				connected: this.#serverInfo !== null && this.connected,
+				router: this.messageRouter,
+				connected: this._serverInfo !== null && this.connected,
 			});
 		});
 	}
@@ -189,18 +189,18 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	 * @throws HandshakeError if the server rejects the handshake
 	 */
 	async connect(): Promise<void> {
-		if (this.connected && this.#serverInfo) {
+		if (this.connected && this._serverInfo) {
 			return;
 		}
-		if (this.#connectPromise) {
-			return this.#connectPromise;
+		if (this.connectPromise) {
+			return this.connectPromise;
 		}
 
-		this.#connectPromise = this.#performConnect();
+		this.connectPromise = this.performConnect();
 		try {
-			await this.#connectPromise;
+			await this.connectPromise;
 		} finally {
-			this.#connectPromise = null;
+			this.connectPromise = null;
 		}
 	}
 
@@ -214,15 +214,15 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	 * @param reason - Optional human-readable reason for the disconnection
 	 */
 	async disconnect(reason?: string): Promise<void> {
-		this.#disconnecting = true;
+		this.disconnecting = true;
 		try {
 			const disconnectReason = reason ?? "Client disconnected";
 			let emitted = false;
 
 			// Always cancel reconnect attempts, even if the transport is not connected
-			if (this.#reconnectHandler?.active) {
-				this.#reconnectHandler.cancel();
-				this.#pingManager.stop();
+			if (this.reconnectHandler?.active) {
+				this.reconnectHandler.cancel();
+				this.pingManager.stop();
 				this.emit("disconnected", { reason: disconnectReason });
 				emitted = true;
 			}
@@ -231,37 +231,37 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 				return;
 			}
 
-			this.#logger.info(`Disconnecting${reason ? `: ${reason}` : ""}`);
-			this.#pingManager.stop();
-			this.#reconnectHandler?.cancel();
+			this.logger.info(`Disconnecting${reason ? `: ${reason}` : ""}`);
+			this.pingManager.stop();
+			this.reconnectHandler?.cancel();
 
 			// Skip stop/disconnect messages if the handshake hasn't completed yet
-			if (this.#serverInfo !== null && !this.#isHandshaking) {
+			if (this._serverInfo !== null && !this.isHandshaking) {
 				try {
 					await raceTimeout(this.stopAll(), STOP_DEVICES_TIMEOUT_MS);
 				} catch {
-					this.#logger.warn("Stop all devices timed out during disconnect");
+					this.logger.warn("Stop all devices timed out during disconnect");
 				}
 				try {
 					await raceTimeout(
-						this.#messageRouter.send(createDisconnect(this.#messageRouter.nextId())),
+						this.messageRouter.send(createDisconnect(this.messageRouter.nextId())),
 						DISCONNECT_TIMEOUT_MS
 					);
 				} catch {
-					this.#logger.warn("Disconnect message failed or timed out");
+					this.logger.warn("Disconnect message failed or timed out");
 				}
 			}
 
-			this.#messageRouter.cancelAll(new ConnectionError("Client disconnected"));
-			await this.#transport.disconnect();
+			this.messageRouter.cancelAll(new ConnectionError("Client disconnected"));
+			await this.transport.disconnect();
 
-			// The close handler's emit is suppressed by #disconnecting, so emit
+			// The close handler's emit is suppressed by disconnecting, so emit
 			// here if it wasn't already emitted by the reconnect-cancel path above.
 			if (!emitted) {
 				this.emit("disconnected", { reason: disconnectReason });
 			}
 		} finally {
-			this.#disconnecting = false;
+			this.disconnecting = false;
 		}
 	}
 
@@ -271,9 +271,9 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	 * @throws ConnectionError if the client is not connected
 	 */
 	async startScanning(): Promise<void> {
-		this.#requireConnection("start scanning");
-		await this.#messageRouter.send(createStartScanning(this.#messageRouter.nextId()));
-		this.#scanning = true;
+		this.requireConnection("start scanning");
+		await this.messageRouter.send(createStartScanning(this.messageRouter.nextId()));
+		this._scanning = true;
 	}
 	/**
 	 * Stops an active device scan on the server.
@@ -281,9 +281,9 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	 * @throws ConnectionError if the client is not connected
 	 */
 	async stopScanning(): Promise<void> {
-		this.#requireConnection("stop scanning");
-		await this.#messageRouter.send(createStopScanning(this.#messageRouter.nextId()));
-		this.#scanning = false;
+		this.requireConnection("stop scanning");
+		await this.messageRouter.send(createStopScanning(this.messageRouter.nextId()));
+		this._scanning = false;
 	}
 
 	/**
@@ -292,8 +292,8 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	 * @throws ConnectionError if the client is not connected
 	 */
 	async stopAll(): Promise<void> {
-		this.#requireConnection("stop devices");
-		await this.#messageRouter.send(createStopCmd(this.#messageRouter.nextId()));
+		this.requireConnection("stop devices");
+		await this.messageRouter.send(createStopCmd(this.messageRouter.nextId()));
 	}
 	/**
 	 * Requests the current device list from the server.
@@ -304,18 +304,18 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	 * @throws ConnectionError if the client is not connected
 	 */
 	async requestDeviceList(): Promise<void> {
-		this.#requireConnection("request device list");
-		const responses = await this.#messageRouter.send(createRequestDeviceList(this.#messageRouter.nextId()));
+		this.requireConnection("request device list");
+		const responses = await this.messageRouter.send(createRequestDeviceList(this.messageRouter.nextId()));
 		// Solicited DeviceList responses are resolved via the promise but not
 		// dispatched to the onDeviceList callback, so reconciliation must run here.
 		for (const response of responses) {
 			if (isDeviceList(response)) {
 				const deviceList = getDeviceList(response);
 				reconcileDevices({
-					currentDevices: this.#devices,
+					currentDevices: this._devices,
 					incomingRaw: Object.values(deviceList.Devices),
-					createDevice: (raw) => new Device({ client: this, raw, logger: this.#baseLogger }),
-					logger: this.#logger,
+					createDevice: (raw) => new Device({ client: this, raw, logger: this.baseLogger }),
+					logger: this.logger,
 					callbacks: {
 						onAdded: (d) => this.emit("deviceAdded", { device: d }),
 						onRemoved: (d) => this.emit("deviceRemoved", { device: d }),
@@ -335,8 +335,8 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	 * @throws ConnectionError if the client is not connected
 	 */
 	async send(messages: ClientMessage | ClientMessage[]): Promise<ServerMessage[]> {
-		this.#requireConnection("send message");
-		return await this.#messageRouter.send(messages);
+		this.requireConnection("send message");
+		return await this.messageRouter.send(messages);
 	}
 	/**
 	 * Returns the next monotonically increasing message ID.
@@ -344,7 +344,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	 * @returns A unique message ID for the next outgoing message
 	 */
 	nextId(): number {
-		return this.#messageRouter.nextId();
+		return this.messageRouter.nextId();
 	}
 
 	/**
@@ -359,7 +359,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 		callback: SensorCallback,
 		info: { deviceIndex: number; featureIndex: number; type: InputType }
 	): void {
-		this.#sensorHandler.register(key, callback, info);
+		this.sensorHandler.register(key, callback, info);
 	}
 	/**
 	 * Removes a previously registered sensor subscription.
@@ -367,7 +367,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	 * @param key - The subscription key to remove
 	 */
 	unregisterSensorSubscription(key: string): void {
-		this.#sensorHandler.unregister(key);
+		this.sensorHandler.unregister(key);
 	}
 
 	/**
@@ -377,24 +377,24 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	 * @returns The {@link Device} instance, or `undefined` if not found
 	 */
 	getDevice(index: number): Device | undefined {
-		return this.#devices.get(index);
+		return this._devices.get(index);
 	}
 
 	/** Whether the WebSocket transport is currently connected. */
 	get connected(): boolean {
-		return this.#transport.state === "connected";
+		return this.transport.state === "connected";
 	}
 	/** Whether a device scan is currently in progress. */
 	get scanning(): boolean {
-		return this.#scanning;
+		return this._scanning;
 	}
 	/** Server information received during handshake, or `null` if not connected. */
 	get serverInfo(): ServerInfo | null {
-		return this.#serverInfo;
+		return this._serverInfo;
 	}
 	/** Snapshot of all currently known {@link Device} instances. */
 	get devices(): Device[] {
-		return Array.from(this.#devices.values());
+		return Array.from(this._devices.values());
 	}
 
 	/**
@@ -405,10 +405,10 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	 */
 	dispose(): void {
 		this.clearListeners();
-		this.#pingManager.stop();
-		this.#sensorHandler.clear();
-		this.#reconnectHandler?.cancel();
-		this.#devices.clear();
+		this.pingManager.stop();
+		this.sensorHandler.clear();
+		this.reconnectHandler?.cancel();
+		this._devices.clear();
 	}
 
 	/**
@@ -416,28 +416,28 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	 *
 	 * @throws ConnectionError if not connected
 	 */
-	#requireConnection(action: string): void {
+	private requireConnection(action: string): void {
 		if (!this.connected) {
 			throw new ConnectionError(`Cannot ${action}: not connected`);
 		}
 	}
 
 	/** Executes the transport connection and protocol handshake. */
-	async #performConnect(): Promise<void> {
-		this.#logger.info(`Connecting to ${this.#url}`);
-		await this.#transport.connect(this.#url);
-		this.#isHandshaking = true;
+	private async performConnect(): Promise<void> {
+		this.logger.info(`Connecting to ${this.url}`);
+		await this.transport.connect(this.url);
+		this.isHandshaking = true;
 		try {
-			this.#serverInfo = await performHandshake({
-				router: this.#messageRouter,
-				clientName: this.#clientName,
-				pingManager: this.#pingManager,
-				logger: this.#logger,
+			this._serverInfo = await performHandshake({
+				router: this.messageRouter,
+				clientName: this.clientName,
+				pingManager: this.pingManager,
+				logger: this.logger,
 			});
 		} finally {
-			this.#isHandshaking = false;
+			this.isHandshaking = false;
 		}
-		this.#logger.info(`Connected to server: ${this.#serverInfo?.ServerName ?? "unknown"}`);
+		this.logger.info(`Connected to server: ${this._serverInfo?.ServerName ?? "unknown"}`);
 		this.emit("connected", undefined);
 	}
 
@@ -447,26 +447,26 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	 * Resets all client state, performs a new handshake, and requests the device list.
 	 * Emits an error and disconnects if the handshake fails.
 	 */
-	async #handleReconnected(): Promise<void> {
-		this.#logger.info("Reconnected, performing handshake");
-		this.#messageRouter.cancelAll(new ConnectionError("Reconnecting"));
-		this.#messageRouter.resetId();
-		this.#serverInfo = null;
-		this.#scanning = false;
+	private async handleReconnected(): Promise<void> {
+		this.logger.info("Reconnected, performing handshake");
+		this.messageRouter.cancelAll(new ConnectionError("Reconnecting"));
+		this.messageRouter.resetId();
+		this._serverInfo = null;
+		this._scanning = false;
 		// Don't clear devices here — let reconcileDevices() handle the diff
 		// after requestDeviceList() returns, avoiding spurious remove/add churn
-		this.#sensorHandler.clear();
+		this.sensorHandler.clear();
 		try {
-			this.#serverInfo = await performHandshake({
-				router: this.#messageRouter,
-				clientName: this.#clientName,
-				pingManager: this.#pingManager,
-				logger: this.#logger,
+			this._serverInfo = await performHandshake({
+				router: this.messageRouter,
+				clientName: this.clientName,
+				pingManager: this.pingManager,
+				logger: this.logger,
 			});
 			this.emit("reconnected", undefined);
 			await this.requestDeviceList();
 		} catch (err) {
-			this.#logger.error(`Handshake failed after reconnect: ${formatError(err)}`);
+			this.logger.error(`Handshake failed after reconnect: ${formatError(err)}`);
 			this.emit("error", { error: err instanceof Error ? err : new Error(String(err)) });
 			await this.disconnect("Handshake failed after reconnect");
 		}

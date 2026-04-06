@@ -29,107 +29,107 @@ interface OutputBuilderState {
  * through chained method calls, then produces a validated protocol message.
  */
 export class OutputCommandBuilder {
-	readonly #state: OutputBuilderState = {};
+	private readonly state: OutputBuilderState = {};
 
 	/** Sets the message ID. Defaults to 0 if not called. */
 	id(id: number): this {
-		this.#state.id = id;
+		this.state.id = id;
 		return this;
 	}
 
 	/** Sets the target device index. */
 	device(deviceIndex: number): this {
-		this.#state.deviceIndex = deviceIndex;
+		this.state.deviceIndex = deviceIndex;
 		return this;
 	}
 
 	/** Sets the target feature index on the device. */
 	feature(featureIndex: number): this {
-		this.#state.featureIndex = featureIndex;
+		this.state.featureIndex = featureIndex;
 		return this;
 	}
 
 	/** Sets the allowed value range for clamping output values. */
 	withRange(range: [number, number]): this {
-		this.#state.featureRange = range;
+		this.state.featureRange = range;
 		return this;
 	}
 
 	/** Sets the allowed duration range for clamping position command durations. */
 	withDurationRange(range: [number, number]): this {
-		this.#state.durationRange = range;
+		this.state.durationRange = range;
 		return this;
 	}
 
 	/** Sets vibration intensity. */
 	vibrate(value: number): this {
-		this.#state.outputType = "Vibrate";
-		this.#state.value = value;
+		this.state.outputType = "Vibrate";
+		this.state.value = value;
 		return this;
 	}
 
 	/** Sets rotation speed. */
 	rotate(value: number): this {
-		this.#state.outputType = "Rotate";
-		this.#state.value = value;
+		this.state.outputType = "Rotate";
+		this.state.value = value;
 		return this;
 	}
 
 	/** Sets rotation speed with direction. */
 	rotateWithDirection(value: number, clockwise: boolean): this {
-		this.#state.outputType = "RotateWithDirection";
-		this.#state.value = value;
-		this.#state.clockwise = clockwise;
+		this.state.outputType = "RotateWithDirection";
+		this.state.value = value;
+		this.state.clockwise = clockwise;
 		return this;
 	}
 
 	/** Sets oscillation intensity. */
 	oscillate(value: number): this {
-		this.#state.outputType = "Oscillate";
-		this.#state.value = value;
+		this.state.outputType = "Oscillate";
+		this.state.value = value;
 		return this;
 	}
 
 	/** Sets constriction intensity. */
 	constrict(value: number): this {
-		this.#state.outputType = "Constrict";
-		this.#state.value = value;
+		this.state.outputType = "Constrict";
+		this.state.value = value;
 		return this;
 	}
 
 	/** Sets spray intensity. */
 	spray(value: number): this {
-		this.#state.outputType = "Spray";
-		this.#state.value = value;
+		this.state.outputType = "Spray";
+		this.state.value = value;
 		return this;
 	}
 
 	/** Sets temperature value. */
 	temperature(value: number): this {
-		this.#state.outputType = "Temperature";
-		this.#state.value = value;
+		this.state.outputType = "Temperature";
+		this.state.value = value;
 		return this;
 	}
 
 	/** Sets LED intensity. */
 	led(value: number): this {
-		this.#state.outputType = "Led";
-		this.#state.value = value;
+		this.state.outputType = "Led";
+		this.state.value = value;
 		return this;
 	}
 
 	/** Sets target position. */
 	position(value: number): this {
-		this.#state.outputType = "Position";
-		this.#state.value = value;
+		this.state.outputType = "Position";
+		this.state.value = value;
 		return this;
 	}
 
 	/** Sets target position with movement duration in milliseconds. */
 	hwPositionWithDuration(value: number, duration: number): this {
-		this.#state.outputType = "HwPositionWithDuration";
-		this.#state.value = value;
-		this.#state.duration = duration;
+		this.state.outputType = "HwPositionWithDuration";
+		this.state.value = value;
+		this.state.duration = duration;
 		return this;
 	}
 
@@ -142,7 +142,7 @@ export class OutputCommandBuilder {
 	 */
 	build(): ClientMessage {
 		const { id, deviceIndex, featureIndex, outputType, value, clockwise, duration, featureRange, durationRange } =
-			this.#state;
+			this.state;
 
 		if (deviceIndex === undefined) {
 			throw new Error("OutputCommandBuilder: deviceIndex is required. Call .device(index) before .build().");
@@ -220,44 +220,44 @@ interface InputBuilderState {
  * Supports read, subscribe, and unsubscribe commands for device sensors.
  */
 export class InputCommandBuilder {
-	readonly #state: InputBuilderState = {};
+	private readonly state: InputBuilderState = {};
 
 	/** Sets the message ID. Defaults to 0 if not called. */
 	id(id: number): this {
-		this.#state.id = id;
+		this.state.id = id;
 		return this;
 	}
 
 	/** Sets the target device index. */
 	device(deviceIndex: number): this {
-		this.#state.deviceIndex = deviceIndex;
+		this.state.deviceIndex = deviceIndex;
 		return this;
 	}
 
 	/** Sets the target feature index on the device. */
 	feature(featureIndex: number): this {
-		this.#state.featureIndex = featureIndex;
+		this.state.featureIndex = featureIndex;
 		return this;
 	}
 
 	/** Sets the command to read the given sensor type. */
 	read(type: InputType): this {
-		this.#state.inputType = type;
-		this.#state.command = "Read";
+		this.state.inputType = type;
+		this.state.command = "Read";
 		return this;
 	}
 
 	/** Sets the command to subscribe to the given sensor type. */
 	subscribe(type: InputType): this {
-		this.#state.inputType = type;
-		this.#state.command = "Subscribe";
+		this.state.inputType = type;
+		this.state.command = "Subscribe";
 		return this;
 	}
 
 	/** Sets the command to unsubscribe from the given sensor type. */
 	unsubscribe(type: InputType): this {
-		this.#state.inputType = type;
-		this.#state.command = "Unsubscribe";
+		this.state.inputType = type;
+		this.state.command = "Unsubscribe";
 		return this;
 	}
 
@@ -267,7 +267,7 @@ export class InputCommandBuilder {
 	 * @throws Error if deviceIndex, featureIndex, or input type/command are missing
 	 */
 	build(): ClientMessage {
-		const { id, deviceIndex, featureIndex, inputType, command } = this.#state;
+		const { id, deviceIndex, featureIndex, inputType, command } = this.state;
 
 		if (deviceIndex === undefined) {
 			throw new Error("InputCommandBuilder: deviceIndex is required. Call .device(index) before .build().");
@@ -308,35 +308,35 @@ interface StopBuilderState {
  * Supports stopping all device activity or selectively stopping inputs and outputs.
  */
 export class StopCommandBuilder {
-	readonly #state: StopBuilderState = {};
+	private readonly state: StopBuilderState = {};
 
 	/** Sets the message ID. Defaults to 0 if not called. */
 	id(id: number): this {
-		this.#state.id = id;
+		this.state.id = id;
 		return this;
 	}
 
 	/** Sets the target device index. When omitted, the stop applies to all devices. */
 	device(deviceIndex: number): this {
-		this.#state.deviceIndex = deviceIndex;
+		this.state.deviceIndex = deviceIndex;
 		return this;
 	}
 
 	/** Sets the target feature index. Requires a device index to be set. */
 	feature(featureIndex: number): this {
-		this.#state.featureIndex = featureIndex;
+		this.state.featureIndex = featureIndex;
 		return this;
 	}
 
 	/** Sets whether to stop input subscriptions. */
 	inputs(value: boolean): this {
-		this.#state.stopInputs = value;
+		this.state.stopInputs = value;
 		return this;
 	}
 
 	/** Sets whether to stop output commands. */
 	outputs(value: boolean): this {
-		this.#state.stopOutputs = value;
+		this.state.stopOutputs = value;
 		return this;
 	}
 
@@ -346,7 +346,7 @@ export class StopCommandBuilder {
 	 * @throws Error if featureIndex is set without deviceIndex
 	 */
 	build(): ClientMessage {
-		const { id, deviceIndex, featureIndex, stopInputs, stopOutputs } = this.#state;
+		const { id, deviceIndex, featureIndex, stopInputs, stopOutputs } = this.state;
 
 		if (featureIndex !== undefined && deviceIndex === undefined) {
 			throw new Error(
