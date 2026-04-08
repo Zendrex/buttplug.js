@@ -216,4 +216,3 @@ export function getOutputsByType(features: DeviceFeatures, type: OutputType): Ou
 export function getInputsByType(features: DeviceFeatures, type: InputType): InputFeature[] {
 	return getInputIndex(features).get(type) ?? [];
 }
-
