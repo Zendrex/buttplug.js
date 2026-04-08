@@ -216,13 +216,3 @@ export function getOutputsByType(features: DeviceFeatures, type: OutputType): Ou
 export function getInputsByType(features: DeviceFeatures, type: InputType): InputFeature[] {
 	return getInputIndex(features).get(type) ?? [];
 }
-
-/** Checks whether the device supports reading the given sensor type. */
-export function canRead(features: DeviceFeatures, type: InputType): boolean {
-	return getInputsByType(features, type).some((f) => f.canRead);
-}
-
-/** Checks whether the device supports subscribing to the given sensor type. */
-export function canSubscribe(features: DeviceFeatures, type: InputType): boolean {
-	return getInputsByType(features, type).some((f) => f.canSubscribe);
-}

@@ -14,7 +14,7 @@ import type { PatternDevice, PatternState, ResolvedKeyframe, ResolvedTrack } fro
  * @param elapsed - Milliseconds elapsed since cycle start
  * @returns Interpolated value in the 0-1 range
  */
-export function interpolateKeyframes(keyframes: ResolvedKeyframe[], elapsed: number): number {
+function interpolateKeyframes(keyframes: ResolvedKeyframe[], elapsed: number): number {
 	let accumulated = 0;
 	const first = keyframes[0];
 	if (!first) {
