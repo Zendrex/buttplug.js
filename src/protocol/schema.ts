@@ -30,12 +30,12 @@ export type OutputType = z.infer<typeof OutputTypeSchema>;
 export const INPUT_TYPE_VALUES = ["Battery", "RSSI", "Pressure", "Button", "Position"] as const;
 
 /** Zod schema validating input sensor type strings. */
-export const InputTypeSchema = z.enum(INPUT_TYPE_VALUES);
+const InputTypeSchema = z.enum(INPUT_TYPE_VALUES);
 /** Input sensor type string literal union. */
 export type InputType = z.infer<typeof InputTypeSchema>;
 
 /** Zod schema validating input command operations (Read, Subscribe, Unsubscribe). */
-export const InputCommandTypeSchema = z.enum(["Read", "Subscribe", "Unsubscribe"]);
+const InputCommandTypeSchema = z.enum(["Read", "Subscribe", "Unsubscribe"]);
 
 /** Input command operation: one-shot read, subscribe for updates, or unsubscribe. */
 export type InputCommandType = z.infer<typeof InputCommandTypeSchema>;
@@ -50,7 +50,7 @@ export type InputCommandType = z.infer<typeof InputCommandTypeSchema>;
  * Every message includes an `Id` field for request/response correlation,
  * constrained to a 32-bit unsigned integer range.
  */
-export const BaseMessageSchema = z.object({
+const BaseMessageSchema = z.object({
 	Id: z.number().int().min(0).max(MAX_MESSAGE_ID),
 });
 
@@ -64,7 +64,7 @@ export type BaseMessage = z.infer<typeof BaseMessageSchema>;
 /**
  * Handshake request schema to identify the client and negotiate protocol version.
  */
-export const RequestServerInfoSchema = BaseMessageSchema.extend({
+const RequestServerInfoSchema = BaseMessageSchema.extend({
 	ClientName: z.string().min(1),
 	ProtocolVersionMajor: z.number().int(),
 	ProtocolVersionMinor: z.number().int(),
@@ -74,27 +74,27 @@ export const RequestServerInfoSchema = BaseMessageSchema.extend({
 export type RequestServerInfo = z.infer<typeof RequestServerInfoSchema>;
 
 /** Request to begin scanning for devices. */
-export const StartScanningSchema = BaseMessageSchema;
+const StartScanningSchema = BaseMessageSchema;
 /** Inferred type for a StartScanning message. */
 export type StartScanning = z.infer<typeof StartScanningSchema>;
 
 /** Request to stop an ongoing device scan. */
-export const StopScanningSchema = BaseMessageSchema;
+const StopScanningSchema = BaseMessageSchema;
 /** Inferred type for a StopScanning message. */
 export type StopScanning = z.infer<typeof StopScanningSchema>;
 
 /** Request the current list of connected devices. */
-export const RequestDeviceListSchema = BaseMessageSchema;
+const RequestDeviceListSchema = BaseMessageSchema;
 /** Inferred type for a RequestDeviceList message. */
 export type RequestDeviceList = z.infer<typeof RequestDeviceListSchema>;
 
 /** Keep-alive ping message to maintain the connection. */
-export const PingSchema = BaseMessageSchema;
+const PingSchema = BaseMessageSchema;
 /** Inferred type for a Ping keep-alive message. */
 export type Ping = z.infer<typeof PingSchema>;
 
 /** Request to gracefully disconnect from the server. */
-export const DisconnectSchema = BaseMessageSchema;
+const DisconnectSchema = BaseMessageSchema;
 /** Inferred type for a Disconnect message. */
 export type Disconnect = z.infer<typeof DisconnectSchema>;
 
@@ -103,7 +103,7 @@ export type Disconnect = z.infer<typeof DisconnectSchema>;
  *
  * Omitting all optional fields stops all activity on all devices.
  */
-export const StopCmdSchema = BaseMessageSchema.extend({
+const StopCmdSchema = BaseMessageSchema.extend({
 	DeviceIndex: z.number().int().optional(),
 	FeatureIndex: z.number().int().optional(),
 	Inputs: z.boolean().optional(),
@@ -122,7 +122,7 @@ export type StopCmd = z.infer<typeof StopCmdSchema>;
  *
  * Intiface Central expects `{"Vibrate": {"Value": 15}}`, not bare integers.
  */
-export const UnsignedScalarOutputDataSchema = z.object({
+const UnsignedScalarOutputDataSchema = z.object({
 	Value: z.number().int().nonnegative(),
 });
 
@@ -134,7 +134,7 @@ export type UnsignedScalarOutputData = z.infer<typeof UnsignedScalarOutputDataSc
  *
  * Used by Temperature (positive = heat, negative = cool).
  */
-export const SignedScalarOutputDataSchema = z.object({
+const SignedScalarOutputDataSchema = z.object({
 	Value: z.number().int(),
 });
 
@@ -145,7 +145,7 @@ export type SignedScalarOutputData = z.infer<typeof SignedScalarOutputDataSchema
 export type ScalarOutputData = UnsignedScalarOutputData;
 
 /** Rotation output with explicit direction control. */
-export const RotateWithDirectionOutputDataSchema = z.object({
+const RotateWithDirectionOutputDataSchema = z.object({
 	Value: z.number().int().nonnegative(),
 	Clockwise: z.boolean(),
 });
@@ -158,7 +158,7 @@ export type RotateWithDirectionOutputData = z.infer<typeof RotateWithDirectionOu
  *
  * Spec section: HwPositionWithDuration uses `Position` (not `Value`) and `Duration`.
  */
-export const HwPositionOutputDataSchema = z.object({
+const HwPositionOutputDataSchema = z.object({
 	Position: z.number().int().nonnegative(),
 	Duration: z.number().int().nonnegative(),
 });
@@ -171,7 +171,7 @@ export type HwPositionOutputData = z.infer<typeof HwPositionOutputDataSchema>;
  *
  * Each variant is a single-key object mapping the output type name to its data shape.
  */
-export const OutputCommandSchema = z.union([
+const OutputCommandSchema = z.union([
 	z.strictObject({ Vibrate: UnsignedScalarOutputDataSchema }),
 	z.strictObject({ Rotate: UnsignedScalarOutputDataSchema }),
 	z.strictObject({ RotateWithDirection: RotateWithDirectionOutputDataSchema }),
@@ -188,7 +188,7 @@ export const OutputCommandSchema = z.union([
 export type OutputCommand = z.infer<typeof OutputCommandSchema>;
 
 /** Client message to send an output command to a specific device feature. */
-export const OutputCmdSchema = BaseMessageSchema.extend({
+const OutputCmdSchema = BaseMessageSchema.extend({
 	DeviceIndex: z.number().int(),
 	FeatureIndex: z.number().int(),
 	Command: OutputCommandSchema,
@@ -202,7 +202,7 @@ export type OutputCmd = z.infer<typeof OutputCmdSchema>;
 // ============================================================================
 
 /** Client message to read from or subscribe to a device sensor. */
-export const InputCmdSchema = BaseMessageSchema.extend({
+const InputCmdSchema = BaseMessageSchema.extend({
 	DeviceIndex: z.number().int(),
 	FeatureIndex: z.number().int(),
 	Type: InputTypeSchema,
@@ -221,7 +221,7 @@ export type InputCmd = z.infer<typeof InputCmdSchema>;
  *
  * Each variant is a single-key object wrapping the specific message schema.
  */
-export const ClientMessageSchema = z.union([
+const ClientMessageSchema = z.union([
 	z.strictObject({ RequestServerInfo: RequestServerInfoSchema }),
 	z.strictObject({ StartScanning: StartScanningSchema }),
 	z.strictObject({ StopScanning: StopScanningSchema }),
@@ -241,7 +241,7 @@ export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 // ============================================================================
 
 /** Handshake response from the server with capabilities and timing requirements. */
-export const ServerInfoSchema = BaseMessageSchema.extend({
+const ServerInfoSchema = BaseMessageSchema.extend({
 	ServerName: z.string().nullish(),
 	ProtocolVersionMajor: z.number().int(),
 	ProtocolVersionMinor: z.number().int(),
@@ -252,12 +252,12 @@ export const ServerInfoSchema = BaseMessageSchema.extend({
 export type ServerInfo = z.infer<typeof ServerInfoSchema>;
 
 /** Success response acknowledging a client request. */
-export const OkSchema = BaseMessageSchema;
+const OkSchema = BaseMessageSchema;
 /** Inferred type for an Ok success response. */
 export type Ok = z.infer<typeof OkSchema>;
 
 /** Error response with code and human-readable message. */
-export const ErrorMsgSchema = BaseMessageSchema.extend({
+const ErrorMsgSchema = BaseMessageSchema.extend({
 	ErrorCode: z.nativeEnum(ErrorCode),
 	ErrorMessage: z.string(),
 });
@@ -275,7 +275,7 @@ export type ErrorMsg = z.infer<typeof ErrorMsgSchema>;
  * Intiface Central wraps sensor values in a `{Value}` object,
  * e.g. `{"Battery": {"Value": 90}}`.
  */
-export const SensorValueSchema = z.object({ Value: z.number().int() });
+const SensorValueSchema = z.object({ Value: z.number().int() });
 
 /** Inferred type for a sensor reading value wrapped in a Value object. */
 export type SensorValue = z.infer<typeof SensorValueSchema>;
@@ -285,7 +285,7 @@ export type SensorValue = z.infer<typeof SensorValueSchema>;
  *
  * Each variant maps a sensor type name to its {@link SensorValue}.
  */
-export const InputDataSchema = z.union([
+const InputDataSchema = z.union([
 	z.strictObject({ Battery: SensorValueSchema }),
 	z.strictObject({ RSSI: SensorValueSchema }),
 	z.strictObject({ Pressure: SensorValueSchema }),
@@ -297,7 +297,7 @@ export const InputDataSchema = z.union([
 export type InputData = z.infer<typeof InputDataSchema>;
 
 /** Server message delivering a sensor reading from a device. */
-export const InputReadingSchema = BaseMessageSchema.extend({
+const InputReadingSchema = BaseMessageSchema.extend({
 	DeviceIndex: z.number().int(),
 	FeatureIndex: z.number().int(),
 	Reading: InputDataSchema,
@@ -317,7 +317,7 @@ export type InputReading = z.infer<typeof InputReadingSchema>;
  * integers (positive = heat, negative = cool). Non-negative validation for unsigned
  * output types is enforced at the feature parsing layer instead.
  */
-export const RawFeatureOutputSchema = z.object({
+const RawFeatureOutputSchema = z.object({
 	Value: z.tuple([z.number().int(), z.number().int()]),
 	Duration: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]).optional(),
 });
@@ -331,7 +331,7 @@ export type RawFeatureOutput = z.infer<typeof RawFeatureOutputSchema>;
  * Intiface Central sends `Value` as an array of `[min, max]` tuples,
  * e.g. `[[0, 100]]`, even though typically only one range is present.
  */
-export const RawFeatureInputSchema = z.object({
+const RawFeatureInputSchema = z.object({
 	Command: z.array(InputCommandTypeSchema),
 	Value: z.array(z.tuple([z.number().int(), z.number().int()])),
 });
@@ -340,7 +340,7 @@ export const RawFeatureInputSchema = z.object({
 export type RawFeatureInput = z.infer<typeof RawFeatureInputSchema>;
 
 /** Zod schema validating a raw device feature with index, description, and optional I/O capabilities. */
-export const RawDeviceFeatureSchema = z.object({
+const RawDeviceFeatureSchema = z.object({
 	FeatureIndex: z.number().int(),
 	FeatureDescription: z.string(),
 	Output: z.record(z.string(), RawFeatureOutputSchema).nullish(),
@@ -351,7 +351,7 @@ export const RawDeviceFeatureSchema = z.object({
 export type RawDeviceFeature = z.infer<typeof RawDeviceFeatureSchema>;
 
 /** Raw device descriptor as reported by the server, before normalization. */
-export const RawDeviceSchema = z.object({
+const RawDeviceSchema = z.object({
 	DeviceName: z.string(),
 	DeviceIndex: z.number().int(),
 	DeviceMessageTimingGap: z.number().int(),
@@ -363,7 +363,7 @@ export const RawDeviceSchema = z.object({
 export type RawDevice = z.infer<typeof RawDeviceSchema>;
 
 /** Server message containing all currently connected devices. */
-export const DeviceListSchema = BaseMessageSchema.extend({
+const DeviceListSchema = BaseMessageSchema.extend({
 	Devices: z.record(z.string(), RawDeviceSchema),
 });
 
@@ -371,7 +371,7 @@ export const DeviceListSchema = BaseMessageSchema.extend({
 export type DeviceList = z.infer<typeof DeviceListSchema>;
 
 /** Server notification that device scanning has completed. */
-export const ScanningFinishedSchema = BaseMessageSchema;
+const ScanningFinishedSchema = BaseMessageSchema;
 /** Inferred type for a ScanningFinished notification. */
 export type ScanningFinished = z.infer<typeof ScanningFinishedSchema>;
 
@@ -401,7 +401,7 @@ export type ServerMessage = z.infer<typeof ServerMessageSchema>;
 // ============================================================================
 
 /** Normalized output feature descriptor with type, index, and capabilities. */
-export const OutputFeatureSchema = z.object({
+const OutputFeatureSchema = z.object({
 	type: OutputTypeSchema,
 	index: z.number().int(),
 	description: z.string(),
@@ -417,7 +417,7 @@ export type OutputFeature = z.infer<typeof OutputFeatureSchema>;
  *
  * Spec section: Input Capability Object — Value is a single `[min, max]` range.
  */
-export const InputFeatureSchema = z.object({
+const InputFeatureSchema = z.object({
 	type: InputTypeSchema,
 	index: z.number().int(),
 	description: z.string(),
@@ -430,7 +430,7 @@ export const InputFeatureSchema = z.object({
 export type InputFeature = z.infer<typeof InputFeatureSchema>;
 
 /** Collection of normalized input and output features for a device. */
-export const DeviceFeaturesSchema = z.object({
+const DeviceFeaturesSchema = z.object({
 	outputs: z.array(OutputFeatureSchema),
 	inputs: z.array(InputFeatureSchema),
 });
@@ -443,7 +443,7 @@ export type DeviceFeatures = z.infer<typeof DeviceFeaturesSchema>;
 // ============================================================================
 
 /** Zod schema validating a feature index paired with a scalar value. */
-export const FeatureValueSchema = z.object({
+const FeatureValueSchema = z.object({
 	index: z.number().int(),
 	value: z.number().int(),
 });
@@ -452,7 +452,7 @@ export const FeatureValueSchema = z.object({
 export type FeatureValue = z.infer<typeof FeatureValueSchema>;
 
 /** Feature index paired with speed and direction for rotation commands. */
-export const RotationValueSchema = z.object({
+const RotationValueSchema = z.object({
 	index: z.number().int(),
 	speed: z.number().int(),
 	clockwise: z.boolean(),
@@ -462,7 +462,7 @@ export const RotationValueSchema = z.object({
 export type RotationValue = z.infer<typeof RotationValueSchema>;
 
 /** Feature index paired with position and duration for timed movement commands. */
-export const PositionValueSchema = z.object({
+const PositionValueSchema = z.object({
 	index: z.number().int(),
 	position: z.number().int(),
 	duration: z.number().int(),

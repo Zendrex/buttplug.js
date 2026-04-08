@@ -1,6 +1,6 @@
 import { ErrorCode, ProtocolError } from "../lib/errors";
 import { PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR } from "./constants";
-import type { ClientMessage, InputCommandType, InputType, OutputCommand } from "./schema";
+import type { ClientMessage } from "./schema";
 
 /**
  * Creates a {@link ClientMessage} to initiate the handshake with a Buttplug server.
@@ -85,60 +85,6 @@ export function createStopCmd(
 			...(options?.outputs !== undefined && { Outputs: options.outputs }),
 		},
 	};
-}
-
-/**
- * Creates a {@link ClientMessage} to send an output command to a device feature.
- *
- * @param options - Device/feature targeting and the command payload
- */
-export function createOutputCmd(options: {
-	id: number;
-	deviceIndex: number;
-	featureIndex: number;
-	command: OutputCommand;
-}): ClientMessage {
-	return {
-		OutputCmd: {
-			Id: options.id,
-			DeviceIndex: options.deviceIndex,
-			FeatureIndex: options.featureIndex,
-			Command: options.command,
-		},
-	};
-}
-
-/**
- * Creates a {@link ClientMessage} to send an input command (read/subscribe/unsubscribe) to a device sensor.
- *
- * @param options - Device/feature targeting, sensor type, and command
- */
-export function createInputCmd(options: {
-	id: number;
-	deviceIndex: number;
-	featureIndex: number;
-	inputType: InputType;
-	command: InputCommandType;
-}): ClientMessage {
-	return {
-		InputCmd: {
-			Id: options.id,
-			DeviceIndex: options.deviceIndex,
-			FeatureIndex: options.featureIndex,
-			Type: options.inputType,
-			Command: options.command,
-		},
-	};
-}
-
-/**
- * Serializes a single {@link ClientMessage} into a JSON array string.
- *
- * The Buttplug protocol requires messages to be sent as JSON arrays,
- * even when sending a single message.
- */
-export function serializeMessage(message: ClientMessage): string {
-	return JSON.stringify([message]);
 }
 
 /** Serializes multiple {@link ClientMessage} instances into a JSON array string. */
