@@ -158,7 +158,8 @@ export class PatternEngine {
 		const elapsed = now - state.startedAt;
 		const cycleDuration = getCycleDuration(state.tracks);
 
-		const cycleElapsed = cycleDuration > 0 && elapsed >= cycleDuration ? cycleDuration : elapsed;
+		const cycleComplete = cycleDuration > 0 && elapsed >= cycleDuration;
+		const cycleElapsed = cycleComplete ? cycleDuration : elapsed;
 		const onError = (err: unknown) => this.handleOutputError(state, err);
 
 		for (const track of state.tracks) {
@@ -169,7 +170,7 @@ export class PatternEngine {
 			}
 		}
 
-		if (cycleDuration > 0 && elapsed >= cycleDuration) {
+		if (cycleComplete) {
 			if (state.remainingLoops === Number.POSITIVE_INFINITY) {
 				state.startedAt += cycleDuration;
 				state.lastSentKeyframeIndex.clear();

@@ -19,3 +19,20 @@ export function findFeatureOrThrow(
 	}
 	return feature;
 }
+
+export function buildBatchMessages<E extends { index: number }, M>(
+	input: number | E[],
+	features: OutputFeature[],
+	deviceIndex: number,
+	errorLabel: string,
+	fromEntry: (feature: OutputFeature, entry: E) => M,
+	fromBroadcast: (feature: OutputFeature) => M
+): M[] {
+	if (Array.isArray(input)) {
+		assertNonEmpty(input, deviceIndex);
+		return input.map((entry) =>
+			fromEntry(findFeatureOrThrow(features, entry.index, deviceIndex, errorLabel), entry)
+		);
+	}
+	return features.map(fromBroadcast);
+}

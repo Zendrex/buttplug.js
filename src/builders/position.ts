@@ -1,6 +1,6 @@
 import { DeviceError } from "../lib/errors";
 import { validateRange } from "../lib/range";
-import { assertNonEmpty, findFeatureOrThrow } from "./shared";
+import { buildBatchMessages } from "./shared";
 import type { ClientMessage, OutputCommand, OutputFeature, OutputType, PositionValue } from "../protocol/schema";
 import type { DeviceMessageSender } from "../protocol/types";
 
@@ -51,28 +51,21 @@ export interface PositionMessagesOptions {
 
 export function buildPositionMessages(options: PositionMessagesOptions): ClientMessage[] {
 	const { client, deviceIndex, duration, features, position, positionType } = options;
-	const messages: ClientMessage[] = [];
-
-	if (Array.isArray(position)) {
-		assertNonEmpty(position, deviceIndex);
-		for (const entry of position) {
-			const feature = findFeatureOrThrow(features, entry.index, deviceIndex, "Position");
-			messages.push(
-				buildPositionMessage({
-					client,
-					deviceIndex,
-					duration: entry.duration,
-					feature,
-					position: entry.position,
-					positionType,
-				})
-			);
-		}
-	} else {
-		for (const feature of features) {
-			messages.push(buildPositionMessage({ client, deviceIndex, duration, feature, position, positionType }));
-		}
-	}
-
-	return messages;
+	return buildBatchMessages(
+		position,
+		features,
+		deviceIndex,
+		"Position",
+		(feature, entry) =>
+			buildPositionMessage({
+				client,
+				deviceIndex,
+				duration: entry.duration,
+				feature,
+				position: entry.position,
+				positionType,
+			}),
+		(feature) =>
+			buildPositionMessage({ client, deviceIndex, duration, feature, position: position as number, positionType })
+	);
 }

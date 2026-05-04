@@ -1,5 +1,5 @@
 import { validateRange } from "../lib/range";
-import { assertNonEmpty, findFeatureOrThrow } from "./shared";
+import { buildBatchMessages } from "./shared";
 import type { ClientMessage, FeatureValue, OutputCommand, OutputFeature, OutputType } from "../protocol/schema";
 import type { DeviceMessageSender } from "../protocol/types";
 
@@ -35,19 +35,12 @@ export interface ScalarOutputMessagesOptions {
 
 export function buildScalarOutputMessages(options: ScalarOutputMessagesOptions): ClientMessage[] {
 	const { client, deviceIndex, errorLabel, features, type, values } = options;
-	const messages: ClientMessage[] = [];
-
-	if (Array.isArray(values)) {
-		assertNonEmpty(values, deviceIndex);
-		for (const entry of values) {
-			const feature = findFeatureOrThrow(features, entry.index, deviceIndex, errorLabel);
-			messages.push(buildScalarOutputMessage({ client, deviceIndex, feature, type, value: entry.value }));
-		}
-	} else {
-		for (const feature of features) {
-			messages.push(buildScalarOutputMessage({ client, deviceIndex, feature, type, value: values }));
-		}
-	}
-
-	return messages;
+	return buildBatchMessages(
+		values,
+		features,
+		deviceIndex,
+		errorLabel,
+		(feature, entry) => buildScalarOutputMessage({ client, deviceIndex, feature, type, value: entry.value }),
+		(feature) => buildScalarOutputMessage({ client, deviceIndex, feature, type, value: values as number })
+	);
 }

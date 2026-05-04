@@ -1,5 +1,5 @@
 import { validateRange } from "../lib/range";
-import { assertNonEmpty, findFeatureOrThrow } from "./shared";
+import { buildBatchMessages } from "./shared";
 import type { ClientMessage, OutputCommand, OutputFeature, OutputType, RotationValue } from "../protocol/schema";
 import type { DeviceMessageSender } from "../protocol/types";
 
@@ -40,28 +40,21 @@ export interface RotateMessagesOptions {
 
 export function buildRotateMessages(options: RotateMessagesOptions): ClientMessage[] {
 	const { client, clockwise, deviceIndex, features, rotationType, speed } = options;
-	const messages: ClientMessage[] = [];
-
-	if (Array.isArray(speed)) {
-		assertNonEmpty(speed, deviceIndex);
-		for (const entry of speed) {
-			const feature = findFeatureOrThrow(features, entry.index, deviceIndex, "Rotation");
-			messages.push(
-				buildRotateMessage({
-					client,
-					clockwise: entry.clockwise,
-					deviceIndex,
-					feature,
-					rotationType,
-					speed: entry.speed,
-				})
-			);
-		}
-	} else {
-		for (const feature of features) {
-			messages.push(buildRotateMessage({ client, clockwise, deviceIndex, feature, rotationType, speed }));
-		}
-	}
-
-	return messages;
+	return buildBatchMessages(
+		speed,
+		features,
+		deviceIndex,
+		"Rotation",
+		(feature, entry) =>
+			buildRotateMessage({
+				client,
+				clockwise: entry.clockwise,
+				deviceIndex,
+				feature,
+				rotationType,
+				speed: entry.speed,
+			}),
+		(feature) =>
+			buildRotateMessage({ client, clockwise, deviceIndex, feature, rotationType, speed: speed as number })
+	);
 }
