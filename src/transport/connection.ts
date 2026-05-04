@@ -7,9 +7,10 @@ export interface WebSocketTransportOptions {
 	logger?: Logger;
 }
 
+const CLIENT_DISCONNECT_CODE = 1000;
+const CLIENT_DISCONNECT_REASON = "Client disconnect";
+
 export class WebSocketTransport implements Transport {
-	private static readonly CLIENT_DISCONNECT_CODE = 1000;
-	private static readonly CLIENT_DISCONNECT_REASON = "Client disconnect";
 	private readonly listeners = new Map<TransportEventName, Set<TransportEvents[TransportEventName]>>();
 	private readonly logger: Logger;
 	private connectPromise: Promise<void> | null = null;
@@ -138,7 +139,7 @@ export class WebSocketTransport implements Transport {
 			ws.addEventListener("close", onClose);
 
 			if (ws.readyState !== WebSocket.CLOSING) {
-				ws.close(WebSocketTransport.CLIENT_DISCONNECT_CODE, WebSocketTransport.CLIENT_DISCONNECT_REASON);
+				ws.close(CLIENT_DISCONNECT_CODE, CLIENT_DISCONNECT_REASON);
 			}
 		});
 	}

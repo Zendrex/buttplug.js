@@ -66,10 +66,10 @@ export interface ButtplugClientOptions {
 	verbose?: boolean;
 }
 
-export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMessageSender {
-	private static readonly STOP_DEVICES_TIMEOUT_MS = 2000;
-	private static readonly DISCONNECT_TIMEOUT_MS = 3000;
+const STOP_DEVICES_TIMEOUT_MS = 2000;
+const DISCONNECT_TIMEOUT_MS = 3000;
 
+export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMessageSender {
 	private readonly url: string;
 	private readonly clientName: string;
 	private readonly baseLogger: Logger;
@@ -176,14 +176,14 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 
 			if (this._serverInfo !== null && !this.isHandshaking) {
 				try {
-					await raceTimeout(this.stopAll(), ButtplugClient.STOP_DEVICES_TIMEOUT_MS);
+					await raceTimeout(this.stopAll(), STOP_DEVICES_TIMEOUT_MS);
 				} catch {
 					this.logger.warn("Stop all devices timed out during disconnect");
 				}
 				try {
 					await raceTimeout(
 						this.messageRouter.send(createDisconnect(this.messageRouter.nextId())),
-						ButtplugClient.DISCONNECT_TIMEOUT_MS
+						DISCONNECT_TIMEOUT_MS
 					);
 				} catch {
 					this.logger.warn("Disconnect message failed or timed out");

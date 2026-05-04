@@ -12,9 +12,10 @@ export interface PingOptions {
 	sendPing: () => Promise<void>;
 }
 
+const DEFAULT_PING_TIMEOUT_MS = 5000;
+const MIN_PING_INTERVAL_MS = 100;
+
 export class PingManager {
-	private static readonly DEFAULT_PING_TIMEOUT_MS = 5000;
-	private static readonly MIN_PING_INTERVAL_MS = 100;
 	private readonly logger: Logger;
 	private readonly autoPing: boolean;
 	private readonly cancelPing: (error: Error) => void;
@@ -49,7 +50,7 @@ export class PingManager {
 			return;
 		}
 
-		const pingInterval = Math.max(Math.floor(maxPingTime * 0.6), PingManager.MIN_PING_INTERVAL_MS);
+		const pingInterval = Math.max(Math.floor(maxPingTime * 0.6), MIN_PING_INTERVAL_MS);
 		this.logger.debug(`Starting ping timer with interval ${pingInterval}ms`);
 
 		this.pingTimer = setInterval(() => {
@@ -85,7 +86,7 @@ export class PingManager {
 
 		this.logger.debug("Sending ping");
 
-		const maxPingTime = this.maxPingTime || PingManager.DEFAULT_PING_TIMEOUT_MS;
+		const maxPingTime = this.maxPingTime || DEFAULT_PING_TIMEOUT_MS;
 
 		const timer = setTimeout(() => {
 			if (this.stopped) {

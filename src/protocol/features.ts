@@ -16,10 +16,10 @@ import type {
 export const OUTPUT_TYPES: readonly OutputType[] = OUTPUT_TYPE_VALUES;
 export const INPUT_TYPES: readonly InputType[] = INPUT_TYPE_VALUES;
 
-class DeviceFeaturesIndex {
-	private static readonly knownOutputKeys = new Set<string>(OUTPUT_TYPES);
-	private static readonly knownInputKeys = new Set<string>(INPUT_TYPES);
+const KNOWN_OUTPUT_KEYS = new Set<string>(OUTPUT_TYPES);
+const KNOWN_INPUT_KEYS = new Set<string>(INPUT_TYPES);
 
+class DeviceFeaturesIndex {
 	private readonly outputIndex = new WeakMap<DeviceFeatures, Map<OutputType, OutputFeature[]>>();
 	private readonly inputIndex = new WeakMap<DeviceFeatures, Map<InputType, InputFeature[]>>();
 
@@ -100,7 +100,7 @@ class DeviceFeaturesIndex {
 		}
 		const results: OutputFeature[] = [];
 		for (const key of Object.keys(feature.Output)) {
-			if (!DeviceFeaturesIndex.knownOutputKeys.has(key)) {
+			if (!KNOWN_OUTPUT_KEYS.has(key)) {
 				logger.warn(`Unknown output type "${key}" at feature index ${feature.FeatureIndex}, skipping`);
 			}
 		}
@@ -119,7 +119,7 @@ class DeviceFeaturesIndex {
 		}
 		const results: InputFeature[] = [];
 		for (const key of Object.keys(feature.Input)) {
-			if (!DeviceFeaturesIndex.knownInputKeys.has(key)) {
+			if (!KNOWN_INPUT_KEYS.has(key)) {
 				logger.warn(`Unknown input type "${key}" at feature index ${feature.FeatureIndex}, skipping`);
 			}
 		}

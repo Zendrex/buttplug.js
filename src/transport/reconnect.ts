@@ -16,8 +16,9 @@ export interface ReconnectOptions {
 	url: string;
 }
 
+const MAX_BACKOFF_EXPONENT = 30;
+
 export class ReconnectHandler {
-	private static readonly MAX_BACKOFF_EXPONENT = 30;
 	private readonly logger: Logger;
 	private readonly maxReconnectAttempts: number;
 	private readonly maxReconnectDelay: number;
@@ -103,7 +104,7 @@ export class ReconnectHandler {
 			this.safeCallback("onReconnecting", () => this.onReconnecting?.(this.reconnectAttempt));
 		}
 
-		const exponent = Math.min(this.reconnectAttempt - 1, ReconnectHandler.MAX_BACKOFF_EXPONENT);
+		const exponent = Math.min(this.reconnectAttempt - 1, MAX_BACKOFF_EXPONENT);
 		const delay = Math.min(this.reconnectDelay * 2 ** exponent, this.maxReconnectDelay);
 
 		this.logger.info(`Reconnect attempt ${this.reconnectAttempt}/${this.maxReconnectAttempts} (delay: ${delay}ms)`);
