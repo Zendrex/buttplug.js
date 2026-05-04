@@ -1,6 +1,6 @@
 # @zendrex/buttplug.js
 
-Modern TypeScript client for the [Buttplug](https://buttplug.io) intimate hardware protocol v4. Connect to [Intiface Central](https://intiface.com/central/), discover devices, and control them with a type-safe API.
+Modern TypeScript client for the [Buttplug](https://buttplug.io) v4 message protocol. Connect to [Intiface Central](https://intiface.com/central/), discover devices, and control them with a type-safe API.
 
 ## Features
 
@@ -28,13 +28,15 @@ npm install @zendrex/buttplug.js
 ## Quick Start
 
 ```typescript
-import { ButtplugClient, consoleLogger } from "@zendrex/buttplug.js";
+import { ButtplugClient } from "@zendrex/buttplug.js";
 
-const client = new ButtplugClient("ws://127.0.0.1:12345", {
-  logger: consoleLogger,
-});
+const client = new ButtplugClient("ws://127.0.0.1:12345");
 
 await client.connect();
+
+client.on("error", ({ data: { error } }) => {
+  console.error(error);
+});
 
 client.on("deviceAdded", async ({ data: { device } }) => {
   console.log(`Found: ${device.displayName ?? device.name}`);
@@ -47,6 +49,8 @@ client.on("deviceAdded", async ({ data: { device } }) => {
 
 await client.startScanning();
 ```
+
+Build on **client events** (lifecycle, devices, readings) and **typed errors** (`ButtplugError` subclasses). For protocol-level issues in the browser, use **DevTools → Network → the WebSocket → Messages** to inspect frames. Optional **diagnostics:** set `verbose: true` or pass `[consoleLogger](/docs/content/docs/reference/types.mdx#logger)` (or another `[Logger](./docs/content/docs/reference/types.mdx#logger)`) on the constructor; silence is default. Explicit `logger` wins over `verbose`.
 
 ## API at a Glance
 
@@ -124,15 +128,17 @@ engine.dispose();
 
 **Presets:**
 
-| Preset | Description | Loops |
-|--------|-------------|-------|
-| `pulse` | Square wave on/off | yes |
-| `wave` | Smooth sine wave oscillation | yes |
-| `ramp_up` | Gradual increase to maximum | no |
-| `ramp_down` | Gradual decrease to zero | no |
-| `heartbeat` | Ba-bump heartbeat rhythm | yes |
-| `surge` | Build to peak then release | no |
-| `stroke` | Full-range position strokes | yes |
+
+| Preset      | Description                  | Loops |
+| ----------- | ---------------------------- | ----- |
+| `pulse`     | Square wave on/off           | yes   |
+| `wave`      | Smooth sine wave oscillation | yes   |
+| `ramp_up`   | Gradual increase to maximum  | no    |
+| `ramp_down` | Gradual decrease to zero     | no    |
+| `heartbeat` | Ba-bump heartbeat rhythm     | yes   |
+| `surge`     | Build to peak then release   | no    |
+| `stroke`    | Full-range position strokes  | yes   |
+
 
 **Easings:** `linear`, `easeIn`, `easeOut`, `easeInOut`, `step`
 
@@ -140,13 +146,15 @@ engine.dispose();
 
 All errors extend `ButtplugError`:
 
-| Error | Context |
-|---|---|
-| `ConnectionError` | WebSocket/transport failure |
-| `HandshakeError` | Server rejected handshake |
-| `ProtocolError` | Server protocol error (has `.code`) |
-| `DeviceError` | Device operation failed (has `.deviceIndex`) |
-| `TimeoutError` | Operation timed out (has `.operation`, `.timeoutMs`) |
+
+| Error             | Context                                              |
+| ----------------- | ---------------------------------------------------- |
+| `ConnectionError` | WebSocket/transport failure                          |
+| `HandshakeError`  | Server rejected handshake                            |
+| `ProtocolError`   | Server protocol error (has `.code`)                  |
+| `DeviceError`     | Device operation failed (has `.deviceIndex`)         |
+| `TimeoutError`    | Operation timed out (has `.operation`, `.timeoutMs`) |
+
 
 ### Auto-Reconnect
 
@@ -176,7 +184,7 @@ engine.dispose();
 
 ## Documentation
 
-Full API reference and guides are available in the [`docs/`](./docs) directory. To run locally:
+Full API reference and guides are available in the `[docs/](./docs)` directory. To run locally:
 
 ```bash
 cd docs && bun run dev

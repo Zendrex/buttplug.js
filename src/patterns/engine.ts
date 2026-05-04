@@ -1,58 +1,37 @@
+import { z } from "zod";
+
 import { DeviceError, ProtocolError } from "../lib/errors";
-import { getPresetInfo, PRESETS } from "./presets";
-import { buildScalarCommand, evaluateHwPositionTrack, evaluateScalarTrack, getCycleDuration } from "./scheduler";
-import { resolveTracks } from "./track-resolver";
-import { PatternDescriptorSchema } from "./types";
+import { getPresetInfo, PRESETS, PresetPatternSchema } from "./presets";
+import { evaluateHwPositionTrack, evaluateScalarTrack, getCycleDuration } from "./scheduler";
+import { CustomPatternSchema, resolveTracks } from "./track-resolver";
+import type { PresetInfo, PresetName } from "./presets";
+import type { Track } from "./track-resolver";
 import type {
-	PatternDescriptor,
 	PatternDevice,
 	PatternEngineClient,
 	PatternInfo,
 	PatternPlayOptions,
 	PatternState,
-	PresetInfo,
-	PresetName,
 	StopReason,
-	Track,
 } from "./types";
 
-/** Default safety timeout: 30 minutes. */
-const DEFAULT_TIMEOUT_MS = 1_800_000;
+export const PatternDescriptorSchema = z.discriminatedUnion("type", [PresetPatternSchema, CustomPatternSchema]);
 
-/** Default tick interval in milliseconds between pattern evaluations. */
-const DEFAULT_TICK_INTERVAL_MS = 50;
+export type PatternDescriptor = z.infer<typeof PatternDescriptorSchema>;
 
-// biome-ignore lint/suspicious/noEmptyBlockStatements: fire-and-forget error swallowing for stop commands
-const noop = () => {};
-
-/**
- * Orchestrates pattern playback on buttplug devices using tick-based keyframe scheduling.
- *
- * Manages the lifecycle of active patterns including loop handling, drift-corrected
- * tick scheduling, deduplication of redundant commands, and automatic cleanup on
- * disconnect or device removal.
- */
 export class PatternEngine {
-	/** Client interface for device access and event subscription. */
+	static readonly DEFAULT_TIMEOUT_MS = 1_800_000;
+	static readonly DEFAULT_TICK_INTERVAL_MS = 50;
 	private readonly client: PatternEngineClient;
-	/** Active pattern states keyed by pattern ID. */
 	private readonly patterns: Map<string, PatternState> = new Map();
-	/** Default safety timeout in milliseconds. */
 	private readonly defaultTimeout: number;
-	/** Unsubscribe function for the client disconnect event. */
 	private readonly unsubDisconnect: () => void;
-	/** Unsubscribe function for the device removed event. */
 	private readonly unsubDeviceRemoved: () => void;
-	/** Whether this engine has been disposed. */
 	private disposed = false;
 
-	/**
-	 * @param client - Client providing device access and event hooks
-	 * @param options - Optional configuration for default timeout behavior
-	 */
 	constructor(client: PatternEngineClient, options?: { defaultTimeout?: number }) {
 		this.client = client;
-		this.defaultTimeout = options?.defaultTimeout ?? DEFAULT_TIMEOUT_MS;
+		this.defaultTimeout = options?.defaultTimeout ?? PatternEngine.DEFAULT_TIMEOUT_MS;
 
 		this.unsubDisconnect = client.on("disconnected", () => {
 			this.stopMatchingPatterns("disconnect");
@@ -62,39 +41,10 @@ export class PatternEngine {
 		});
 	}
 
-	/**
-	 * Starts playing a preset pattern on a device by name.
-	 *
-	 * @param device - Target device or device index
-	 * @param preset - Built-in preset name (e.g. "wave", "pulse")
-	 * @param options - Playback options including intensity, speed, loop, timeout, and callbacks
-	 * @returns Unique pattern instance ID for later control
-	 * @throws {DeviceError} If the engine is disposed, device not found, or no compatible features
-	 */
-	// biome-ignore lint/style/useUnifiedTypeSignatures: separate overloads provide distinct IntelliSense per pattern form
 	play(device: PatternDevice | number, preset: PresetName, options?: PatternPlayOptions): Promise<string>;
-	/**
-	 * Starts playing a custom pattern defined by keyframe tracks.
-	 *
-	 * @param device - Target device or device index
-	 * @param tracks - Array of {@link Track} definitions with keyframes bound to feature indices
-	 * @param options - Playback options including intensity, loop, timeout, and callbacks
-	 * @returns Unique pattern instance ID for later control
-	 * @throws {DeviceError} If the engine is disposed, device not found, or no compatible features
-	 */
 	play(device: PatternDevice | number, tracks: Track[], options?: PatternPlayOptions): Promise<string>;
-	/**
-	 * Starts playing a pattern from a full {@link PatternDescriptor}.
-	 *
-	 * @param device - Target device or device index
-	 * @param descriptor - Full pattern descriptor (preset or custom)
-	 * @param options - Playback options including timeout and callbacks
-	 * @returns Unique pattern instance ID for later control
-	 * @throws {DeviceError} If the engine is disposed, device not found, or no compatible features
-	 */
 	play(device: PatternDevice | number, descriptor: PatternDescriptor, options?: PatternPlayOptions): Promise<string>;
-	// biome-ignore lint/suspicious/useAwait: async API contract per spec — errors become rejected promises
-	async play(
+	play(
 		device: PatternDevice | number,
 		pattern: PresetName | Track[] | PatternDescriptor,
 		options?: PatternPlayOptions
@@ -105,7 +55,6 @@ export class PatternEngine {
 			throw new DeviceError(deviceIndex, "PatternEngine has been disposed");
 		}
 
-		// Build descriptor from shorthand forms
 		const descriptor = this.buildDescriptor(pattern, options);
 		const parsed = PatternDescriptorSchema.parse(descriptor);
 
@@ -119,16 +68,14 @@ export class PatternEngine {
 			throw new DeviceError(deviceIndex, "No compatible features found on device");
 		}
 
-		// Auto-stop all existing patterns on the same device
-		for (const s of this.patterns.values()) {
-			if (s.deviceIndex === deviceIndex) {
-				this.stopPatternInternal(s, "manual");
+		for (const state of this.patterns.values()) {
+			if (state.deviceIndex === deviceIndex) {
+				this.stopPatternInternal(state, "manual");
 			}
 		}
 
-		// Resolve loop behavior
-		const loop =
-			parsed.type === "preset" ? (parsed.loop ?? PRESETS[parsed.preset]?.loop ?? false) : (parsed.loop ?? false);
+		const presetDefaultLoop = parsed.type === "preset" ? PRESETS[parsed.preset].loop : false;
+		const loop = parsed.loop ?? presetDefaultLoop;
 		let remainingLoops: number;
 		if (loop === true) {
 			remainingLoops = Number.POSITIVE_INFINITY;
@@ -139,7 +86,7 @@ export class PatternEngine {
 		}
 
 		const id = crypto.randomUUID();
-		const tickInterval = options?.tickInterval ?? DEFAULT_TICK_INTERVAL_MS;
+		const tickInterval = options?.tickInterval ?? PatternEngine.DEFAULT_TICK_INTERVAL_MS;
 		const now = performance.now();
 		const state: PatternState = {
 			id,
@@ -166,49 +113,36 @@ export class PatternEngine {
 			state.safetyTimerId = setTimeout(() => this.stopPatternInternal(state, "timeout"), timeout);
 		}
 		state.timerId = setTimeout(() => this.tick(state, resolvedDevice), 0);
-		return id;
+		return Promise.resolve(id);
 	}
 
-	/**
-	 * Stops a specific pattern by its ID.
-	 *
-	 * No-op if the pattern ID is not found (already stopped or never started).
-	 *
-	 * @param patternId - The pattern instance ID returned by {@link play}
-	 */
-	// biome-ignore lint/suspicious/useAwait: async API contract per spec
-	async stop(patternId: string): Promise<void> {
+	stop(patternId: string): Promise<void> {
 		const state = this.patterns.get(patternId);
 		if (!state) {
-			return;
+			return Promise.resolve();
 		}
 		this.stopPatternInternal(state, "manual");
+		return Promise.resolve();
 	}
 
-	/**
-	 * Stops all active patterns.
-	 *
-	 * @returns Number of patterns that were stopped
-	 */
 	stopAll(): number {
 		return this.stopMatchingPatterns("manual");
 	}
 
-	/**
-	 * Stops all active patterns targeting a specific device.
-	 *
-	 * @param deviceIndex - The device index to stop patterns for
-	 * @returns Number of patterns that were stopped
-	 */
 	stopByDevice(deviceIndex: number): number {
 		return this.stopMatchingPatterns("manual", deviceIndex);
 	}
 
-	/**
-	 * Returns a snapshot of all active patterns.
-	 *
-	 * @returns Array of {@link PatternInfo} snapshots
-	 */
+	dispose(): void {
+		if (this.disposed) {
+			return;
+		}
+		this.disposed = true;
+		this.unsubDisconnect();
+		this.unsubDeviceRemoved();
+		this.stopMatchingPatterns("manual");
+	}
+
 	list(): PatternInfo[] {
 		const now = performance.now();
 		return [...this.patterns.values()].map((state) => ({
@@ -221,31 +155,10 @@ export class PatternEngine {
 		}));
 	}
 
-	/**
-	 * Returns metadata for all available built-in presets.
-	 *
-	 * @returns Array of {@link PresetInfo} descriptors
-	 */
 	listPresets(): PresetInfo[] {
 		return getPresetInfo();
 	}
 
-	/**
-	 * Disposes the engine, stopping all patterns and unsubscribing from client events.
-	 *
-	 * Subsequent calls to {@link play} will throw. Idempotent.
-	 */
-	dispose(): void {
-		if (this.disposed) {
-			return;
-		}
-		this.disposed = true;
-		this.unsubDisconnect();
-		this.unsubDeviceRemoved();
-		this.stopMatchingPatterns("manual");
-	}
-
-	/** Evaluates all tracks at the current time and schedules the next tick. */
 	private tick(state: PatternState, device: PatternDevice): void {
 		if (state.stopped) {
 			return;
@@ -255,20 +168,17 @@ export class PatternEngine {
 		const elapsed = now - state.startedAt;
 		const cycleDuration = getCycleDuration(state.tracks);
 
-		// Evaluate all tracks before checking cycle completion so the final
-		// tick's keyframe values are sent before stopping.
 		const cycleElapsed = cycleDuration > 0 && elapsed >= cycleDuration ? cycleDuration : elapsed;
-		const onError = (s: PatternState, err: unknown) => this.handleOutputError(s, err);
+		const onError = (err: unknown) => this.handleOutputError(state, err);
 
 		for (const track of state.tracks) {
 			if (track.outputType === "HwPositionWithDuration") {
 				evaluateHwPositionTrack(state, track, cycleElapsed, device, onError);
 			} else {
-				evaluateScalarTrack(state, track, cycleElapsed, device, buildScalarCommand, onError);
+				evaluateScalarTrack(state, track, cycleElapsed, device, onError);
 			}
 		}
 
-		// Check cycle completion after track evaluation
 		if (cycleDuration > 0 && elapsed >= cycleDuration) {
 			if (state.remainingLoops === Number.POSITIVE_INFINITY) {
 				state.startedAt += cycleDuration;
@@ -283,14 +193,18 @@ export class PatternEngine {
 			}
 		}
 
-		// Schedule next tick with drift correction using the same timestamp
 		const drift = now - state.expectedTickTime;
 		const nextDelay = Math.max(0, state.tickInterval - drift);
 		state.expectedTickTime = now + nextDelay;
 		state.timerId = setTimeout(() => this.tick(state, device), nextDelay);
 	}
 
-	/** Builds a {@link PatternDescriptor} from the shorthand pattern argument and options. */
+	private handleOutputError(state: PatternState, err: unknown): void {
+		if (err instanceof DeviceError || err instanceof ProtocolError) {
+			this.stopPatternInternal(state, "error");
+		}
+	}
+
 	private buildDescriptor(
 		pattern: PresetName | Track[] | PatternDescriptor,
 		options?: PatternPlayOptions
@@ -315,14 +229,6 @@ export class PatternEngine {
 		return pattern;
 	}
 
-	/** Stops the pattern on device or protocol errors; ignores transient failures. */
-	private handleOutputError(state: PatternState, err: unknown): void {
-		if (err instanceof DeviceError || err instanceof ProtocolError) {
-			this.stopPatternInternal(state, "error");
-		}
-	}
-
-	/** Stops all patterns, optionally filtered by device index. */
 	private stopMatchingPatterns(reason: StopReason, deviceIndex?: number): number {
 		const patterns =
 			deviceIndex === undefined
@@ -334,7 +240,6 @@ export class PatternEngine {
 		return patterns.length;
 	}
 
-	/** Stops a pattern, clears its timers, sends zero-value stop commands, and fires callbacks. */
 	private stopPatternInternal(state: PatternState, reason: StopReason, complete = false): void {
 		if (state.stopped) {
 			return;
@@ -352,11 +257,10 @@ export class PatternEngine {
 
 		this.patterns.delete(state.id);
 
-		// Send stop commands via protocol StopCmd (fire-and-forget, bypass dedup)
 		const device = this.client.getDevice(state.deviceIndex);
 		if (device) {
 			for (const track of state.tracks) {
-				device.stop({ featureIndex: track.featureIndex }).catch(noop);
+				device.stop({ featureIndex: track.featureIndex }).catch(() => undefined);
 			}
 		}
 

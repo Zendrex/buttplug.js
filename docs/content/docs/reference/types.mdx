@@ -9,25 +9,25 @@ description: All exported types from @zendrex/buttplug.js.
 
 Configuration options for [ButtplugClient](/docs/reference/buttplug-client).
 
-<AutoTypeTable path="../src/types.ts" name="ButtplugClientOptions" />
+<AutoTypeTable path="../src/client.ts" name="ButtplugClientOptions" />
 
 ### ClientEventMap
 
 Event map for the [ButtplugClient](/docs/reference/buttplug-client) emitter. Each key is an event name and its value is the payload type passed to listeners.
 
-<AutoTypeTable path="../src/types.ts" name="ClientEventMap" />
+<AutoTypeTable path="../src/client.ts" name="ClientEventMap" />
 
 ### DeviceOutputOptions
 
 Options for [Device.output](/docs/reference/device#output). Sends a raw `OutputCommand` to a specific feature on the device.
 
-<AutoTypeTable path="../src/types.ts" name="DeviceOutputOptions" />
+<AutoTypeTable path="../src/device.ts" name="DeviceOutputOptions" />
 
 ### DeviceStopOptions
 
 Options for [Device.stop](/docs/reference/device#stop). Without any options, stops all features on the device.
 
-<AutoTypeTable path="../src/types.ts" name="DeviceStopOptions" />
+<AutoTypeTable path="../src/device.ts" name="DeviceStopOptions" />
 
 ## Device Types
 
@@ -136,7 +136,7 @@ Server message delivering a sensor reading from a device.
 
 Options for controlling pattern playback behavior.
 
-<AutoTypeTable path="../src/patterns/types.ts" name="PatternPlayOptions" />
+<AutoTypeTable path="../src/patterns/engine.ts" name="PatternPlayOptions" />
 
 ### PatternDescriptor
 
@@ -150,25 +150,25 @@ type PatternDescriptor = PresetPattern | CustomPattern;
 
 Pattern descriptor that references a built-in preset by name.
 
-<AutoTypeTable path="../src/patterns/types.ts" name="PresetPattern" />
+<AutoTypeTable path="../src/patterns/presets.ts" name="PresetPattern" />
 
 ### CustomPattern
 
 Pattern descriptor with user-defined keyframe tracks.
 
-<AutoTypeTable path="../src/patterns/types.ts" name="CustomPattern" />
+<AutoTypeTable path="../src/patterns/track-resolver.ts" name="CustomPattern" />
 
 ### Track
 
 A sequence of keyframes bound to a specific device feature.
 
-<AutoTypeTable path="../src/patterns/types.ts" name="Track" />
+<AutoTypeTable path="../src/patterns/track-resolver.ts" name="Track" />
 
 ### Keyframe
 
 A single animation keyframe with a target value, transition duration, and optional easing. A duration of `0` creates an instant jump to the value.
 
-<AutoTypeTable path="../src/patterns/types.ts" name="Keyframe" />
+<AutoTypeTable path="../src/patterns/easing.ts" name="Keyframe" />
 
 ### Easing
 
@@ -182,13 +182,13 @@ type Easing = "linear" | "easeIn" | "easeOut" | "easeInOut" | "step";
 
 Read-only snapshot of a running pattern, returned by `PatternEngine.list()`.
 
-<AutoTypeTable path="../src/patterns/types.ts" name="PatternInfo" />
+<AutoTypeTable path="../src/patterns/engine.ts" name="PatternInfo" />
 
 ### PresetInfo
 
 Metadata describing a built-in preset pattern.
 
-<AutoTypeTable path="../src/patterns/types.ts" name="PresetInfo" />
+<AutoTypeTable path="../src/patterns/presets.ts" name="PresetInfo" />
 
 ### StopReason
 
@@ -217,22 +217,46 @@ type StopReason =
 
 ### Logger
 
-Structured logging interface for Buttplug components. Supports hierarchical prefixes via `child()`.
+Optional, advanced diagnostics for library internals (transport, message router, reconnect, device parsing). **Application behavior should not depend on log output**—use [client events](#clienteventmap) and typed errors for that.
+
+The interface supports hierarchical prefixes via `child()`.
 
 <AutoTypeTable path="../src/lib/logger.ts" name="Logger" />
 
 Two built-in implementations are exported:
 
-- `consoleLogger` -- Writes to `console` with a `[buttplug]` prefix
-- `noopLogger` -- Silently discards all messages (default)
+- `noopLogger` — Default. Discards all messages (no overhead in production).
+- `consoleLogger` — Writes to `console` with a `[buttplug]` prefix; useful during local integration.
 
 ```ts
 import { ButtplugClient, consoleLogger } from "@zendrex/buttplug.js";
 
 const client = new ButtplugClient("ws://localhost:12345", {
-  logger: consoleLogger,
+  verbose: true,
 });
+
+// Equivalent when you need a custom sink:
+new ButtplugClient("ws://localhost:12345", { logger: consoleLogger });
 ```
+
+### resolveDiagnosticsLogger
+
+```ts
+import { resolveDiagnosticsLogger } from "@zendrex/buttplug.js";
+
+const logger = resolveDiagnosticsLogger({
+  verbose: import.meta.env.DEV,
+});
+// Pass `logger` into anything that accepts the package `Logger` type.
+```
+
+Uses the same resolution rules as **`ButtplugClient`**: explicit `logger` wins; otherwise `verbose: true` selects **`consoleLogger`**; otherwise **`noopLogger`**.
+
+### ResolveDiagnosticsLoggerOptions
+
+<AutoTypeTable path="../src/lib/logger.ts" name="ResolveDiagnosticsLoggerOptions" />
+
+For raw protocol debugging in the browser, DevTools → Network → WebSocket → Messages is usually more authoritative than internal logs.
 
 ## Related
 

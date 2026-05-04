@@ -1,29 +1,51 @@
-import { getOutputsByType } from "../builders/features";
+import { z } from "zod";
+
 import { DeviceError } from "../lib/errors";
+import { getOutputsByType } from "../protocol/features";
+import { OutputTypeSchema } from "../protocol/schema";
+import { KeyframeSchema } from "./easing";
 import { PRESETS } from "./presets";
 import type { OutputFeature, OutputType } from "../protocol/schema";
-import type {
-	CustomPattern,
-	PatternDescriptor,
-	PatternDevice,
-	PresetPattern,
-	ResolvedKeyframe,
-	ResolvedTrack,
-} from "./types";
+import type { Easing } from "./easing";
+import type { PresetPattern } from "./presets";
+import type { PatternDevice } from "./types";
 
-/**
- * Resolves a pattern descriptor into concrete {@link ResolvedTrack} arrays bound to device features.
- *
- * Delegates to preset or custom resolution based on the descriptor type.
- *
- * @param device - Target device providing feature information
- * @param descriptor - Pattern descriptor to resolve
- * @param featureIndex - Optional specific feature to target (preset patterns only)
- * @returns Array of resolved tracks ready for scheduling
- */
+export const TrackSchema = z.object({
+	featureIndex: z.number().int().nonnegative(),
+	keyframes: z.array(KeyframeSchema).min(1),
+	clockwise: z.boolean().optional(),
+	outputType: OutputTypeSchema.optional(),
+});
+
+export type Track = z.infer<typeof TrackSchema>;
+
+export const CustomPatternSchema = z.object({
+	type: z.literal("custom"),
+	tracks: z.array(TrackSchema).min(1),
+	intensity: z.number().min(0).max(1).optional(),
+	loop: z.union([z.boolean(), z.number().int().positive()]).optional(),
+});
+
+export type CustomPattern = z.infer<typeof CustomPatternSchema>;
+
+export interface ResolvedKeyframe {
+	readonly duration: number;
+	readonly easing: Easing;
+	readonly value: number;
+}
+
+export interface ResolvedTrack {
+	readonly clockwise: boolean;
+	readonly durationRange: [number, number] | undefined;
+	readonly featureIndex: number;
+	readonly keyframes: ResolvedKeyframe[];
+	readonly outputType: OutputType;
+	readonly range: [number, number];
+}
+
 export function resolveTracks(
 	device: PatternDevice,
-	descriptor: PatternDescriptor,
+	descriptor: PresetPattern | CustomPattern,
 	featureIndex?: number
 ): ResolvedTrack[] {
 	if (descriptor.type === "preset") {
@@ -32,19 +54,6 @@ export function resolveTracks(
 	return resolveCustomTracks(device, descriptor);
 }
 
-/**
- * Resolves a preset pattern into tracks by matching compatible device features.
- *
- * Finds all device features matching the preset's output types, applies intensity
- * and speed scaling to keyframes, and assigns preset tracks via round-robin
- * when there are more features than preset tracks.
- *
- * @param device - Target device providing feature information
- * @param descriptor - Preset pattern descriptor with preset name, intensity, and speed
- * @param featureIndex - Optional specific feature index to target
- * @returns Array of resolved tracks for matching features
- * @throws {DeviceError} If the preset is unknown or the specified feature is incompatible
- */
 export function resolvePresetTracks(
 	device: PatternDevice,
 	descriptor: PresetPattern,
@@ -101,17 +110,6 @@ export function resolvePresetTracks(
 	return tracks;
 }
 
-/**
- * Resolves custom pattern tracks by binding each track to its specified device feature.
- *
- * Validates that each track's feature index (and optional output type) exists on the device,
- * then applies intensity scaling to keyframe values.
- *
- * @param device - Target device providing feature information
- * @param descriptor - Custom pattern descriptor with explicit track definitions
- * @returns Array of resolved tracks bound to device features
- * @throws {DeviceError} If a specified feature index or output type is not found on the device
- */
 export function resolveCustomTracks(device: PatternDevice, descriptor: CustomPattern): ResolvedTrack[] {
 	const intensity = descriptor.intensity ?? 1;
 	const tracks: ResolvedTrack[] = [];

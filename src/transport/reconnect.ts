@@ -4,85 +4,46 @@ import { ReconnectDefaults } from "./constants";
 import type { Logger } from "../lib/logger";
 import type { Transport } from "./types";
 
-/** Maximum safe exponent to prevent integer overflow in backoff calculation. */
-const MAX_BACKOFF_EXPONENT = 30;
-
-/**
- * Configuration for {@link ReconnectHandler}.
- */
 export interface ReconnectOptions {
-	/** Optional logger for reconnection diagnostics. Defaults to a no-op logger. */
 	logger?: Logger;
-	/** Maximum number of reconnect attempts before giving up. Defaults to 10. */
 	maxReconnectAttempts?: number;
-	/** Upper bound in ms for exponential backoff. Defaults to 30000ms. */
 	maxReconnectDelay?: number;
-	/** Called when all reconnect attempts are exhausted. */
 	onFailed?: (reason: string) => void;
-	/** Called when reconnection succeeds. */
 	onReconnected?: () => void;
-	/** Called before each reconnect attempt with the current attempt number. */
 	onReconnecting?: (attempt: number) => void;
-	/** Base delay in ms before the first reconnect attempt. Defaults to 1000ms. */
 	reconnectDelay?: number;
-	/** The {@link Transport} instance to reconnect. */
 	transport: Transport;
-	/** The WebSocket endpoint URL to reconnect to. */
 	url: string;
 }
 
-/**
- * Manages automatic reconnection to a {@link Transport} using exponential backoff.
- *
- * Attempts are scheduled with increasing delays up to {@link ReconnectOptions.maxReconnectDelay},
- * and stop after {@link ReconnectOptions.maxReconnectAttempts} failures.
- */
 export class ReconnectHandler {
-	/** The WebSocket endpoint URL to reconnect to. */
-	private readonly url: string;
-	/** The transport instance to reconnect. */
-	private readonly transport: Transport;
-	/** Base delay in ms before the first reconnect attempt. */
-	private readonly reconnectDelay: number;
-	/** Upper bound in ms for exponential backoff. */
-	private readonly maxReconnectDelay: number;
-	/** Maximum number of reconnect attempts before giving up. */
-	private readonly maxReconnectAttempts: number;
-	/** Logger for reconnection diagnostics. */
+	private static readonly MAX_BACKOFF_EXPONENT = 30;
 	private readonly logger: Logger;
-	/** Callback invoked before each reconnect attempt. */
-	private readonly onReconnecting?: (attempt: number) => void;
-	/** Callback invoked when reconnection succeeds. */
-	private readonly onReconnected?: () => void;
-	/** Callback invoked when all reconnect attempts are exhausted. */
+	private readonly maxReconnectAttempts: number;
+	private readonly maxReconnectDelay: number;
 	private readonly onFailed?: (reason: string) => void;
-
-	/** Current reconnect attempt number, incremented before each attempt. */
+	private readonly onReconnected?: () => void;
+	private readonly onReconnecting?: (attempt: number) => void;
+	private readonly reconnectDelay: number;
+	private readonly transport: Transport;
+	private readonly url: string;
 	private reconnectAttempt = 0;
-	/** Timer that schedules the next reconnect attempt. */
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-	/** Whether a reconnection sequence is currently active. */
 	private reconnecting = false;
-	/** Whether the reconnection sequence was explicitly cancelled. */
 	private cancelled = false;
 
 	constructor(options: ReconnectOptions) {
-		this.url = options.url;
-		this.transport = options.transport;
-		this.reconnectDelay = options.reconnectDelay ?? ReconnectDefaults.DELAY;
-		this.maxReconnectDelay = options.maxReconnectDelay ?? ReconnectDefaults.MAX_DELAY;
-		this.maxReconnectAttempts = options.maxReconnectAttempts ?? ReconnectDefaults.MAX_ATTEMPTS;
 		this.logger = (options.logger ?? noopLogger).child("reconnect");
-		this.onReconnecting = options.onReconnecting;
-		this.onReconnected = options.onReconnected;
+		this.maxReconnectAttempts = options.maxReconnectAttempts ?? ReconnectDefaults.MAX_ATTEMPTS;
+		this.maxReconnectDelay = options.maxReconnectDelay ?? ReconnectDefaults.MAX_DELAY;
 		this.onFailed = options.onFailed;
+		this.onReconnected = options.onReconnected;
+		this.onReconnecting = options.onReconnecting;
+		this.reconnectDelay = options.reconnectDelay ?? ReconnectDefaults.DELAY;
+		this.transport = options.transport;
+		this.url = options.url;
 	}
 
-	/**
-	 * Begins the reconnection sequence.
-	 *
-	 * No-ops if a reconnection is already in progress.
-	 */
 	start(): void {
 		if (this.reconnecting) {
 			return;
@@ -93,7 +54,6 @@ export class ReconnectHandler {
 		this.attemptReconnect();
 	}
 
-	/** Cancels the reconnection sequence and clears any pending timers. */
 	cancel(): void {
 		this.logger.debug("Reconnect cancelled");
 		this.cancelled = true;
@@ -105,12 +65,10 @@ export class ReconnectHandler {
 		this.reconnectAttempt = 0;
 	}
 
-	/** Whether a reconnection sequence is currently in progress. */
 	get active(): boolean {
 		return this.reconnecting;
 	}
 
-	/** Safely invokes a user callback, catching and logging any errors. */
 	private safeCallback(name: string, fn: () => void | Promise<void>): void {
 		try {
 			const result = fn();
@@ -124,7 +82,6 @@ export class ReconnectHandler {
 		}
 	}
 
-	/** Schedules the next reconnect attempt with exponential backoff. */
 	private attemptReconnect(): void {
 		if (this.cancelled || !this.reconnecting) {
 			return;
@@ -146,8 +103,7 @@ export class ReconnectHandler {
 			this.safeCallback("onReconnecting", () => this.onReconnecting?.(this.reconnectAttempt));
 		}
 
-		// Cap exponent to prevent integer overflow for large attempt counts
-		const exponent = Math.min(this.reconnectAttempt - 1, MAX_BACKOFF_EXPONENT);
+		const exponent = Math.min(this.reconnectAttempt - 1, ReconnectHandler.MAX_BACKOFF_EXPONENT);
 		const delay = Math.min(this.reconnectDelay * 2 ** exponent, this.maxReconnectDelay);
 
 		this.logger.info(`Reconnect attempt ${this.reconnectAttempt}/${this.maxReconnectAttempts} (delay: ${delay}ms)`);
@@ -157,7 +113,6 @@ export class ReconnectHandler {
 				return;
 			}
 			try {
-				// Ensure transport is disconnected before reconnecting
 				if (this.transport.state !== "disconnected") {
 					await this.transport.disconnect();
 				}

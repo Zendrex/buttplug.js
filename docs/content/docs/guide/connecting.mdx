@@ -16,6 +16,8 @@ await client.connect();
 
 The [`ButtplugClient`](/docs/reference/buttplug-client) constructor takes a WebSocket URL and an optional configuration object. Calling `connect()` opens the WebSocket and performs the Buttplug protocol handshake. The returned promise resolves once the handshake succeeds, or rejects with a `ConnectionError` or `HandshakeError`.
 
+In application code, prefer **subscribing to client events** (for example `deviceAdded`, `disconnected`, `error`) and handling **typed errors** over relying on internal logs. See [Debugging and diagnostics](#debugging-and-diagnostics) below for when to use browser DevTools or an optional logger.
+
 ## Client Options
 
 | Option | Type | Default | Description |
@@ -27,7 +29,8 @@ The [`ButtplugClient`](/docs/reference/buttplug-client) constructor takes a WebS
 | `maxReconnectDelay` | `number` | `30000` | Maximum delay (ms) between attempts (exponential backoff cap) |
 | `maxReconnectAttempts` | `number` | `10` | Give up after this many consecutive failures |
 | `requestTimeout` | `number` | `10000` | Timeout (ms) for individual protocol requests |
-| `logger` | `Logger` | `noopLogger` | Logger instance for client diagnostics |
+| `verbose` | `boolean` | `false` | When `true` and `logger` is omitted, enables prefixed `console` diagnostics (`consoleLogger`) |
+| `logger` | `Logger` | `noopLogger` | Optional. Injectable diagnostics; overrides `verbose`. Prefer events for app behavior |
 
 ## Auto-Reconnect
 
@@ -72,3 +75,11 @@ await client.disconnect("Session ended");
 </Callout>
 
 After disconnecting, call `client.dispose()` to clear all event listeners and internal state if you do not plan to reconnect.
+
+## Debugging and diagnostics
+
+1. **Events and errors** — Use `client.on("error", …)` and other [client events](/docs/reference/types#clienteventmap) for user-visible behavior. Thrown and emitted errors use the `ButtplugError` hierarchy (see the README **Error Handling** section and exported error types).
+
+2. **WebSocket frames** — In Chromium-based browsers, open DevTools → **Network**, select the Buttplug WebSocket, then **Messages**. This is the most direct way to verify what the client and server actually exchanged (handshake, device list, commands).
+
+3. **Optional diagnostics** — Set [`verbose`](/docs/reference/buttplug-client#buttplugclientoptions) when `logger` is omitted, or inject [`consoleLogger`](/docs/reference/types#logger) / a custom [`Logger`](/docs/reference/types#logger). For code that constructs components outside [`ButtplugClient`](/docs/reference/buttplug-client), [`resolveDiagnosticsLogger`](/docs/reference/types#resolvediagnosticslogger) applies the same `logger`/`verbose` resolution. Production builds usually leave both off (`noopLogger` by default).
