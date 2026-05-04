@@ -1,23 +1,13 @@
-import { z } from "zod";
-
 import { DeviceError, ProtocolError } from "../lib/errors";
-import { getPresetInfo, PRESETS, PresetPatternSchema } from "./presets";
-import { evaluateHwPositionTrack, evaluateScalarTrack, getCycleDuration } from "./scheduler";
-import { CustomPatternSchema, resolveTracks } from "./track-resolver";
+import { PatternDescriptorSchema } from "./descriptor";
+import { resolveTracks } from "./internal/resolver";
+import { evaluateHwPositionTrack, evaluateScalarTrack, getCycleDuration } from "./internal/scheduler";
+import { getPresetInfo, PRESETS } from "./presets";
+import type { PatternDescriptor } from "./descriptor";
+import type { PatternState } from "./internal/state";
 import type { PresetInfo, PresetName } from "./presets";
-import type { Track } from "./track-resolver";
-import type {
-	PatternDevice,
-	PatternEngineClient,
-	PatternInfo,
-	PatternPlayOptions,
-	PatternState,
-	StopReason,
-} from "./types";
-
-export const PatternDescriptorSchema = z.discriminatedUnion("type", [PresetPatternSchema, CustomPatternSchema]);
-
-export type PatternDescriptor = z.infer<typeof PatternDescriptorSchema>;
+import type { Track } from "./track";
+import type { PatternDevice, PatternEngineClient, PatternInfo, PatternPlayOptions, StopReason } from "./types";
 
 export class PatternEngine {
 	static readonly DEFAULT_TIMEOUT_MS = 1_800_000;

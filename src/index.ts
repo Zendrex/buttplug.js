@@ -15,9 +15,6 @@ export {
 	noopLogger,
 	resolveDiagnosticsLogger,
 } from "./lib/logger";
-export { EASING_FUNCTIONS, EASING_VALUES } from "./patterns/easing";
-export { PatternEngine } from "./patterns/engine";
-export { getPresetInfo, PRESET_NAMES, PRESETS } from "./patterns/presets";
 export { INPUT_TYPES, OUTPUT_TYPES } from "./protocol/features";
 export type {
 	ButtplugClientOptions,
@@ -28,17 +25,6 @@ export type {
 	Logger,
 	ResolveDiagnosticsLoggerOptions,
 } from "./lib/logger";
-export type { Easing, Keyframe } from "./patterns/easing";
-export type { PatternDescriptor } from "./patterns/engine";
-export type { PresetInfo, PresetName, PresetPattern } from "./patterns/presets";
-export type { CustomPattern, Track } from "./patterns/track-resolver";
-export type {
-	PatternDevice,
-	PatternEngineClient,
-	PatternInfo,
-	PatternPlayOptions,
-	StopReason,
-} from "./patterns/types";
 export type {
 	ClientMessage,
 	DeviceFeatures,

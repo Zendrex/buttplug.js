@@ -3,16 +3,11 @@ title: Constants
 description: Exported constant values.
 ---
 
-All constants are exported from the package root:
+Protocol and error constants are exported from the package root. Pattern constants are exported from the `/patterns` subpath:
 
 ```ts
-import {
-  OUTPUT_TYPES,
-  INPUT_TYPES,
-  EASING_VALUES,
-  PRESET_NAMES,
-  ErrorCode,
-} from "@zendrex/buttplug.js";
+import { OUTPUT_TYPES, INPUT_TYPES, ErrorCode } from "@zendrex/buttplug.js";
+import { EASING_VALUES, PRESET_NAMES } from "@zendrex/buttplug.js/patterns";
 ```
 
 ## OUTPUT_TYPES

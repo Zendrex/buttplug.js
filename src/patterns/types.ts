@@ -1,7 +1,6 @@
 import type { DeviceOutputOptions, DeviceStopOptions } from "../device";
 import type { DeviceFeatures } from "../protocol/schema";
-import type { PatternDescriptor } from "./engine";
-import type { ResolvedTrack } from "./track-resolver";
+import type { PatternDescriptor } from "./descriptor";
 
 export interface PatternDevice {
 	readonly features: DeviceFeatures;
@@ -43,22 +42,4 @@ export interface PatternInfo {
 	readonly featureIndices: number[];
 	readonly id: string;
 	readonly startedAt: number;
-}
-
-export interface PatternState {
-	readonly descriptor: PatternDescriptor;
-	readonly deviceIndex: number;
-	expectedTickTime: number;
-	readonly id: string;
-	readonly lastSentKeyframeIndex: Map<number, number>;
-	readonly lastSentValues: Map<number, number>;
-	readonly loop: boolean | number;
-	readonly options: PatternPlayOptions;
-	remainingLoops: number;
-	safetyTimerId: ReturnType<typeof setTimeout> | null;
-	startedAt: number;
-	stopped: boolean;
-	readonly tickInterval: number;
-	timerId: ReturnType<typeof setTimeout> | null;
-	readonly tracks: ResolvedTrack[];
 }

@@ -1,9 +1,10 @@
-import { DeviceError } from "../lib/errors";
-import { mapToRange } from "../lib/range";
-import { ease } from "./easing";
-import type { OutputCommand } from "../protocol/schema";
-import type { ResolvedKeyframe, ResolvedTrack } from "./track-resolver";
-import type { PatternDevice, PatternState } from "./types";
+import { DeviceError } from "../../lib/errors";
+import { mapToRange } from "../../lib/range";
+import { EASING_FUNCTIONS } from "../easing";
+import type { OutputCommand } from "../../protocol/schema";
+import type { PatternDevice } from "../types";
+import type { ResolvedKeyframe, ResolvedTrack } from "./resolver";
+import type { PatternState } from "./state";
 
 function interpolateKeyframes(keyframes: ResolvedKeyframe[], elapsed: number): number {
 	let accumulated = 0;
@@ -24,7 +25,7 @@ function interpolateKeyframes(keyframes: ResolvedKeyframe[], elapsed: number): n
 		const prevValue = value;
 		if (elapsed < accumulated + kf.duration) {
 			const t = (elapsed - accumulated) / kf.duration;
-			const result = prevValue + (kf.value - prevValue) * ease(t, kf.easing);
+			const result = prevValue + (kf.value - prevValue) * EASING_FUNCTIONS[kf.easing](t);
 			return Math.max(0, Math.min(1, result));
 		}
 

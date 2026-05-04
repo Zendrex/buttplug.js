@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { OutputType } from "../protocol/schema";
-import type { Keyframe } from "./easing";
+import type { Keyframe } from "./keyframe";
 
 export const PRESET_NAMES = ["pulse", "wave", "ramp_up", "ramp_down", "heartbeat", "surge", "stroke"] as const;
 

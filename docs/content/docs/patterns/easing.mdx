@@ -41,7 +41,7 @@ Mixing easing curves within a single track creates complex feel profiles. Combin
 The `EASING_FUNCTIONS` export provides direct access to each curve as a `(t: number) => number` function, keyed by name.
 
 ```ts
-import { EASING_FUNCTIONS } from "@zendrex/buttplug.js";
+import { EASING_FUNCTIONS } from "@zendrex/buttplug.js/patterns";
 
 const eased = EASING_FUNCTIONS.easeInOut(0.5); // 0.5
 const stepped = EASING_FUNCTIONS.step(0.99);   // 0

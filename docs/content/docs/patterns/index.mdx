@@ -4,7 +4,8 @@ description: Keyframe-based pattern playback for device automation.
 ---
 
 ```ts
-import { ButtplugClient, PatternEngine } from "@zendrex/buttplug.js";
+import { ButtplugClient } from "@zendrex/buttplug.js";
+import { PatternEngine } from "@zendrex/buttplug.js/patterns";
 
 const client = new ButtplugClient("ws://localhost:12345");
 await client.connect();
