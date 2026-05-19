@@ -1,18 +1,11 @@
 ---
 title: ButtplugClient
-description: High-level client for communicating with a Buttplug server over WebSocket or a custom transport.
+description: Buttplug v4 client over WebSocket or custom transport
 ---
 
 The `ButtplugClient` class manages the full connection lifecycle: transport, protocol handshake, device discovery, ping keep-alive, sensor subscriptions, and optional automatic reconnection.
 
-```ts
-import { ButtplugClient } from "@zendrex/buttplug.js";
-
-const client = new ButtplugClient("ws://localhost:12345");
-await client.connect();
-```
-
-For in-browser Web Bluetooth without Intiface Central, pass a [`WasmTransport`](/docs/reference/wasm-transport) instead of a URL. See the [WASM Transport](/docs/guide/wasm) guide.
+End-to-end usage example: [Getting Started](/docs/guide/getting-started). In-browser Web Bluetooth without Intiface Central: pass [`WasmTransport`](/docs/client/wasm-transport) instead of a URL.
 
 ## Constructor
 
@@ -23,7 +16,7 @@ new ButtplugClient(target: string | Transport, options?: ButtplugClientOptions)
 | Parameter | Type | Description |
 | --- | --- | --- |
 | `target` | `string` | WebSocket URL of the Buttplug server (wraps `WebSocketTransport` internally) |
-| `target` | [`Transport`](/docs/reference/types#transport) | Custom transport (e.g. [`WasmTransport`](/docs/reference/wasm-transport)) |
+| `target` | [`Transport`](/docs/client/types#transport) | Custom transport (e.g. [`WasmTransport`](/docs/client/wasm-transport)) |
 | `options` | `ButtplugClientOptions` | Optional configuration |
 
 ### ButtplugClientOptions
@@ -54,7 +47,7 @@ Whether a device scan is currently in progress.
 get serverInfo(): ServerInfo | null
 ```
 
-Server information received during handshake, or `null` if not connected. See [ServerInfo](/docs/reference/types#serverinfo) for the shape.
+Server information received during handshake, or `null` if not connected. See [ServerInfo](/docs/client/types#serverinfo) for the shape.
 
 ### devices
 
@@ -62,7 +55,7 @@ Server information received during handshake, or `null` if not connected. See [S
 get devices(): Device[]
 ```
 
-Snapshot of all currently known [Device](/docs/reference/device) instances.
+Snapshot of all currently known [Device](/docs/client/device) instances.
 
 ## Methods
 
@@ -107,14 +100,16 @@ await client.disconnect("User requested shutdown");
 startScanning(): Promise<void>
 ```
 
-Begins scanning for devices on the server. Discovered devices emit `deviceAdded` events.
+Begins scanning for devices on the server. Discovered devices emit `device.added` events.
 
 **Throws:** `ConnectionError` if the client is not connected.
 
 ```ts
 await client.startScanning();
-// Listen for devices via client.on("deviceAdded", ...)
+// Listen for devices via client.on("device.added", ...)
 ```
+
+With [`WasmTransport`](/docs/client/wasm-transport), this opens the browser's Bluetooth picker (one device per call). See [Scanning behavior](/docs/guide/wasm#scanning-behavior) for the differences vs Intiface.
 
 ### stopScanning
 
@@ -122,7 +117,7 @@ await client.startScanning();
 stopScanning(): Promise<void>
 ```
 
-Stops an active device scan on the server.
+Stops an active device scan on the server. No-op with [`WasmTransport`](/docs/client/wasm-transport): the browser picker is modal and already closed by the time this resolves.
 
 **Throws:** `ConnectionError` if the client is not connected.
 
@@ -142,7 +137,7 @@ Sends a global stop command to halt all devices on the server.
 requestDeviceList(): Promise<void>
 ```
 
-Requests the current device list from the server. Triggers device reconciliation and emits `deviceAdded`, `deviceRemoved`, `deviceUpdated`, and `deviceList` events as needed.
+Requests the current device list from the server. Triggers device reconciliation and emits `device.added`, `device.removed`, `device.updated`, and `device.list` events as needed.
 
 **Throws:** `ConnectionError` if the client is not connected.
 
@@ -181,7 +176,7 @@ Retrieves a device by its server-assigned index.
 | --- | --- | --- |
 | `index` | `number` | The device index |
 
-**Returns:** The [Device](/docs/reference/device) instance, or `undefined` if not found.
+**Returns:** The [Device](/docs/client/device) instance, or `undefined` if not found.
 
 ### dispose
 
@@ -189,7 +184,7 @@ Retrieves a device by its server-assigned index.
 dispose(): void
 ```
 
-Disposes the client, clearing all event listeners and internal state. Call `disconnect()` first if still connected. Subsequent usage of the client after disposal is undefined behavior.
+Disposes the client, clearing all event listeners and internal state. Call `disconnect()` first if still connected. Re-using a disposed client is not supported.
 
 ## Events
 
@@ -197,47 +192,14 @@ Disposes the client, clearing all event listeners and internal state. Call `disc
 
 <AutoTypeTable path="../src/client.ts" name="ClientEventMap" />
 
-### Listening for events
-
-```ts
-client.on("deviceAdded", ({ data: { device } }) => {
-  console.log(`Found: ${device.name}`);
-});
-
-client.on("disconnected", ({ data: { reason } }) => {
-  console.log(`Disconnected: ${reason}`);
-});
-
-client.on("error", ({ data: { error } }) => {
-  console.error(error);
-});
-```
-
-### Reconnection events
-
-When `autoReconnect` is enabled, the client emits `reconnecting` on each attempt and `reconnected` after a successful re-handshake:
-
-```ts
-const client = new ButtplugClient("ws://localhost:12345", {
-  autoReconnect: true,
-  reconnectDelay: 1000,
-  maxReconnectAttempts: 10,
-});
-
-client.on("reconnecting", ({ data: { attempt } }) => {
-  console.log(`Reconnect attempt ${attempt}...`);
-});
-
-client.on("reconnected", () => {
-  console.log("Reconnected");
-});
-```
+Subscription, payload destructuring (`{ data }`), and full per-event semantics: [Events](/docs/guide/events). Reconnect behavior and `autoReconnect` flow: [Connecting](/docs/guide/connecting#auto-reconnect).
 
 ## Related
 
-- [Getting Started](/docs/guide/getting-started) -- installation and first connection
-- [Connecting](/docs/guide/connecting) -- connection lifecycle and reconnection
-- [Events](/docs/guide/events) -- event handling patterns
-- [Device](/docs/reference/device) -- controlling individual devices
-- [Types](/docs/reference/types) -- all exported types
-- [Errors](/docs/reference/errors) -- error hierarchy
+- [ButtplugClient overview](/docs/client): setup, scanning, events, lifecycle
+- [Getting Started](/docs/guide/getting-started): installation and first connection
+- [Connecting](/docs/guide/connecting): connection lifecycle and reconnection
+- [Events](/docs/guide/events): event handling patterns
+- [Device](/docs/client/device): controlling individual devices
+- [Types](/docs/client/types): all exported types
+- [Errors](/docs/client/errors): error hierarchy

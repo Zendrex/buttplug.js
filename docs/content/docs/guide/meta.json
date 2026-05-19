@@ -5,11 +5,11 @@
 		"index",
 		"getting-started",
 		"connecting",
-		"wasm",
 		"devices",
 		"commands",
 		"sensors",
 		"events",
-		"error-handling"
+		"error-handling",
+		"wasm"
 	]
 }

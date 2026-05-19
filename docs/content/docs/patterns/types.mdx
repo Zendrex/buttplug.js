@@ -1,0 +1,96 @@
+---
+title: Types
+description: Pattern types exported from @zendrex/buttplug.js/patterns.
+---
+
+Pattern types are exported from the `@zendrex/buttplug.js/patterns` subpath, not the package root.
+
+## PatternPlayOptions
+
+Options for controlling pattern playback behavior.
+
+<AutoTypeTable path="../src/patterns/types.ts" name="PatternPlayOptions" />
+
+## PatternDescriptor
+
+Discriminated union of pattern descriptors. Uses the `type` field to distinguish between preset and custom patterns.
+
+```ts
+type PatternDescriptor = PresetPattern | CustomPattern;
+```
+
+## PresetPattern
+
+Pattern descriptor that references a built-in preset by name.
+
+<AutoTypeTable path="../src/patterns/presets.ts" name="PresetPattern" />
+
+## CustomPattern
+
+Pattern descriptor with user-defined keyframe tracks.
+
+<AutoTypeTable path="../src/patterns/track.ts" name="CustomPattern" />
+
+## Track
+
+A sequence of keyframes bound to a specific device feature.
+
+<AutoTypeTable path="../src/patterns/track.ts" name="Track" />
+
+## Keyframe
+
+A single animation keyframe with a target value, transition duration, and optional easing. A duration of `0` creates an instant jump to the value.
+
+<AutoTypeTable path="../src/patterns/keyframe.ts" name="Keyframe" />
+
+## Easing
+
+Easing curve identifier used for keyframe interpolation:
+
+```ts
+type Easing = "linear" | "easeIn" | "easeOut" | "easeInOut" | "step";
+```
+
+See [Easing](/docs/patterns/easing) for curve behavior and [Constants](/docs/patterns/constants) for `EASING_VALUES`.
+
+## PatternInfo
+
+Read-only snapshot of a running pattern, returned by `PatternEngine.list()`.
+
+<AutoTypeTable path="../src/patterns/types.ts" name="PatternInfo" />
+
+## PresetInfo
+
+Metadata describing a built-in preset pattern.
+
+<AutoTypeTable path="../src/patterns/presets.ts" name="PresetInfo" />
+
+## StopReason
+
+Reason a pattern was stopped, used in `PatternPlayOptions.onStop` callbacks:
+
+```ts
+type StopReason =
+  | "manual"
+  | "complete"
+  | "timeout"
+  | "error"
+  | "disconnect"
+  | "deviceRemoved";
+```
+
+| Value | Triggered when |
+| --- | --- |
+| `"manual"` | `stop()`, `stopAll()`, or `stopByDevice()` was called |
+| `"complete"` | All loop iterations finished naturally |
+| `"timeout"` | Safety timeout elapsed |
+| `"error"` | Device or protocol error during playback |
+| `"disconnect"` | Client disconnected from server |
+| `"deviceRemoved"` | Target device was removed |
+
+## Related
+
+- [PatternEngine](/docs/patterns/pattern-engine): pattern engine API reference
+- [Constants](/docs/patterns/constants): `PRESET_NAMES` and `EASING_VALUES`
+- [Presets](/docs/patterns/presets): built-in preset patterns
+- [Custom Tracks](/docs/patterns/custom-tracks): defining keyframe tracks

@@ -1,106 +1,117 @@
 ---
 title: Getting Started
-description: Install buttplug.js and connect to your first device
+description: Install buttplug.js and control your first device over WebSocket
 ---
 
-## Installation
+Install the package, connect over WebSocket to [Intiface Central](https://intiface.com/central/), and send a vibration command. For browser-only setups without Intiface, see [WASM Transport](/docs/guide/wasm).
 
-<Tabs items={["bun", "npm", "pnpm"]}>
-  <Tab value="bun">
-    ```bash
-    bun add @zendrex/buttplug.js
-    ```
-  </Tab>
-  <Tab value="npm">
-    ```bash
-    npm install @zendrex/buttplug.js
-    ```
-  </Tab>
-  <Tab value="pnpm">
-    ```bash
-    pnpm add @zendrex/buttplug.js
-    ```
-  </Tab>
-</Tabs>
+## Install
 
-## Setup
+<InstallTabs />
+
+## Run Intiface Central
+
+1. Download and open [Intiface Central](https://intiface.com/central/).
+2. Enable **Start Server** (default WebSocket: `ws://127.0.0.1:12345`).
+3. Leave Central running while your app connects.
+
+<Callout type="info">
+  `127.0.0.1` and `localhost` are equivalent for local development. Use whichever matches your Central settings.
+</Callout>
+
+## Connect and scan
 
 <Steps>
   <Step>
-    ### Install the package
+    ### Create the client
 
-    Add `@zendrex/buttplug.js` to your project using the command above.
+    A URL string uses the built-in WebSocket transport:
+
+    ```ts
+    import { ButtplugClient } from "@zendrex/buttplug.js";
+
+    const client = new ButtplugClient("ws://127.0.0.1:12345");
+    ```
   </Step>
 
   <Step>
-    ### Start Intiface Central
+    ### Listen before connecting
 
-    Download and launch [Intiface Central](https://intiface.com/central/). Click **Start Server** -- it listens on `ws://localhost:12345` by default.
+    Register handlers before `connect()` so you do not miss early devices:
+
+    ```ts
+    client.on("device.added", async ({ data: { device } }) => {
+      console.log(`Found: ${device.displayName ?? device.name}`);
+    });
+    ```
   </Step>
 
   <Step>
     ### Connect and scan
 
-    Create a [`ButtplugClient`](/docs/reference/buttplug-client), connect to the server, and start scanning for devices.
-
     ```ts
-    import { ButtplugClient } from "@zendrex/buttplug.js";
-
-    const client = new ButtplugClient("ws://localhost:12345");
     await client.connect();
     await client.startScanning();
     ```
+
+    `connect()` opens the socket and completes the v4 handshake. `startScanning()` asks the server to discover hardware; each match emits `device.added`.
   </Step>
 
   <Step>
-    ### Control a device
-
-    Listen for the `deviceAdded` event and send commands to discovered devices.
+    ### Send a command
 
     ```ts
-    client.on("deviceAdded", async ({ data: { device } }) => {
-      console.log(`Found: ${device.name}`);
-      await device.vibrate(50);
+    client.on("device.added", async ({ data: { device } }) => {
+      if (device.canOutput("Vibrate")) {
+        await device.vibrate(0.5);
+        setTimeout(() => device.stop(), 2000);
+      }
     });
     ```
+
+    `0.5` is a normalized intensity in **0–1**. The library maps it to each feature's device range (so `0.5` is the midpoint of whatever range the server reports).
   </Step>
 </Steps>
 
-## Full Example
+## Complete example
 
 ```ts
 import { ButtplugClient } from "@zendrex/buttplug.js";
 
-const client = new ButtplugClient("ws://localhost:12345");
+const client = new ButtplugClient("ws://127.0.0.1:12345");
 
-client.on("deviceAdded", async ({ data: { device } }) => {
-  console.log(`Found: ${device.name}`);
+client.on("device.added", async ({ data: { device } }) => {
+  console.log(`Found: ${device.displayName ?? device.name}`);
+
   if (device.canOutput("Vibrate")) {
-    await device.vibrate(50);
+    await device.vibrate(0.5);
+    setTimeout(() => device.stop(), 2000);
   }
+});
+
+client.on("connection.disconnected", ({ data: { reason } }) => {
+  console.log("Disconnected:", reason ?? "unknown");
 });
 
 await client.connect();
 await client.startScanning();
 ```
 
-The client connects over WebSocket, performs a protocol handshake, and begins scanning for devices. When a device is found, the `deviceAdded` event fires with a [`Device`](/docs/reference/device) instance that exposes typed control methods.
+## What happens next
 
-Scanning runs until you call `client.stopScanning()` or the server emits `scanningFinished`. Devices persist across scans -- you only receive `deviceAdded` once per device until it disconnects.
+| Step | What you see |
+| --- | --- |
+| `connect()` | `connection.connecting` → `connection.connected` |
+| `startScanning()` | `scan.started`, then `device.added` per device |
+| Scan ends | `scan.finished` (or call `stopScanning()` yourself) |
+| Power off / unplug | `device.removed` for that hardware |
+| Quit Central or close socket | `connection.disconnected`; server stops all devices |
 
-For connection options like auto-reconnect and custom timeouts, see [Connecting](/docs/guide/connecting). For the full device control API, see [Devices](/docs/guide/devices).
+Devices stay in `client.devices` until `device.removed` or disconnect. `device.added` fires for every newly added device, including when a removed device rejoins.
 
-## Browser-only (no Intiface)
+## Next steps
 
-If you are building a web app and do not want users to install Intiface Central, use [`WasmTransport`](/docs/guide/wasm) with Web Bluetooth instead of a WebSocket URL:
-
-```ts
-import { ButtplugClient } from "@zendrex/buttplug.js";
-import { WasmTransport } from "@zendrex/buttplug.js/wasm";
-
-const client = new ButtplugClient(new WasmTransport());
-await client.connect();
-await client.startScanning();
-```
-
-Install the optional peer dependency (`buttplug-wasm-blob`) and read the [WASM Transport](/docs/guide/wasm) guide for browser requirements and bundler setup.
+- [Connecting](/docs/guide/connecting): client options, custom transports, auto-reconnect, ping
+- [Devices](/docs/guide/devices): properties, `canOutput` / `canRead`, feature lists
+- [Commands](/docs/guide/commands): rotation, position, multi-motor control
+- [Patterns](/docs/patterns): timed waveforms instead of manual `setTimeout` loops

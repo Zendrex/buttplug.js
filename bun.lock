@@ -33,6 +33,8 @@
       "version": "0.0.0",
       "dependencies": {
         "@orama/orama": "^3.1.18",
+        "@zendrex/buttplug.js": "file:..",
+        "buttplug-wasm-blob": "^3.0.0",
         "fumadocs-core": "^16.8.7",
         "fumadocs-mdx": "^14.3.2",
         "fumadocs-typescript": "^5.2.6",
@@ -482,6 +484,8 @@
     "@ungap/structured-clone": ["@ungap/structured-clone@1.3.0", "", {}, "sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g=="],
 
     "@zeit/schemas": ["@zeit/schemas@2.36.0", "", {}, "sha512-7kjMwcChYEzMKjeex9ZFXkt1AyNov9R5HZtjBKVsmVpw7pa7ZtlCGvCBC2vnnXctaYN+aRI61HjIqeetZW5ROg=="],
+
+    "@zendrex/buttplug.js": ["@zendrex/buttplug.js@root:", {}],
 
     "acorn": ["acorn@8.16.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw=="],
 

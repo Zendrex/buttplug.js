@@ -1,6 +1,6 @@
 ---
 title: Pattern Engine
-description: Keyframe-based pattern playback for device automation.
+description: Keyframe-based pattern playback
 ---
 
 ```ts
@@ -18,52 +18,50 @@ await engine.stop(id);
 
 ## Setup
 
-Pass a connected [`ButtplugClient`](/docs/reference/buttplug-client) directly to the constructor. The optional `defaultTimeout` controls the safety auto-stop duration (defaults to 30 minutes).
+Constructor takes a connected [`ButtplugClient`](/docs/client). `defaultTimeout` overrides the 30-minute safety auto-stop:
 
 ```ts
 const engine = new PatternEngine(client, {
-  defaultTimeout: 600_000, // 10 minutes
+  defaultTimeout: 600_000, // 10-minute override
 });
 ```
 
-The engine subscribes to `disconnected` and `deviceRemoved` events on the client. When either fires, all affected patterns stop automatically. Call `engine.dispose()` when you no longer need the engine to clean up event subscriptions.
+Subscribes to `connection.disconnected` and `device.removed`; matching patterns stop automatically. `engine.dispose()` removes engine subscriptions.
 
-## Playing Patterns
+## play()
 
-`play()` accepts three forms. The first argument is always a `Device` or device index (`number`).
+First argument: `Device` or device index.
 
-**Preset name** -- pass a string from the 7 [built-in presets](/docs/patterns/presets):
+**Preset name** ([built-in presets](/docs/patterns/presets)):
 
 ```ts
 await engine.play(device, "pulse", { intensity: 0.7 });
 ```
 
-**Custom tracks** -- pass an array of `Track` objects with [keyframe sequences](/docs/patterns/custom-tracks):
+**Custom tracks** ([keyframes](/docs/patterns/custom-tracks)):
 
 ```ts
 await engine.play(device, tracks, { loop: true });
 ```
 
-**Full descriptor** -- pass a `PatternDescriptor` object for complete control. This form is useful when descriptors are stored as data (e.g., loaded from JSON).
+**PatternDescriptor** for data-driven descriptors (e.g. JSON).
 
-Every call returns a unique pattern ID string. Starting a new pattern on a device that already has one running auto-stops the existing pattern first.
+Returns a pattern ID. A new `play()` on the same device stops any running pattern on that device first.
 
-## Stopping Patterns
+## Stop
 
-Three methods cover different granularities:
-
-- `stop(patternId)` -- stops one specific pattern
-- `stopByDevice(deviceIndex)` -- stops all patterns on a device, returns the count
-- `stopAll()` -- stops everything, returns the count
+- `stop(patternId)`
+- `stopByDevice(deviceIndex)` (returns count)
+- `stopAll()` (returns count)
 
 ## Lifecycle
 
-The engine handles cleanup automatically in several scenarios. Client disconnect stops all patterns with reason `"disconnect"`. A device removal stops patterns targeting that device with reason `"deviceRemoved"`. The safety timeout stops long-running patterns with reason `"timeout"`.
+Disconnect stops all patterns (`reason: "disconnect"`). Device removal stops patterns for that device (`"deviceRemoved"`). Safety timeout stops long runs (`"timeout"`).
 
 <Callout type="warn">
-The default safety timeout is **30 minutes**. Any pattern running longer than this is automatically stopped. Override it per-engine via `defaultTimeout` or per-pattern via the `timeout` option. Set `timeout: 0` to disable the safety limit entirely -- use this with caution.
+  Default safety timeout is **30 minutes**. Override with `defaultTimeout` (engine) or `timeout` (per pattern). `timeout: 0` disables the limit.
 </Callout>
 
-Use `list()` to inspect all active patterns at any time. It returns an array of `PatternInfo` snapshots with elapsed time, device index, and descriptor metadata.
+`list()` returns `PatternInfo[]` (elapsed time, device index, descriptor).
 
-For the full API surface, see the [`PatternEngine` reference](/docs/reference/pattern-engine).
+[PatternEngine API](/docs/patterns/pattern-engine) · [Types](/docs/patterns/types) · [Constants](/docs/patterns/constants)

@@ -1,88 +1,82 @@
 ---
 title: Error Handling
-description: Catch, identify, and recover from Buttplug protocol errors
+description: Error classes, protocol codes, and practical recovery
 ---
 
+Library failures throw subclasses of [`ButtplugError`](/docs/client/errors). Use `instanceof` to branch on transport, device, and timeout cases.
+
 ```ts
-import { ButtplugError, ConnectionError } from "@zendrex/buttplug.js";
+import { ButtplugError, ConnectionError, DeviceError } from "@zendrex/buttplug.js";
 
 try {
   await client.connect();
 } catch (err) {
   if (err instanceof ConnectionError) {
-    console.error("Failed to connect:", err.message);
+    console.error("Could not reach server:", err.message);
   }
 }
 ```
 
-All errors thrown by the library extend [`ButtplugError`](/docs/reference/errors), which itself extends the native `Error` class. This gives you a single base class for catching any library error, plus specific subclasses for targeted handling.
+## Error hierarchy
 
-## Error Hierarchy
+All errors extend `ButtplugError`. Subclasses add fields such as `ProtocolError.code`, `DeviceError.deviceIndex`, and `TimeoutError.operation` / `timeoutMs`. Full class table: [Errors reference](/docs/client/errors).
 
-```
-ButtplugError
-  ConnectionError      — WebSocket or transport failure
-  HandshakeError       — Server rejected the protocol handshake
-  ProtocolError        — Server returned an error message (has .code)
-  DeviceError          — Device-specific operation failed (has .deviceIndex)
-  TimeoutError         — Operation exceeded its time limit (has .operation, .timeoutMs)
-```
+## Narrowing in application code
 
-Each subclass carries contextual properties. `ProtocolError` includes an `ErrorCode`, `DeviceError` includes the `deviceIndex`, and `TimeoutError` includes the `operation` name and `timeoutMs` duration.
-
-## Type Narrowing
-
-Use `instanceof` to narrow errors and access subclass-specific properties:
+Check specific subclasses before the base type:
 
 ```ts
 try {
-  await device.vibrate(50);
+  await device.vibrate(0.5);
 } catch (err) {
   if (err instanceof DeviceError) {
-    console.error(`Device ${err.deviceIndex}: ${err.message}`);
+    console.error(`Device #${err.deviceIndex}: ${err.message}`);
   } else if (err instanceof TimeoutError) {
     console.error(`${err.operation} timed out after ${err.timeoutMs}ms`);
   } else if (err instanceof ButtplugError) {
-    console.error("Buttplug error:", err.message);
+    console.error(err.message);
+  } else {
+    throw err;
   }
 }
 ```
 
-Order matters -- check specific subclasses before the base `ButtplugError` since all subclasses pass an `instanceof ButtplugError` check.
+## Protocol error codes
 
-## Error Codes
-
-`ProtocolError` carries a numeric `code` from the server. The `ErrorCode` constant defines all valid values:
-
-| Code | Name | Description |
-|---|---|---|
-| `0` | `UNKNOWN` | Unclassified server error |
-| `1` | `INIT` | Initialization failure |
-| `2` | `PING` | Ping timeout (server will disconnect) |
-| `3` | `MESSAGE` | Malformed or invalid message |
-| `4` | `DEVICE` | Device-level failure reported by server |
+`ProtocolError.code` is one of [`ErrorCode`](/docs/client/constants#errorcode) (`UNKNOWN`, `INIT`, `PING`, `MESSAGE`, `DEVICE`). `PING` is terminal: the server has already stopped devices and dropped the connection.
 
 ```ts
 import { ProtocolError, ErrorCode } from "@zendrex/buttplug.js";
 
 if (err instanceof ProtocolError && err.code === ErrorCode.PING) {
-  console.error("Server ping timeout — reconnecting");
+  console.error("Ping timeout; reconnect rather than retry");
 }
 ```
 
-## Recovery Strategies
+## Recovery patterns
 
-**Connection failures** -- Enable `autoReconnect` in the client options. The client will retry with exponential backoff and emit `reconnecting` / `reconnected` events. See [Connecting](/docs/guide/connecting).
+### Connection lost
 
-**Device errors** -- These typically indicate the device disconnected or does not support the requested operation. Check capabilities with `canOutput()`, `canRead()`, or `canSubscribe()` before sending commands.
+- Enable [`autoReconnect`](/docs/guide/connecting#auto-reconnect) for WebSocket apps.
+- Listen for `connection.reconnected` and refresh UI state.
+- On `connection.disconnected`, stop local timers and [`PatternEngine`](/docs/patterns) instances.
 
-**Timeouts** -- Increase `requestTimeout` in the client options if operations consistently exceed the default. For one-off slow operations, consider wrapping the call in your own timeout logic.
+### Unsupported hardware
 
-**Protocol errors** -- Log the `ErrorCode` and `message` for debugging. A `PING` error is terminal -- the server will disconnect and halt all devices.
+- Call `device.canOutput()` / `canRead()` / `canSubscribe()` before commands.
+- Inspect `device.features` when building dynamic UIs.
 
-## `formatError()`
+### Slow operations
 
-The `formatError()` utility normalizes any caught value into a string, handling both `Error` instances and non-Error throws:
+Increase `requestTimeout` on the client:
+
+```ts
+const client = new ButtplugClient("ws://127.0.0.1:12345", {
+  requestTimeout: 30_000,
+});
+```
+
+### Logging
 
 ```ts
 import { formatError } from "@zendrex/buttplug.js";
@@ -94,4 +88,19 @@ try {
 }
 ```
 
-For the full error API and type definitions, see the [Errors reference](/docs/reference/errors).
+For protocol debugging in the browser, DevTools → Network → WebSocket → Messages is often more detailed than client logs.
+
+## Events vs thrown errors
+
+| Source | Mechanism |
+| --- | --- |
+| `await device.vibrate()` | Rejects promise (`DeviceError`, `TimeoutError`, …) |
+| `connection.error` | Emitted for transport / protocol issues |
+| `device.error` | Emitted for server-pushed `ErrorCode.DEVICE` |
+
+Handle both in production apps: promises for command results, events for background failures.
+
+## Next steps
+
+- [Errors reference](/docs/client/errors): full class documentation
+- [Connecting](/docs/guide/connecting): disconnect and reconnect behavior

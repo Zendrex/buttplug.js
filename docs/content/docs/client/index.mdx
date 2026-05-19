@@ -1,0 +1,89 @@
+---
+title: ButtplugClient
+description: TypeScript client for the Buttplug v4 protocol
+---
+
+```ts
+import { ButtplugClient } from "@zendrex/buttplug.js";
+
+const client = new ButtplugClient("ws://127.0.0.1:12345");
+
+client.on("device.added", async ({ data: { device } }) => {
+  if (device.canOutput("Vibrate")) {
+    await device.vibrate(0.5);
+  }
+});
+
+await client.connect();
+await client.startScanning();
+```
+
+## Setup
+
+Constructor accepts a WebSocket URL or a custom [`Transport`](/docs/client/types#transport) (for example [`WasmTransport`](/docs/client/wasm-transport) in the browser).
+
+```ts
+const client = new ButtplugClient("ws://127.0.0.1:12345", {
+  autoReconnect: true,
+  requestTimeout: 10_000,
+});
+```
+
+Full option list and defaults: [`ButtplugClientOptions`](/docs/client/types#buttplugclientoptions). Transport, reconnection, and teardown: [Connecting](/docs/guide/connecting).
+
+## connect()
+
+Opens the transport and performs the v4 handshake. Resolves when the server accepts the session. If already connected, returns immediately.
+
+**Throws:** `ConnectionError`, `HandshakeError`
+
+```ts
+await client.connect();
+console.log(client.serverInfo);
+```
+
+## Devices
+
+The server reports hardware through `device.added`. Each [`Device`](/docs/client/device) exposes typed output and sensor methods.
+
+```ts
+const device = client.getDevice(0);
+await device?.vibrate(0.5);
+```
+
+`client.devices` is a snapshot of all known devices. Discovery, capabilities, and commands: [Devices](/docs/guide/devices) · [Commands](/docs/guide/commands).
+
+## Scanning
+
+- `startScanning()`: ask the server to discover hardware
+- `stopScanning()`: end an active scan
+- `requestDeviceList()`: refresh and reconcile the device list
+
+Scan progress emits `scan.started` and `scan.finished`.
+
+## Stop
+
+- `stopAll()`: halt all device outputs on the server
+- `device.stop()`: stop one device (see [Device](/docs/client/device))
+
+## Events
+
+Typed events via [`ClientEventMap`](/docs/client/types#clienteventmap): `connection.*`, `device.*`, `scan.*`. Subscribe with `on()`, `once()`, or `events()`.
+
+```ts
+client.on("connection.disconnected", ({ data: { reason } }) => {
+  console.log(`Disconnected: ${reason}`);
+});
+```
+
+Event patterns and cleanup: [Events](/docs/guide/events).
+
+## Lifecycle
+
+`disconnect(reason?)` stops devices, sends a protocol disconnect, and closes the transport. Call `dispose()` when finished to clear listeners and internal state.
+
+<Callout type="info">
+  Output values are normalized **0–1** floats; the library maps them to each feature's server-reported device range. Check `device.canOutput()` before sending commands.
+</Callout>
+
+[ButtplugClient API](/docs/client/buttplug-client) · [Device](/docs/client/device) · [WasmTransport](/docs/client/wasm-transport) · [Types](/docs/client/types) · [Errors](/docs/client/errors) · [Constants](/docs/client/constants)

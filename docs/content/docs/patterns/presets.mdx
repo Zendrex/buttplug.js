@@ -1,6 +1,6 @@
 ---
 title: Presets
-description: 7 built-in patterns ready to use.
+description: Built-in pattern presets
 ---
 
 ```ts
@@ -53,4 +53,4 @@ for (const preset of engine.listPresets()) {
 }
 ```
 
-This is useful for building dynamic UIs where available presets are rendered from engine data rather than hardcoded. The returned `PresetInfo` objects include `name`, `description`, `compatibleOutputTypes`, and `defaultLoop` fields. See the [`PatternEngine` reference](/docs/reference/pattern-engine) for type details.
+Returns `PresetInfo` (`name`, `description`, `compatibleOutputTypes`, `defaultLoop`). [`PatternEngine` reference](/docs/patterns/pattern-engine).

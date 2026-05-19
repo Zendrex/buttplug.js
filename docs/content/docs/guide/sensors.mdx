@@ -1,83 +1,95 @@
 ---
 title: Sensors
-description: Read battery levels, RSSI, pressure, buttons, and position sensors
+description: Read and subscribe to device inputs
 ---
 
-```ts
-const battery = await device.readSensor("Battery");
-console.log(`Battery: ${battery}%`);
-```
-
-Sensors provide input data from a [`Device`](/docs/reference/device). The library supports two access patterns: one-shot reads for polling a value, and subscriptions for continuous updates.
-
-## Sensor Types
-
-| Type | Description | Typical Values |
-|---|---|---|
-| `Battery` | Battery charge level | Integer in device range (e.g. `0` -- `100`) |
-| `RSSI` | Bluetooth signal strength | Negative integer (dBm) |
-| `Pressure` | Pressure sensor reading | Integer in device range |
-| `Button` | Physical button state | `0` (released) or `1` (pressed) |
-| `Position` | Position sensor reading | Integer in device range |
-
-Not every device exposes every sensor type. Always check capabilities before reading.
-
-## One-Shot Reads
-
-`readSensor()` performs a single read and returns the numeric value. The optional second argument selects a specific sensor when the device has multiple of the same type.
+Sensors on [`Device`](/docs/client/device) support **one-shot reads** and **push subscriptions**. Values are integers in each sensor's server-reported range.
 
 ```ts
 if (device.canRead("Battery")) {
   const level = await device.readSensor("Battery");
-  console.log(`Battery: ${level}`);
+  console.log(`Battery: ${level}%`);
 }
+```
 
-// Read the second pressure sensor (index 1)
+## Sensor types
+
+| Type | Typical use | Example values |
+| --- | --- | --- |
+| `Battery` | Charge level | `0`–`100` |
+| `RSSI` | Bluetooth signal strength | Negative dBm |
+| `Pressure` | Pressure sensor | Device-specific range |
+| `Button` | Physical button | `0` released, `1` pressed |
+| `Position` | Position sensor | Device-specific range |
+
+Not every device exposes every type. Use `canRead` and `canSubscribe` before calling; the flags are independent per type.
+
+## One-shot reads
+
+`readSensor(type, index?)` sends an `InputCmd` with `Read`, waits for `InputReading`, and returns the numeric value.
+
+```ts
+const battery = await device.readSensor("Battery");
+
+// Second pressure sensor on the device
 const pressure = await device.readSensor("Pressure", 1);
 ```
 
-The method sends an `InputCmd` with `Read`, waits for the server's `InputReading` response, and extracts the value. It throws a `DeviceError` if the sensor does not exist or does not support reads.
+Throws `DeviceError` if the sensor is missing or reads are unsupported.
 
 ## Subscriptions
 
-`subscribeSensor()` registers a callback that fires each time the server pushes a new reading. It returns an async unsubscribe function.
+`subscribeSensor(type, callback, index?)` registers for server-pushed readings. Returns an async **unsubscribe** function.
 
 ```ts
-const unsubscribe = await device.subscribeSensor(
-  "Button",
-  (value) => {
-    console.log(`Button: ${value === 1 ? "pressed" : "released"}`);
-  }
-);
+const unsubscribe = await device.subscribeSensor("Button", (value) => {
+  console.log(value === 1 ? "pressed" : "released");
+});
 
-// Later, stop receiving updates
+// Later
 await unsubscribe();
 ```
 
-The callback receives the raw numeric value from the server. Subscriptions are registered on the server after the subscribe command succeeds -- if the server rejects the request, no local state is created.
-
-You can also unsubscribe explicitly by type and sensor index:
+You can also unsubscribe by type and index:
 
 ```ts
 await device.unsubscribe("Button", 0);
 ```
 
-Sensor subscriptions are automatically cleaned up when a device is removed or the client disconnects.
+If the server rejects the subscribe command, no local callback is registered.
 
-## Capability Checks
+## Client-wide input events
 
-Always verify that a sensor exists and supports the operation you need:
+Every pushed reading also appears on the client:
 
 ```ts
-if (device.canRead("RSSI")) {
-  const rssi = await device.readSensor("RSSI");
-}
-
-if (device.canSubscribe("Pressure")) {
-  await device.subscribeSensor("Pressure", (v) => { /* ... */ });
-}
+client.on("input.reading", ({ data: { reading } }) => {
+  console.log(`Device ${reading.DeviceIndex}`, reading.Reading);
+});
 ```
 
-`canRead()` checks for at least one sensor of the given type that supports one-shot reads. `canSubscribe()` checks for subscription support. A device may support reading a sensor type without supporting subscriptions, or vice versa.
+Use device-level subscriptions when you only care about one device; use `input.reading` when one handler should process all hardware.
 
-For the full sensor API, see the [`Device`](/docs/reference/device) reference.
+## Capability matrix
+
+```ts
+device.canRead("RSSI");       // one-shot read supported
+device.canSubscribe("Pressure"); // streaming supported
+```
+
+A sensor can support read only, subscribe only, or both. Check the flags your UI needs.
+
+## Cleanup
+
+Subscriptions are cleared when:
+
+- You call `unsubscribe` or the function returned from `subscribeSensor`
+- The device is removed (`device.removed`)
+- The client disconnects
+
+After disconnect, create a new subscription when the device reappears on `device.added`.
+
+## Next steps
+
+- [Events](/docs/guide/events): full event list including `input.reading`
+- [Device reference](/docs/client/device): sensor method signatures

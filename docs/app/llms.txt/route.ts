@@ -5,14 +5,7 @@ export const revalidate = false;
 export function GET(): Response {
 	const pages = source.getPages();
 
-	const lines = [
-		"# buttplug.js",
-		"",
-		"> TypeScript client for the Buttplug Intimacy Protocol v4",
-		"",
-		"## Pages",
-		"",
-	];
+	const lines = ["# buttplug.js", "", "> TypeScript client for the Buttplug message protocol v4", "", "## Pages", ""];
 
 	for (const page of pages) {
 		const title = page.data.title;

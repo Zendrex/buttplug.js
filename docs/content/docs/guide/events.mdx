@@ -1,87 +1,118 @@
 ---
 title: Events
-description: Listen for connection, device, and error events
+description: React to connection, device, scan, and sensor activity
 ---
 
-```ts
-client.on("deviceAdded", ({ data: { device } }) => {
-  console.log(`Connected: ${device.name}`);
-});
-```
-
-[`ButtplugClient`](/docs/reference/buttplug-client) extends [Emittery](https://github.com/sindresorhus/emittery) and emits typed events defined in `ClientEventMap`. Every `on()` call returns an unsubscribe function for cleanup.
-
-With Emittery v2, listener callbacks receive an object with `name` (the event name) and `data` (the event payload). Use `{ data: { ... } }` to destructure the payload fields you need.
-
-## Event Reference
-
-### Connection Events
-
-| Event | `data` | Description |
-|---|---|---|
-| `connected` | -- | WebSocket opened and handshake completed |
-| `disconnected` | `{ reason?: string }` | Connection closed (includes optional reason) |
-| `reconnecting` | `{ attempt: number }` | Reconnection attempt started (requires `autoReconnect`) |
-| `reconnected` | -- | Re-handshake completed after reconnection |
-
-### Device Events
-
-| Event | `data` | Description |
-|---|---|---|
-| `deviceAdded` | `{ device: Device }` | New device discovered during scan |
-| `deviceRemoved` | `{ device: Device }` | Device disconnected or removed |
-| `deviceUpdated` | `{ device: Device, previousDevice: Device }` | Server updated device metadata |
-| `deviceList` | `{ devices: Device[] }` | Full device list after reconciliation |
-| `scanningFinished` | -- | Server completed device scanning |
-
-### Other Events
-
-| Event | `data` | Description |
-|---|---|---|
-| `error` | `{ error: Error }` | Transport or protocol error |
-| `inputReading` | `{ reading: InputReading }` | Server pushed a sensor reading |
-
-## Listening for Events
-
-The `on()` method registers a listener and returns an unsubscribe function. Listeners receive `{ name, data }` where `data` contains the event-specific payload. TypeScript knows the exact shape for each event name.
+[`ButtplugClient`](/docs/client/buttplug-client) extends [Emittery](https://github.com/sindresorhus/emittery) with a typed [`ClientEventMap`](/docs/client/types#clienteventmap). Event names use dot namespaces (`device.added`, `connection.disconnected`, …).
 
 ```ts
-const unsub = client.on("disconnected", ({ data: { reason } }) => {
-  console.log(`Disconnected: ${reason ?? "unknown"}`);
-});
-```
-
-For one-time events, Emittery provides `once()` which returns a promise:
-
-```ts
-await client.once("connected");
-console.log("Connection established");
-```
-
-## Device Lifecycle
-
-A typical device lifecycle produces this event sequence:
-
-1. `connected` -- client connects to the server
-2. `deviceAdded` -- each device triggers its own event during scanning
-3. `deviceList` -- fires after a reconciliation pass with all current devices
-4. `scanningFinished` -- the server completes its scan
-5. `deviceRemoved` -- fires when a device physically disconnects
-6. `disconnected` -- fires when the client disconnects (also triggers `deviceRemoved` for each remaining device)
-
-On reconnection, all devices are cleared and `deviceRemoved` fires for each one. After the re-handshake, the client requests the device list and fresh `deviceAdded` events fire for devices still present.
-
-## Cleanup
-
-Always remove listeners you no longer need. The unsubscribe function returned by `on()` is the simplest approach:
-
-```ts
-const unsub = client.on("error", ({ data: { error } }) => {
-  console.error(error.message);
+const unsub = client.on("device.added", ({ data: { device } }) => {
+  console.log(device.name);
 });
 
-// When done
 unsub();
 ```
 
-Calling `client.dispose()` clears all listeners and internal state at once. Use this when tearing down the client entirely.
+Emittery v2 passes `{ name, data }` to listeners. Destructure `data` for the payload.
+
+## Registering listeners
+
+```ts
+// Every occurrence
+client.on("scan.finished", () => {
+  console.log("Scan done");
+});
+
+// Once
+await client.once("connection.connected");
+```
+
+Register handlers **before** `connect()` if you need to observe the full session from the first device onward.
+
+## Connection events
+
+| Event | Payload | When |
+| --- | --- | --- |
+| `connection.connecting` | none | `connect()` started |
+| `connection.connected` | none | Handshake complete |
+| `connection.disconnected` | `{ reason?: string }` | Transport closed |
+| `connection.reconnecting` | `{ attempt: number }` | WebSocket reconnect attempt |
+| `connection.reconnected` | none | Session restored after reconnect |
+| `connection.error` | `{ error: Error }` | Transport or non-device protocol error |
+
+[Connecting](/docs/guide/connecting) covers reconnect and ping behavior.
+
+## Device events
+
+| Event | Payload | When |
+| --- | --- | --- |
+| `device.added` | `{ device }` | Hardware discovered |
+| `device.removed` | `{ device }` | Hardware gone or list cleared |
+| `device.updated` | `{ device, previousDevice }` | Metadata or features changed |
+| `device.list` | `{ devices }` | After `requestDeviceList()` reconciliation |
+| `device.error` | `{ error: ProtocolError }` | Server push with `ErrorCode.DEVICE` |
+
+<Callout type="info">
+  Command failures (`device.vibrate()` rejecting) do **not** emit `device.error`. They reject the promise. `device.error` is for asynchronous server-side device errors.
+</Callout>
+
+## Scan events
+
+| Event | When |
+| --- | --- |
+| `scan.started` | `startScanning()` accepted |
+| `scan.finished` | Server finished scanning |
+
+With [`WasmTransport`](/docs/guide/wasm#scanning-behavior), `scan.finished` fires when the browser's Bluetooth picker closes, usually **before** the matching `device.added`. Don't gate "scanning…" UI on these two events alone.
+
+## Input events
+
+| Event | Payload | When |
+| --- | --- | --- |
+| `input.reading` | `{ reading }` | Server pushed a sensor value |
+
+See [Sensors](/docs/guide/sensors) for `subscribeSensor` vs this global event.
+
+## Typical session timeline
+
+```
+connection.connecting
+connection.connected
+scan.started
+device.added          (× N devices)
+device.list           (after reconciliation, if requested)
+scan.finished
+… user commands …
+device.removed        (hardware unplugged)
+connection.disconnected
+```
+
+### After reconnect (`autoReconnect`)
+
+1. `connection.disconnected`
+2. `device.removed` for each cached device
+3. `connection.reconnecting` (per attempt)
+4. `connection.reconnected`
+5. Fresh `device.added` / `device.list` for hardware still connected
+
+Re-apply any local state (selected device, running patterns) in `connection.reconnected`.
+
+## Cleanup
+
+```ts
+client.dispose();
+```
+
+Removes all listeners and tears down internal subscriptions. Prefer unsubscribing individual handlers when the client stays alive:
+
+```ts
+const off = client.on("connection.error", ({ data: { error } }) => {
+  console.error(error);
+});
+off();
+```
+
+## Next steps
+
+- [Error Handling](/docs/guide/error-handling): narrow errors from rejected promises and `connection.error`
+- [ButtplugClient reference](/docs/client/buttplug-client): methods that emit each event

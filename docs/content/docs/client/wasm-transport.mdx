@@ -3,7 +3,7 @@ title: WasmTransport
 description: In-process Buttplug server via buttplug-wasm-blob and Web Bluetooth.
 ---
 
-`WasmTransport` implements the [`Transport`](/docs/reference/types#transport) interface by embedding the Buttplug server as WebAssembly inside the page. Hardware discovery uses the browser's Web Bluetooth API instead of Intiface Central.
+`WasmTransport` implements the [`Transport`](/docs/client/types#transport) interface by embedding the Buttplug server as WebAssembly inside the page. Hardware discovery uses the browser's Web Bluetooth API instead of Intiface Central.
 
 ```ts
 import { ButtplugClient } from "@zendrex/buttplug.js";
@@ -13,7 +13,7 @@ const client = new ButtplugClient(new WasmTransport());
 await client.connect();
 ```
 
-`buttplug-wasm-blob` is an optional peer dependency — install it alongside `@zendrex/buttplug.js`. See the [WASM Transport](/docs/guide/wasm) guide for browser requirements, bundler setup, and when to choose WASM over WebSocket.
+Optional peer `buttplug-wasm-blob`. [WASM Transport](/docs/guide/wasm): install, browser requirements, bundler setup, limitations.
 
 ## Constructor
 
@@ -74,6 +74,6 @@ Current transport state: `"disconnected"`, `"connecting"`, or `"connected"`.
 
 ## Related
 
-- [WASM Transport guide](/docs/guide/wasm) — install, bundler config, limitations
-- [ButtplugClient](/docs/reference/buttplug-client) — client API used with any transport
-- [Types: Transport](/docs/reference/types#transport) — transport interface for custom implementations
+- [WASM Transport guide](/docs/guide/wasm)
+- [ButtplugClient](/docs/client/buttplug-client)
+- [Types: Transport](/docs/client/types#transport)
