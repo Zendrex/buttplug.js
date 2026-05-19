@@ -23,10 +23,10 @@ export class PatternEngine {
 		this.client = client;
 		this.defaultTimeout = options?.defaultTimeout ?? PatternEngine.DEFAULT_TIMEOUT_MS;
 
-		this.unsubDisconnect = client.on("disconnected", () => {
+		this.unsubDisconnect = client.on("connection.disconnected", () => {
 			this.stopMatchingPatterns("disconnect");
 		});
-		this.unsubDeviceRemoved = client.on("deviceRemoved", ({ data: { device } }) => {
+		this.unsubDeviceRemoved = client.on("device.removed", ({ data: { device } }) => {
 			this.stopMatchingPatterns("deviceRemoved", device.index);
 		});
 	}

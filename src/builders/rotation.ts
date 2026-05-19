@@ -1,4 +1,4 @@
-import { validateRange } from "../lib/range";
+import { mapToRange } from "../lib/range";
 import { buildBatchMessages } from "./shared";
 import type { ClientMessage, OutputCommand, OutputFeature, OutputType, RotationValue } from "../protocol/schema";
 import type { DeviceMessageSender } from "../protocol/types";
@@ -14,11 +14,11 @@ export interface RotateMessageOptions {
 
 export function buildRotateMessage(options: RotateMessageOptions): ClientMessage {
 	const { client, clockwise, deviceIndex, feature, rotationType, speed } = options;
-	const validatedValue = validateRange(speed, feature.range);
+	const mappedValue = mapToRange(speed, feature.range);
 	const command: OutputCommand =
 		rotationType === "RotateWithDirection"
-			? { RotateWithDirection: { Value: validatedValue, Clockwise: clockwise } }
-			: { Rotate: { Value: validatedValue } };
+			? { RotateWithDirection: { Value: mappedValue, Clockwise: clockwise } }
+			: { Rotate: { Value: mappedValue } };
 	return {
 		OutputCmd: {
 			Id: client.nextId(),

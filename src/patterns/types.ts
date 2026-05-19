@@ -15,12 +15,12 @@ export type StopReason = "manual" | "complete" | "timeout" | "error" | "disconne
 export interface PatternEngineClient {
 	getDevice(index: number): PatternDevice | undefined;
 	on(
-		event: "disconnected",
-		handler: (event: { name: "disconnected"; data: { reason?: string } }) => void
+		event: "connection.disconnected",
+		handler: (event: { name: "connection.disconnected"; data: { reason?: string } }) => void
 	): () => void;
 	on(
-		event: "deviceRemoved",
-		handler: (event: { name: "deviceRemoved"; data: { device: PatternDevice } }) => void
+		event: "device.removed",
+		handler: (event: { name: "device.removed"; data: { device: PatternDevice } }) => void
 	): () => void;
 }
 

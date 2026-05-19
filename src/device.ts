@@ -51,30 +51,44 @@ export class Device {
 		this._features = parseFeatures(options.raw, this.logger);
 	}
 
+	/**
+	 * Vibrate all Vibrate-capable actuators at a normalized 0-1 intensity, or
+	 * per-feature using a `FeatureValue[]` (each `value` 0-1). The library maps
+	 * 0-1 to each feature's device range.
+	 */
 	async vibrate(intensity: number | FeatureValue[]): Promise<void> {
 		await this.sendScalarOutput({ type: "Vibrate", errorLabel: "vibration", values: intensity });
 	}
 
+	/** Oscillate at a normalized 0-1 speed. See {@link Device.vibrate}. */
 	async oscillate(speed: number | FeatureValue[]): Promise<void> {
 		await this.sendScalarOutput({ type: "Oscillate", errorLabel: "oscillation", values: speed });
 	}
 
+	/** Constrict at a normalized 0-1 level. See {@link Device.vibrate}. */
 	async constrict(value: number | FeatureValue[]): Promise<void> {
 		await this.sendScalarOutput({ type: "Constrict", errorLabel: "constriction", values: value });
 	}
 
+	/** Spray at a normalized 0-1 level. See {@link Device.vibrate}. */
 	async spray(value: number | FeatureValue[]): Promise<void> {
 		await this.sendScalarOutput({ type: "Spray", errorLabel: "spraying", values: value });
 	}
 
+	/** Set temperature to a normalized 0-1 level. See {@link Device.vibrate}. */
 	async temperature(value: number | FeatureValue[]): Promise<void> {
 		await this.sendScalarOutput({ type: "Temperature", errorLabel: "temperature control", values: value });
 	}
 
+	/** Set LED brightness to a normalized 0-1 level. See {@link Device.vibrate}. */
 	async led(value: number | FeatureValue[]): Promise<void> {
 		await this.sendScalarOutput({ type: "Led", errorLabel: "LED control", values: value });
 	}
 
+	/**
+	 * Rotate at a normalized 0-1 speed (clockwise by default), or per-feature
+	 * using a `RotationValue[]` (each `speed` 0-1).
+	 */
 	async rotate(values: RotationValue[]): Promise<void>;
 	async rotate(speed: number, options?: { clockwise?: boolean }): Promise<void>;
 	async rotate(speed: number | RotationValue[], options?: { clockwise?: boolean }): Promise<void> {
@@ -96,6 +110,10 @@ export class Device {
 		await this.sendMessages(messages);
 	}
 
+	/**
+	 * Move to a normalized 0-1 position over `duration` milliseconds, or
+	 * per-axis using a `PositionValue[]` (each `position` 0-1, `duration` ms).
+	 */
 	async position(values: PositionValue[]): Promise<void>;
 	async position(position: number, options: { duration: number }): Promise<void>;
 	async position(position: number | PositionValue[], options?: { duration?: number }): Promise<void> {
@@ -155,6 +173,12 @@ export class Device {
 		});
 	}
 
+	/**
+	 * Raw protocol escape hatch. Sends an `OutputCmd` with the exact command
+	 * payload as defined by the Buttplug protocol — values are in the feature's
+	 * device range (integers), NOT normalized 0-1. Prefer the typed methods
+	 * (`vibrate`, `rotate`, `position`, …) for normal use.
+	 */
 	async output(options: DeviceOutputOptions): Promise<void> {
 		const { featureIndex, command } = options;
 		const commandType = Object.keys(command)[0] as OutputType;

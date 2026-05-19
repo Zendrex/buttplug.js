@@ -1,5 +1,5 @@
 import { DeviceError } from "../lib/errors";
-import { validateRange } from "../lib/range";
+import { mapToRange, validateRange } from "../lib/range";
 import { buildBatchMessages } from "./shared";
 import type { ClientMessage, OutputCommand, OutputFeature, OutputType, PositionValue } from "../protocol/schema";
 import type { DeviceMessageSender } from "../protocol/types";
@@ -23,12 +23,12 @@ export function buildPositionMessage(options: PositionMessageOptions): ClientMes
 		);
 	}
 
-	const validatedValue = validateRange(position, feature.range);
+	const mappedValue = mapToRange(position, feature.range);
 	const validatedDuration = feature.durationRange ? validateRange(duration, feature.durationRange) : duration;
 	const command: OutputCommand =
 		positionType === "HwPositionWithDuration"
-			? { HwPositionWithDuration: { Position: validatedValue, Duration: validatedDuration } }
-			: { Position: { Value: validatedValue } };
+			? { HwPositionWithDuration: { Position: mappedValue, Duration: validatedDuration } }
+			: { Position: { Value: mappedValue } };
 	const id = client.nextId();
 	return {
 		OutputCmd: {

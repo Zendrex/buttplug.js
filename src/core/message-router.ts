@@ -121,9 +121,15 @@ export class MessageRouter {
 			this.logger.error(`Failed to parse message: ${formatError(err)}`);
 			return;
 		}
+		const systemEvents: ServerMessage[] = [];
 		for (const message of messages) {
-			this.processMessage(message);
+			if (extractId(message) === SYSTEM_MESSAGE_ID) {
+				systemEvents.push(message);
+				continue;
+			}
+			this.processRequestMessage(message);
 		}
+		this.routeSystemEvents(systemEvents);
 	}
 
 	cancelPending(id: number, error: Error): void {
@@ -156,13 +162,20 @@ export class MessageRouter {
 		return this.pending.size;
 	}
 
-	private processMessage(message: ServerMessage): void {
-		const id = extractId(message);
-		if (id === SYSTEM_MESSAGE_ID) {
-			this.routeEvent(message);
+	private routeSystemEvents(messages: ServerMessage[]): void {
+		if (messages.length === 0) {
 			return;
 		}
+		const deviceLists = messages.filter(isDeviceList);
+		const scanningFinished = messages.filter(isScanningFinished);
+		const rest = messages.filter((message) => !(isDeviceList(message) || isScanningFinished(message)));
+		for (const message of [...deviceLists, ...rest, ...scanningFinished]) {
+			this.routeEvent(message);
+		}
+	}
 
+	private processRequestMessage(message: ServerMessage): void {
+		const id = extractId(message);
 		const pending = this.pending.get(id);
 		if (!pending) {
 			this.routeEvent(message);

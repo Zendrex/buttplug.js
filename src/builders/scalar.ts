@@ -1,4 +1,4 @@
-import { validateRange } from "../lib/range";
+import { mapToRange } from "../lib/range";
 import { buildBatchMessages } from "./shared";
 import type { ClientMessage, FeatureValue, OutputCommand, OutputFeature, OutputType } from "../protocol/schema";
 import type { DeviceMessageSender } from "../protocol/types";
@@ -13,13 +13,13 @@ export interface ScalarOutputMessageOptions {
 
 export function buildScalarOutputMessage(options: ScalarOutputMessageOptions): ClientMessage {
 	const { client, deviceIndex, feature, type, value } = options;
-	const validatedValue = validateRange(value, feature.range);
+	const mappedValue = mapToRange(value, feature.range);
 	return {
 		OutputCmd: {
 			Id: client.nextId(),
 			DeviceIndex: deviceIndex,
 			FeatureIndex: feature.index,
-			Command: { [type]: { Value: validatedValue } } as OutputCommand,
+			Command: { [type]: { Value: mappedValue } } as OutputCommand,
 		},
 	};
 }

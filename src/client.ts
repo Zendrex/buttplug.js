@@ -36,17 +36,20 @@ import type { DeviceMessageSender, SensorCallback } from "./protocol/types";
 import type { Transport } from "./transport/types";
 
 export interface ClientEventMap {
-	connected: undefined;
-	deviceAdded: { device: Device };
-	deviceList: { devices: Device[] };
-	deviceRemoved: { device: Device };
-	deviceUpdated: { device: Device; previousDevice: Device };
-	disconnected: { reason?: string };
-	error: { error: Error };
-	inputReading: { reading: InputReading };
-	reconnected: undefined;
-	reconnecting: { attempt: number };
-	scanningFinished: undefined;
+	"connection.connected": undefined;
+	"connection.connecting": undefined;
+	"connection.disconnected": { reason?: string };
+	"connection.error": { error: Error };
+	"connection.reconnected": undefined;
+	"connection.reconnecting": { attempt: number };
+	"device.added": { device: Device };
+	"device.error": { error: ProtocolError };
+	"device.list": { devices: Device[] };
+	"device.removed": { device: Device };
+	"device.updated": { device: Device; previousDevice: Device };
+	"input.reading": { reading: InputReading };
+	"scan.finished": undefined;
+	"scan.started": undefined;
 }
 
 export interface ButtplugClientOptions {
@@ -105,7 +108,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 			cancelPing: (error: Error) => this.messageRouter.cancelAll(error),
 			logger: this.baseLogger,
 			autoPing: options.autoPing ?? true,
-			onError: (error) => this.emit("error", { error }),
+			onError: (error) => this.emit("connection.error", { error }),
 			onDisconnect: (reason) => this.disconnect(reason),
 			isConnected: () => this.connected,
 		});
@@ -120,12 +123,12 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 				logger: this.baseLogger,
 				onReconnecting: (attempt) => {
 					this.pingManager.stop();
-					this.emit("reconnecting", { attempt });
+					this.emit("connection.reconnecting", { attempt });
 				},
 				onReconnected: () => this.handleReconnected(),
 				onFailed: (reason) => {
 					this.logger.error(`Reconnection failed: ${reason}`);
-					this.emit("error", { error: new ConnectionError(reason) });
+					this.emit("connection.error", { error: new ConnectionError(reason) });
 				},
 			});
 		} else {
@@ -161,7 +164,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 			if (this.reconnectHandler?.active) {
 				this.reconnectHandler.cancel();
 				this.pingManager.stop();
-				this.emit("disconnected", { reason: disconnectReason });
+				this.emit("connection.disconnected", { reason: disconnectReason });
 				emitted = true;
 			}
 
@@ -193,7 +196,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 			await this.transport.disconnect();
 
 			if (!emitted) {
-				this.emit("disconnected", { reason: disconnectReason });
+				this.emit("connection.disconnected", { reason: disconnectReason });
 			}
 		} finally {
 			this.disconnecting = false;
@@ -212,6 +215,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 		this.requireConnection("start scanning");
 		await this.messageRouter.send(createStartScanning(this.messageRouter.nextId()));
 		this._scanning = true;
+		this.emit("scan.started", undefined);
 	}
 
 	async stopScanning(): Promise<void> {
@@ -289,13 +293,25 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 		}
 	}
 
+	private async finishScanning(): Promise<void> {
+		try {
+			if (this.connected) {
+				await this.requestDeviceList();
+			}
+		} catch (error) {
+			this.logger.warn(`Device list refresh after scan failed: ${formatError(error)}`);
+		}
+		this._scanning = false;
+		this.emit("scan.finished", undefined);
+	}
+
 	private deviceReconcileCallbacks() {
 		return {
-			onAdded: (device: Device) => this.emit("deviceAdded", { device }),
-			onRemoved: (device: Device) => this.emit("deviceRemoved", { device }),
+			onAdded: (device: Device) => this.emit("device.added", { device }),
+			onRemoved: (device: Device) => this.emit("device.removed", { device }),
 			onUpdated: (device: Device, previousDevice: Device) =>
-				this.emit("deviceUpdated", { device, previousDevice }),
-			onList: (devices: Device[]) => this.emit("deviceList", { devices }),
+				this.emit("device.updated", { device, previousDevice }),
+			onList: (devices: Device[]) => this.emit("device.list", { devices }),
 		};
 	}
 
@@ -313,15 +329,19 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 					callbacks: this.deviceReconcileCallbacks(),
 				}),
 			onScanningFinished: () => {
-				this._scanning = false;
-				this.emit("scanningFinished", undefined);
+				this.finishScanning().catch(() => undefined);
 			},
 			onInputReading: (reading: InputReading) => {
-				this.sensorHandler.handleReading(reading, (r) => this.emit("inputReading", { reading: r }));
+				this.sensorHandler.handleReading(reading, (r) => this.emit("input.reading", { reading: r }));
 			},
 			onError: (error: ErrorMsg) => {
 				this.logger.warn(`System error from server: [${error.ErrorCode}] ${error.ErrorMessage}`);
-				this.emit("error", { error: new ProtocolError(error.ErrorCode, error.ErrorMessage) });
+				const protocolError = new ProtocolError(error.ErrorCode, error.ErrorMessage);
+				if (error.ErrorCode === ErrorCode.DEVICE) {
+					this.emit("device.error", { error: protocolError });
+				} else {
+					this.emit("connection.error", { error: protocolError });
+				}
 				if (error.ErrorCode === ErrorCode.PING) {
 					this.logger.error("Server ping timeout — server will halt devices and disconnect");
 					this.disconnect("Server ping timeout");
@@ -338,22 +358,22 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 		this.transport.on("close", (_code: number, reason: string) => {
 			this.pingManager.stop();
 			if (!this.disconnecting) {
-				this.emit("disconnected", { reason });
+				this.emit("connection.disconnected", { reason });
 			}
 		});
 
 		this.transport.on("error", (error: Error) => {
-			this.emit("error", { error });
+			this.emit("connection.error", { error });
 		});
 	}
 
 	private bindEmitterHandlers(): void {
-		this.on("disconnected", () => {
+		this.on("connection.disconnected", () => {
 			this._scanning = false;
 			this._serverInfo = null;
 			this.sensorHandler.clear();
 			for (const device of this._devices.values()) {
-				this.emit("deviceRemoved", { device });
+				this.emit("device.removed", { device });
 			}
 			this._devices.clear();
 
@@ -361,7 +381,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 				this.reconnectHandler.start();
 			}
 		});
-		this.on("deviceRemoved", ({ data: { device } }) => {
+		this.on("device.removed", ({ data: { device } }) => {
 			this.sensorHandler.unsubscribeDevice({
 				deviceIndex: device.index,
 				router: this.messageRouter,
@@ -372,6 +392,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 
 	private async performConnect(): Promise<void> {
 		this.logger.info("Connecting transport");
+		this.emit("connection.connecting", undefined);
 		await this.transport.connect();
 		this.isHandshaking = true;
 		try {
@@ -385,7 +406,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 			this.isHandshaking = false;
 		}
 		this.logger.info(`Connected to server: ${this._serverInfo?.ServerName ?? "unknown"}`);
-		this.emit("connected", undefined);
+		this.emit("connection.connected", undefined);
 	}
 
 	private async handleReconnected(): Promise<void> {
@@ -402,11 +423,11 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 				pingManager: this.pingManager,
 				logger: this.logger,
 			});
-			this.emit("reconnected", undefined);
+			this.emit("connection.reconnected", undefined);
 			await this.requestDeviceList();
 		} catch (err) {
 			this.logger.error(`Handshake failed after reconnect: ${formatError(err)}`);
-			this.emit("error", { error: err instanceof Error ? err : new Error(String(err)) });
+			this.emit("connection.error", { error: err instanceof Error ? err : new Error(String(err)) });
 			await this.disconnect("Handshake failed after reconnect");
 		}
 	}
