@@ -13,12 +13,12 @@ const transport = new WasmTransport({
 });
 const client = new ButtplugClient(transport, { autoPing: true, verbose: true });
 
-client.on("connected", () => log("connected to in-process WASM server"));
-client.on("disconnected", ({ data: { reason } }) => log(`disconnected${reason ? `: ${reason}` : ""}`));
-client.on("deviceAdded", ({ data: { device } }) => log(`device added: ${device.displayName ?? device.name}`));
-client.on("deviceRemoved", ({ data: { device } }) => log(`device removed: ${device.name}`));
-client.on("error", ({ data: { error } }) => log(`error: ${error.message}`));
-client.on("scanningFinished", () => log("scanning finished"));
+client.on("connection.connected", () => log("connected to in-process WASM server"));
+client.on("connection.disconnected", ({ data: { reason } }) => log(`disconnected${reason ? `: ${reason}` : ""}`));
+client.on("device.added", ({ data: { device } }) => log(`device added: ${device.displayName ?? device.name}`));
+client.on("device.removed", ({ data: { device } }) => log(`device removed: ${device.name}`));
+client.on("connection.error", ({ data: { error } }) => log(`error: ${error.message}`));
+client.on("scan.finished", () => log("scanning finished"));
 
 document.getElementById("connect")?.addEventListener("click", async () => {
 	try {
