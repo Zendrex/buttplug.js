@@ -43,6 +43,21 @@
 					}
 				}
 			}
+		},
+		{
+			"includes": [
+				"src/index.ts",
+				"src/patterns/index.ts",
+				"src/wasm/index.ts",
+				"src/protocol/schema/index.ts"
+			],
+			"linter": {
+				"rules": {
+					"performance": {
+						"noBarrelFile": "off"
+					}
+				}
+			}
 		}
 	],
 	"linter": {

@@ -6,14 +6,18 @@ const log = (message: string) => {
 	logEl.textContent += `${message}\n`;
 };
 
-const transport = new WasmTransport({ logger: consoleLogger });
+const transport = new WasmTransport({
+	logger: consoleLogger,
+	enableWasmLogging: true,
+	wasmLogLevel: "debug",
+});
 const client = new ButtplugClient(transport, { autoPing: true, verbose: true });
 
 client.on("connected", () => log("connected to in-process WASM server"));
-client.on("disconnected", ({ reason }) => log(`disconnected${reason ? `: ${reason}` : ""}`));
-client.on("deviceAdded", ({ device }) => log(`device added: ${device.displayName ?? device.name}`));
-client.on("deviceRemoved", ({ device }) => log(`device removed: ${device.name}`));
-client.on("error", ({ error }) => log(`error: ${error.message}`));
+client.on("disconnected", ({ data: { reason } }) => log(`disconnected${reason ? `: ${reason}` : ""}`));
+client.on("deviceAdded", ({ data: { device } }) => log(`device added: ${device.displayName ?? device.name}`));
+client.on("deviceRemoved", ({ data: { device } }) => log(`device removed: ${device.name}`));
+client.on("error", ({ data: { error } }) => log(`error: ${error.message}`));
 client.on("scanningFinished", () => log("scanning finished"));
 
 document.getElementById("connect")?.addEventListener("click", async () => {

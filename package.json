@@ -56,7 +56,7 @@
 		"build": "tsdown",
 		"check": "bunx ultracite check",
 		"fix": "bunx ultracite fix",
-		"check-types": "tsc -b",
+		"check-types": "tsc -b tsconfig.json example/wasm/tsconfig.json",
 		"docs": "cd docs && bun run dev",
 		"docs:build": "cd docs && bun run build",
 		"example:wasm": "vite serve example/wasm",
