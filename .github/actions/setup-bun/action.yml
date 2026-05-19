@@ -17,4 +17,7 @@ runs:
 
         - name: Install dependencies
           shell: bash
-          run: bun install --frozen-lockfile
+          # NOTE: --frozen-lockfile disabled due to Bun bug oven-sh/bun#19088
+          # (workspace + file:.. dep triggers false-positive drift). Re-enable
+          # once oven-sh/bun#29052 lands.
+          run: bun install
