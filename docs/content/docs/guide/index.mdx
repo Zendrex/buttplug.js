@@ -28,17 +28,24 @@ await client.startScanning();
 - **Auto-reconnect** -- Configurable reconnection with exponential backoff, attempt limits, and lifecycle events
 - **Ping Keep-alive** -- Automatic ping management with configurable intervals to maintain server connections
 - **Runtime Agnostic** -- Works in any JavaScript runtime with WebSocket support
+- **In-browser WASM** -- Optional `WasmTransport` embeds the Buttplug server in the page via Web Bluetooth (no Intiface Central)
 
 ## Prerequisites
 
-**[Intiface Central](https://intiface.com/central/)** acts as the Buttplug server. Install and start it before connecting from your application. The default WebSocket address is `ws://localhost:12345`.
+Choose how your app reaches hardware:
 
-Any JavaScript runtime with WebSocket support works: Node.js 18+, Bun, Deno, or modern browsers. The library has zero native dependencies.
+| Approach | Best for | Requirements |
+| --- | --- | --- |
+| **WebSocket (default)** | Desktop apps, servers, most browsers | [Intiface Central](https://intiface.com/central/) running locally or on the network (`ws://localhost:12345`) |
+| **WASM transport** | Browser-only apps, no desktop server | Chromium-family browser, HTTPS or `localhost`, [`buttplug-wasm-blob`](https://www.npmjs.com/package/buttplug-wasm-blob) peer dependency |
+
+For WebSocket, any JavaScript runtime with WebSocket support works: Node.js 18+, Bun, Deno, or modern browsers. The library has zero native dependencies beyond what your transport needs.
 
 ## Next Steps
 
 <Cards>
   <Card title="Getting Started" description="Install, connect, and control your first device" href="/docs/guide/getting-started" />
+  <Card title="WASM Transport" description="Run the server in-browser with Web Bluetooth — no Intiface" href="/docs/guide/wasm" />
   <Card title="Devices" description="Discover devices and inspect their capabilities" href="/docs/guide/devices" />
   <Card title="Commands" description="Vibrate, rotate, position, and more" href="/docs/guide/commands" />
 </Cards>

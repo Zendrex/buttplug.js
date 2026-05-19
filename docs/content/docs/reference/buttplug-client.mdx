@@ -1,9 +1,9 @@
 ---
 title: ButtplugClient
-description: High-level client for communicating with a Buttplug server over WebSocket.
+description: High-level client for communicating with a Buttplug server over WebSocket or a custom transport.
 ---
 
-The `ButtplugClient` class manages the full connection lifecycle: WebSocket transport, protocol handshake, device discovery, ping keep-alive, sensor subscriptions, and optional automatic reconnection.
+The `ButtplugClient` class manages the full connection lifecycle: transport, protocol handshake, device discovery, ping keep-alive, sensor subscriptions, and optional automatic reconnection.
 
 ```ts
 import { ButtplugClient } from "@zendrex/buttplug.js";
@@ -12,15 +12,18 @@ const client = new ButtplugClient("ws://localhost:12345");
 await client.connect();
 ```
 
+For in-browser Web Bluetooth without Intiface Central, pass a [`WasmTransport`](/docs/reference/wasm-transport) instead of a URL. See the [WASM Transport](/docs/guide/wasm) guide.
+
 ## Constructor
 
 ```ts
-new ButtplugClient(url: string, options?: ButtplugClientOptions)
+new ButtplugClient(target: string | Transport, options?: ButtplugClientOptions)
 ```
 
 | Parameter | Type | Description |
 | --- | --- | --- |
-| `url` | `string` | WebSocket URL of the Buttplug server |
+| `target` | `string` | WebSocket URL of the Buttplug server (wraps `WebSocketTransport` internally) |
+| `target` | [`Transport`](/docs/reference/types#transport) | Custom transport (e.g. [`WasmTransport`](/docs/reference/wasm-transport)) |
 | `options` | `ButtplugClientOptions` | Optional configuration |
 
 ### ButtplugClientOptions
@@ -35,7 +38,7 @@ new ButtplugClient(url: string, options?: ButtplugClientOptions)
 get connected(): boolean
 ```
 
-Whether the WebSocket transport is currently connected.
+Whether the transport is currently connected.
 
 ### scanning
 
@@ -69,7 +72,7 @@ Snapshot of all currently known [Device](/docs/reference/device) instances.
 connect(): Promise<void>
 ```
 
-Opens a WebSocket connection and performs the Buttplug protocol handshake.
+Opens the transport connection and performs the Buttplug protocol handshake.
 
 If already connected, returns immediately. If a connection attempt is in progress, returns the existing promise.
 

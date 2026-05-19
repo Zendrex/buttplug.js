@@ -17,6 +17,37 @@ Event map for the [ButtplugClient](/docs/reference/buttplug-client) emitter. Eac
 
 <AutoTypeTable path="../src/client.ts" name="ClientEventMap" />
 
+## Transport Types
+
+Pluggable connection layer for [ButtplugClient](/docs/reference/buttplug-client). Pass a URL string for the built-in WebSocket transport, or inject a custom implementation.
+
+### Transport
+
+<AutoTypeTable path="../src/transport/types.ts" name="Transport" />
+
+Built-in implementations:
+
+- `WebSocketTransport` — default when you pass a URL string to `ButtplugClient` (exported from the package root)
+- [`WasmTransport`](/docs/reference/wasm-transport) — in-browser server via `@zendrex/buttplug.js/wasm`
+
+### TransportState
+
+<AutoTypeTable path="../src/transport/types.ts" name="TransportState" />
+
+### TransportEvents
+
+<AutoTypeTable path="../src/transport/types.ts" name="TransportEvents" />
+
+### TransportEventName
+
+<AutoTypeTable path="../src/transport/types.ts" name="TransportEventName" />
+
+### WebSocketTransportOptions
+
+Options for `WebSocketTransport`.
+
+<AutoTypeTable path="../src/transport/connection.ts" name="WebSocketTransportOptions" />
+
 ### DeviceOutputOptions
 
 Options for [Device.output](/docs/reference/device#output). Sends a raw `OutputCommand` to a specific feature on the device.
@@ -263,6 +294,7 @@ For raw protocol debugging in the browser, DevTools → Network → WebSocket �
 ## Related
 
 - [ButtplugClient](/docs/reference/buttplug-client) -- client API reference
+- [WasmTransport](/docs/reference/wasm-transport) -- in-browser WASM transport
 - [Device](/docs/reference/device) -- device API reference
 - [PatternEngine](/docs/reference/pattern-engine) -- pattern engine API reference
 - [Constants](/docs/reference/constants) -- exported constant values

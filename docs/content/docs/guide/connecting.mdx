@@ -1,6 +1,6 @@
 ---
 title: Connecting
-description: Configure WebSocket connections, auto-reconnect, and ping keep-alive
+description: Configure WebSocket connections, custom transports, auto-reconnect, and ping keep-alive
 ---
 
 ```ts
@@ -14,7 +14,27 @@ const client = new ButtplugClient("ws://localhost:12345", {
 await client.connect();
 ```
 
-The [`ButtplugClient`](/docs/reference/buttplug-client) constructor takes a WebSocket URL and an optional configuration object. Calling `connect()` opens the WebSocket and performs the Buttplug protocol handshake. The returned promise resolves once the handshake succeeds, or rejects with a `ConnectionError` or `HandshakeError`.
+The [`ButtplugClient`](/docs/reference/buttplug-client) constructor accepts either a WebSocket URL **or** a [`Transport`](/docs/reference/types#transport) instance, plus an optional configuration object. Calling `connect()` opens the transport and performs the Buttplug protocol handshake. The returned promise resolves once the handshake succeeds, or rejects with a `ConnectionError` or `HandshakeError`.
+
+## Transports
+
+| Transport | Constructor | Use when |
+| --- | --- | --- |
+| WebSocket (default) | `new ButtplugClient("ws://...")` | Intiface Central or any Buttplug server on the network |
+| [`WasmTransport`](/docs/guide/wasm) | `new ButtplugClient(new WasmTransport())` | Browser app with Web Bluetooth, no desktop server |
+
+For a string URL, the client creates an internal [`WebSocketTransport`](/docs/reference/types#websockettransport). For WASM or custom transports, pass the instance directly:
+
+```ts
+import { ButtplugClient, consoleLogger, WebSocketTransport } from "@zendrex/buttplug.js";
+
+const transport = new WebSocketTransport("ws://localhost:12345", {
+  logger: consoleLogger,
+});
+const client = new ButtplugClient(transport);
+```
+
+See [WASM Transport](/docs/guide/wasm) for the in-browser server path.
 
 ## Client Options
 

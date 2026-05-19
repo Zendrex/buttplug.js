@@ -89,3 +89,18 @@ The client connects over WebSocket, performs a protocol handshake, and begins sc
 Scanning runs until you call `client.stopScanning()` or the server emits `scanningFinished`. Devices persist across scans -- you only receive `deviceAdded` once per device until it disconnects.
 
 For connection options like auto-reconnect and custom timeouts, see [Connecting](/docs/guide/connecting). For the full device control API, see [Devices](/docs/guide/devices).
+
+## Browser-only (no Intiface)
+
+If you are building a web app and do not want users to install Intiface Central, use [`WasmTransport`](/docs/guide/wasm) with Web Bluetooth instead of a WebSocket URL:
+
+```ts
+import { ButtplugClient } from "@zendrex/buttplug.js";
+import { WasmTransport } from "@zendrex/buttplug.js/wasm";
+
+const client = new ButtplugClient(new WasmTransport());
+await client.connect();
+await client.startScanning();
+```
+
+Install the optional peer dependency (`buttplug-wasm-blob`) and read the [WASM Transport](/docs/guide/wasm) guide for browser requirements and bundler setup.

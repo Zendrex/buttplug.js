@@ -3,15 +3,40 @@ title: WASM Transport
 description: Run the Buttplug server in-browser via buttplug-wasm-blob — no Intiface Central required
 ---
 
-The `WasmTransport` lets you skip Intiface Central entirely by embedding the Buttplug server in the page as WebAssembly. Hardware discovery uses **Web Bluetooth**, so the page must run in a Chromium-family browser over HTTPS (or `localhost`).
+The [`WasmTransport`](/docs/reference/wasm-transport) lets you skip Intiface Central entirely by embedding the Buttplug server in the page as WebAssembly. Hardware discovery uses **Web Bluetooth**, so the page must run in a Chromium-family browser over HTTPS (or `localhost`).
+
+## When to use WASM
+
+| | WebSocket + Intiface | WASM + Web Bluetooth |
+| --- | --- | --- |
+| **Runs in** | Any runtime with WebSockets | Chromium browsers only |
+| **User installs** | Intiface Central (or another server) | Nothing extra |
+| **Device discovery** | Server-side (USB, serial, BLE relay, etc.) | Browser Bluetooth picker only |
+| **Best for** | Desktop apps, Node scripts, broad device support | Web apps, demos, mobile-friendly pages |
+
+The device API (`Device`, events, commands) is identical once connected — only how you reach the server changes.
 
 ## Install
 
 `buttplug-wasm-blob` is an optional peer dependency. Install it alongside the library:
 
-```bash
-bun add @zendrex/buttplug.js buttplug-wasm-blob
-```
+<Tabs items={["bun", "npm", "pnpm"]}>
+  <Tab value="bun">
+    ```bash
+    bun add @zendrex/buttplug.js buttplug-wasm-blob
+    ```
+  </Tab>
+  <Tab value="npm">
+    ```bash
+    npm install @zendrex/buttplug.js buttplug-wasm-blob
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @zendrex/buttplug.js buttplug-wasm-blob
+    ```
+  </Tab>
+</Tabs>
 
 ## Usage
 
@@ -33,35 +58,64 @@ client.on("deviceAdded", async ({ data: { device } }) => {
 });
 ```
 
-`connect()` lazy-loads the WASM binary, initializes the in-process server, and resolves once the handshake completes. The WASM blob is only downloaded the first time you instantiate the transport.
+`connect()` lazy-loads the WASM binary, initializes the in-process server, and resolves once the handshake completes. The WASM blob is only downloaded the first time you call `connect()`.
 
 ## Options
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `enableWasmLogging` | `boolean` | `false` | Call `activateLogging` on the WASM module after load |
-| `wasmLogLevel` | `string` | `"info"` | Level passed to `activateLogging` (`"trace"`, `"debug"`, `"info"`, `"warn"`, `"error"`) |
-| `logger` | `Logger` | `noopLogger` | Diagnostics sink for the transport itself |
+<AutoTypeTable path="../src/transport/wasm.ts" name="WasmTransportOptions" />
 
 ```ts
 const transport = new WasmTransport({
   enableWasmLogging: true,
   wasmLogLevel: "debug",
+  logger: consoleLogger,
 });
 ```
+
+See [`WasmTransport`](/docs/reference/wasm-transport) for the full API reference.
+
+## Bundler setup
+
+The base `@zendrex/buttplug.js` import does **not** pull in the WASM blob. The blob loads only when you import from `/wasm` and call `connect()`. Treat `@zendrex/buttplug.js/wasm` as a code-split boundary.
+
+With **Vite**, pre-bundle the peer dependency so dev startup stays fast:
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  optimizeDeps: {
+    include: ["buttplug-wasm-blob"],
+  },
+});
+```
+
+The repo includes a runnable example — from the project root:
+
+```bash
+bun install
+bun run example:wasm
+```
+
+Open `http://localhost:5173` in Chrome, click **Connect**, then **Scan** to pair a device through the Bluetooth prompt.
 
 ## Browser requirements
 
 <Callout type="warn">
-  Web Bluetooth is only available in Chromium-family browsers (Chrome, Edge, Opera) served from a **secure context** (HTTPS or `localhost`). Firefox and Safari will throw on `connect()`.
+  Web Bluetooth is only available in Chromium-family browsers (Chrome, Edge, Opera) served from a **secure context** (HTTPS or `localhost`). Firefox and Safari throw `ConnectionError` on `connect()`.
 </Callout>
 
-The transport validates `navigator.bluetooth` on connect and throws `ConnectionError` if unsupported.
+The transport validates `navigator.bluetooth` before loading WASM and throws `ConnectionError` if unsupported.
 
-## Auto-reconnect
+## Limitations
 
-`autoReconnect` is a no-op for in-process WASM — there is no network to lose. Leave it disabled.
+- **No auto-reconnect** — `autoReconnect` on `ButtplugClient` only applies to WebSocket transports. In-process WASM has no network to lose; leave it disabled.
+- **Bluetooth-only discovery** — devices must be pairable through the browser's Web Bluetooth picker. USB-only or server-relayed devices still need Intiface Central over WebSocket.
+- **Bundle size** — the WASM binary is large; lazy-load the `/wasm` subpath and avoid importing it on pages that do not need direct device access.
 
-## Bundle impact
+## Related
 
-The base `@zendrex/buttplug.js` import does **not** pull in the WASM blob. The blob is only loaded when you import from `/wasm` and call `connect()`. Treat the `/wasm` subpath as a code-split boundary in your bundler.
+- [Connecting](/docs/guide/connecting) — transport injection and `WebSocketTransport`
+- [ButtplugClient](/docs/reference/buttplug-client) — client options shared across transports
+- [Getting Started](/docs/guide/getting-started) — WebSocket path with Intiface Central
