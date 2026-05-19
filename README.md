@@ -4,7 +4,7 @@ Modern TypeScript client for the [Buttplug](https://buttplug.io) v4 message prot
 
 ## Features
 
-- Full Buttplug protocol v4 implementation over WebSocket
+- Full Buttplug protocol v4 implementation over WebSocket or in-browser WASM
 - 10 output types — vibration, rotation, position, oscillation, constriction, temperature, LED, spray, and more
 - 5 sensor types — battery, RSSI, pressure, button, position (one-shot reads and subscriptions)
 - Pattern engine with 7 built-in presets, custom keyframes, and easing curves
@@ -49,6 +49,25 @@ client.on("deviceAdded", async ({ data: { device } }) => {
 
 await client.startScanning();
 ```
+
+## WASM Transport (no Intiface required)
+
+Run the Buttplug server in-browser via `buttplug-wasm-blob` and Web Bluetooth — no Intiface Central required. Chromium-family browsers over HTTPS only.
+
+```bash
+bun add @zendrex/buttplug.js buttplug-wasm-blob
+```
+
+```typescript
+import { ButtplugClient } from "@zendrex/buttplug.js";
+import { WasmTransport } from "@zendrex/buttplug.js/wasm";
+
+const client = new ButtplugClient(new WasmTransport());
+await client.connect();
+await client.startScanning();
+```
+
+See the [WASM guide](./docs/content/docs/guide/wasm.mdx) for browser requirements and options.
 
 Build on **client events** (lifecycle, devices, readings) and **typed errors** (`ButtplugError` subclasses). For protocol-level issues in the browser, use **DevTools → Network → the WebSocket → Messages** to inspect frames. Optional **diagnostics:** set `verbose: true` or pass `[consoleLogger](/docs/content/docs/reference/types.mdx#logger)` (or another `[Logger](./docs/content/docs/reference/types.mdx#logger)`) on the constructor; silence is default. Explicit `logger` wins over `verbose`.
 

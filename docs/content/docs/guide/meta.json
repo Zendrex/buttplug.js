@@ -5,6 +5,7 @@
 		"index",
 		"getting-started",
 		"connecting",
+		"wasm",
 		"devices",
 		"commands",
 		"sensors",

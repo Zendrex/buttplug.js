@@ -1,0 +1,67 @@
+---
+title: WASM Transport
+description: Run the Buttplug server in-browser via buttplug-wasm-blob — no Intiface Central required
+---
+
+The `WasmTransport` lets you skip Intiface Central entirely by embedding the Buttplug server in the page as WebAssembly. Hardware discovery uses **Web Bluetooth**, so the page must run in a Chromium-family browser over HTTPS (or `localhost`).
+
+## Install
+
+`buttplug-wasm-blob` is an optional peer dependency. Install it alongside the library:
+
+```bash
+bun add @zendrex/buttplug.js buttplug-wasm-blob
+```
+
+## Usage
+
+Import `WasmTransport` from the `/wasm` subpath and pass it to `ButtplugClient` instead of a URL:
+
+```ts
+import { ButtplugClient } from "@zendrex/buttplug.js";
+import { WasmTransport } from "@zendrex/buttplug.js/wasm";
+
+const client = new ButtplugClient(new WasmTransport());
+
+await client.connect();
+await client.startScanning(); // browser prompts for a Bluetooth device
+
+client.on("deviceAdded", async ({ data: { device } }) => {
+  if (device.canOutput("Vibrate")) {
+    await device.vibrate(0.5);
+  }
+});
+```
+
+`connect()` lazy-loads the WASM binary, initializes the in-process server, and resolves once the handshake completes. The WASM blob is only downloaded the first time you instantiate the transport.
+
+## Options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `enableWasmLogging` | `boolean` | `false` | Call `activateLogging` on the WASM module after load |
+| `wasmLogLevel` | `string` | `"info"` | Level passed to `activateLogging` (`"trace"`, `"debug"`, `"info"`, `"warn"`, `"error"`) |
+| `logger` | `Logger` | `noopLogger` | Diagnostics sink for the transport itself |
+
+```ts
+const transport = new WasmTransport({
+  enableWasmLogging: true,
+  wasmLogLevel: "debug",
+});
+```
+
+## Browser requirements
+
+<Callout type="warn">
+  Web Bluetooth is only available in Chromium-family browsers (Chrome, Edge, Opera) served from a **secure context** (HTTPS or `localhost`). Firefox and Safari will throw on `connect()`.
+</Callout>
+
+The transport validates `navigator.bluetooth` on connect and throws `ConnectionError` if unsupported.
+
+## Auto-reconnect
+
+`autoReconnect` is a no-op for in-process WASM — there is no network to lose. Leave it disabled.
+
+## Bundle impact
+
+The base `@zendrex/buttplug.js` import does **not** pull in the WASM blob. The blob is only loaded when you import from `/wasm` and call `connect()`. Treat the `/wasm` subpath as a code-split boundary in your bundler.

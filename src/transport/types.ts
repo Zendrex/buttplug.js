@@ -10,7 +10,7 @@ export type TransportState = "disconnected" | "connecting" | "connected";
 export type TransportEventName = keyof TransportEvents;
 
 export interface Transport {
-	connect(url: string): Promise<void>;
+	connect(): Promise<void>;
 	disconnect(): Promise<void>;
 	off<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void;
 	on<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void;

@@ -16,6 +16,7 @@ export {
 	resolveDiagnosticsLogger,
 } from "./lib/logger";
 export { INPUT_TYPES, OUTPUT_TYPES } from "./protocol/features";
+export { WebSocketTransport } from "./transport/connection";
 export type {
 	ButtplugClientOptions,
 	ClientEventMap,
@@ -44,3 +45,10 @@ export type {
 	ServerMessage,
 } from "./protocol/schema";
 export type { SensorCallback } from "./protocol/types";
+export type { WebSocketTransportOptions } from "./transport/connection";
+export type {
+	Transport,
+	TransportEventName,
+	TransportEvents,
+	TransportState,
+} from "./transport/types";

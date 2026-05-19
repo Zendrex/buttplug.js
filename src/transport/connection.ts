@@ -13,6 +13,7 @@ const CLIENT_DISCONNECT_REASON = "Client disconnect";
 export class WebSocketTransport implements Transport {
 	private readonly listeners = new Map<TransportEventName, Set<TransportEvents[TransportEventName]>>();
 	private readonly logger: Logger;
+	private readonly url: string;
 	private connectPromise: Promise<void> | null = null;
 	private disconnectRequested = false;
 	private handleMessage: ((event: MessageEvent) => void) | null = null;
@@ -21,11 +22,13 @@ export class WebSocketTransport implements Transport {
 	private _state: TransportState = "disconnected";
 	private ws: WebSocket | null = null;
 
-	constructor(options: WebSocketTransportOptions = {}) {
+	constructor(url: string, options: WebSocketTransportOptions = {}) {
+		this.url = url;
 		this.logger = (options.logger ?? noopLogger).child("ws-transport");
 	}
 
-	connect(url: string): Promise<void> {
+	connect(): Promise<void> {
+		const url = this.url;
 		if (this._state === "connected") {
 			return Promise.resolve();
 		}

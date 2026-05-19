@@ -13,7 +13,6 @@ export interface ReconnectOptions {
 	onReconnecting?: (attempt: number) => void;
 	reconnectDelay?: number;
 	transport: Transport;
-	url: string;
 }
 
 const MAX_BACKOFF_EXPONENT = 30;
@@ -27,7 +26,6 @@ export class ReconnectHandler {
 	private readonly onReconnecting?: (attempt: number) => void;
 	private readonly reconnectDelay: number;
 	private readonly transport: Transport;
-	private readonly url: string;
 	private reconnectAttempt = 0;
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 	private reconnecting = false;
@@ -42,7 +40,6 @@ export class ReconnectHandler {
 		this.onReconnecting = options.onReconnecting;
 		this.reconnectDelay = options.reconnectDelay ?? ReconnectDefaults.DELAY;
 		this.transport = options.transport;
-		this.url = options.url;
 	}
 
 	start(): void {
@@ -118,7 +115,7 @@ export class ReconnectHandler {
 					await this.transport.disconnect();
 				}
 
-				await this.transport.connect(this.url);
+				await this.transport.connect();
 
 				if (this.cancelled) {
 					return;

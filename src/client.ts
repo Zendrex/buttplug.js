@@ -33,6 +33,7 @@ import type {
 	ServerMessage,
 } from "./protocol/schema";
 import type { DeviceMessageSender, SensorCallback } from "./protocol/types";
+import type { Transport } from "./transport/types";
 
 export interface ClientEventMap {
 	connected: undefined;
@@ -70,11 +71,10 @@ const STOP_DEVICES_TIMEOUT_MS = 2000;
 const DISCONNECT_TIMEOUT_MS = 3000;
 
 export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMessageSender {
-	private readonly url: string;
 	private readonly clientName: string;
 	private readonly baseLogger: Logger;
 	private readonly logger: Logger;
-	private readonly transport: WebSocketTransport;
+	private readonly transport: Transport;
 	private readonly messageRouter: MessageRouter;
 	private readonly pingManager: PingManager;
 	private readonly sensorHandler: SensorHandler;
@@ -86,9 +86,8 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	private isHandshaking = false;
 	private disconnecting = false;
 
-	constructor(url: string, options: ButtplugClientOptions = {}) {
+	constructor(target: string | Transport, options: ButtplugClientOptions = {}) {
 		super();
-		this.url = url;
 		this.clientName = options.clientName ?? DEFAULT_CLIENT_NAME;
 		this.baseLogger = resolveDiagnosticsLogger({
 			logger: options.logger,
@@ -96,7 +95,8 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 		});
 		this.logger = this.baseLogger.child("client");
 
-		this.transport = new WebSocketTransport({ logger: this.baseLogger });
+		this.transport =
+			typeof target === "string" ? new WebSocketTransport(target, { logger: this.baseLogger }) : target;
 		this.messageRouter = new MessageRouter(this.createRouterOptions(options));
 		this.pingManager = new PingManager({
 			sendPing: async () => {
@@ -113,7 +113,6 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 
 		if (options.autoReconnect) {
 			this.reconnectHandler = new ReconnectHandler({
-				url: this.url,
 				transport: this.transport,
 				reconnectDelay: options.reconnectDelay,
 				maxReconnectDelay: options.maxReconnectDelay,
@@ -372,8 +371,8 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 	}
 
 	private async performConnect(): Promise<void> {
-		this.logger.info(`Connecting to ${this.url}`);
-		await this.transport.connect(this.url);
+		this.logger.info("Connecting transport");
+		await this.transport.connect();
 		this.isHandshaking = true;
 		try {
 			this._serverInfo = await performHandshake({
