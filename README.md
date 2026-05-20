@@ -10,15 +10,6 @@ bun add @zendrex/buttplug.js
 
 Works with npm, pnpm, and yarn. Any runtime with WebSocket support (Node 18+, Bun, Deno, browsers). Ships ESM and CJS with `.d.ts` types.
 
-## Prerequisites
-
-| Approach | Typical use | Requirements |
-| --- | --- | --- |
-| **WebSocket (default)** | Desktop apps, servers, scripts | [Intiface Central](https://intiface.com/central/) on the same machine or network (`ws://127.0.0.1:12345` by default) |
-| **WASM transport** | Browser-only, no desktop server | Chromium, HTTPS or `localhost`, optional peer [`buttplug-wasm-blob`](https://www.npmjs.com/package/buttplug-wasm-blob) |
-
-WebSocket mode expects Intiface Central with **Start Server** enabled. Default endpoint: `ws://127.0.0.1:12345` (or `ws://localhost:12345`).
-
 ## Overview
 
 - `ButtplugClient`: transport, v4 handshake, scanning, device list, reconnect
@@ -27,6 +18,15 @@ WebSocket mode expects Intiface Central with **Start Server** enabled. Default e
 - Per-feature output ranges (typically `0`–`100`), clamped to server metadata
 - Event-driven lifecycle (`device.*`, `connection.*`, `scan.*`, `input.reading`)
 - `PatternEngine` (`@zendrex/buttplug.js/patterns`): presets and custom keyframe tracks
+
+## Prerequisites
+
+| Approach | Typical use | Requirements |
+| --- | --- | --- |
+| **WebSocket (default)** | Desktop apps, servers, scripts | [Intiface Central](https://intiface.com/central/) on the same machine or network (`ws://127.0.0.1:12345` by default) |
+| **WASM transport** | Browser-only, no desktop server | Chromium, HTTPS or `localhost`, optional peer [`buttplug-wasm-blob`](https://www.npmjs.com/package/buttplug-wasm-blob) |
+
+WebSocket mode expects Intiface Central with **Start Server** enabled. Default endpoint: `ws://127.0.0.1:12345` (or `ws://localhost:12345`).
 
 ## Quick start
 
