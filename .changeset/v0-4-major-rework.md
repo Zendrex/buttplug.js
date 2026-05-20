@@ -1,5 +1,5 @@
 ---
-"@zendrex/buttplug.js": major
+"@zendrex/buttplug.js": minor
 ---
 
 Restructured the public API and internal module layout for v0.4.

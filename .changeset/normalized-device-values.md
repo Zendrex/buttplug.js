@@ -1,5 +1,5 @@
 ---
-"@zendrex/buttplug.js": major
+"@zendrex/buttplug.js": minor
 ---
 
 **Breaking:** All device output methods now accept **normalized 0–1 floats** instead of device-range integers. The library maps each 0–1 value to the feature's server-reported device range internally, so `0.5` always means "midpoint" regardless of whether the device exposes a 0–100, 0–20, or any other range.
