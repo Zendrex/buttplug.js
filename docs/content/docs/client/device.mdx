@@ -3,12 +3,12 @@ title: Device
 description: Represents a single device connected to a Buttplug server.
 ---
 
-The `Device` class provides typed methods for controlling outputs (vibration, rotation, position, etc.) and reading or subscribing to input sensors. Device instances are created internally by [ButtplugClient](/docs/reference/buttplug-client) when devices are discovered.
+The `Device` class provides typed methods for controlling outputs (vibration, rotation, position, etc.) and reading or subscribing to input sensors. Device instances are created internally by [ButtplugClient](/docs/client/buttplug-client) when devices are discovered.
 
 ```ts
-client.on("deviceAdded", ({ data: { device } }) => {
+client.on("device.added", async ({ data: { device } }) => {
   console.log(device.name, device.features);
-  await device.vibrate(50);
+  await device.vibrate(0.5);
 });
 ```
 
@@ -44,7 +44,7 @@ User-facing display name, or `null` if the server did not provide one.
 get features(): DeviceFeatures
 ```
 
-Parsed input and output feature descriptors for this device. See [DeviceFeatures](/docs/reference/types#devicefeatures) for the shape.
+Parsed input and output feature descriptors for this device. See [DeviceFeatures](/docs/client/types#devicefeatures) for the shape.
 
 ### canRotate
 
@@ -64,7 +64,7 @@ Whether this device supports any form of position output (`Position` or `HwPosit
 
 ## Output Methods
 
-All scalar output methods accept either a single `number` (applied to all motors/actuators) or a `FeatureValue[]` array for per-feature control.
+All scalar output methods accept either a single `number` (applied to all motors/actuators) or a `FeatureValue[]` array for per-feature control. **All values are normalized 0–1 floats**; the library maps each value to the feature's device range internally.
 
 ### vibrate
 
@@ -72,22 +72,22 @@ All scalar output methods accept either a single `number` (applied to all motors
 vibrate(intensity: number | FeatureValue[]): Promise<void>
 ```
 
-Sets vibration intensity on all or individual motors.
+Sets vibration intensity on all or individual motors. `intensity` is a normalized **0–1** float.
 
 | Parameter | Type | Description |
 | --- | --- | --- |
-| `intensity` | `number \| FeatureValue[]` | Single value for all motors, or per-motor entries |
+| `intensity` | `number \| FeatureValue[]` | Single value (0–1) for all motors, or per-motor entries |
 
 **Throws:** `DeviceError` if the device does not support vibration.
 
 ```ts
 // All motors at 50%
-await device.vibrate(50);
+await device.vibrate(0.5);
 
 // Per-motor control
 await device.vibrate([
-  { index: 0, value: 80 },
-  { index: 1, value: 40 },
+  { index: 0, value: 0.8 },
+  { index: 1, value: 0.4 },
 ]);
 ```
 
@@ -163,12 +163,14 @@ Sets rotation speed and direction. Automatically selects `RotateWithDirection` i
 
 **Throws:** `DeviceError` if the device does not support rotation.
 
+Speed is a normalized **0–1** float.
+
 ```ts
-await device.rotate(70, { clockwise: false });
+await device.rotate(0.7, { clockwise: false });
 
 await device.rotate([
-  { index: 0, speed: 80, clockwise: true },
-  { index: 1, speed: 40, clockwise: false },
+  { index: 0, speed: 0.8, clockwise: true },
+  { index: 1, speed: 0.4, clockwise: false },
 ]);
 ```
 
@@ -194,11 +196,13 @@ Moves all axes to a position over a given duration. Automatically selects `HwPos
 
 **Throws:** `DeviceError` if the device does not support position control.
 
+Position is a normalized **0–1** float; `duration` is in milliseconds.
+
 ```ts
-await device.position(80, { duration: 500 });
+await device.position(0.8, { duration: 500 });
 
 await device.position([
-  { index: 0, position: 100, duration: 300 },
+  { index: 0, position: 1, duration: 300 },
 ]);
 ```
 
@@ -210,7 +214,7 @@ stop(options?: DeviceStopOptions): Promise<void>
 
 Stops activity on this device. Without options, stops all features. Can target a specific feature index or filter by input/output type.
 
-<AutoTypeTable path="../src/types.ts" name="DeviceStopOptions" />
+<AutoTypeTable path="../src/device.ts" name="DeviceStopOptions" />
 
 **Throws:** `DeviceError` if the specified feature index does not exist.
 
@@ -226,16 +230,16 @@ await device.stop({ outputs: true, inputs: false });
 output(options: DeviceOutputOptions): Promise<void>
 ```
 
-Sends a raw output command to a specific feature. Values are validated against the feature's declared range and clamped if out of bounds.
+Sends a raw protocol output command to a specific feature. **Unlike the typed methods, `output()` uses device-range integers** (the raw protocol values), not normalized 0–1 floats. Values are clamped to the feature's declared range.
 
-<AutoTypeTable path="../src/types.ts" name="DeviceOutputOptions" />
+<AutoTypeTable path="../src/device.ts" name="DeviceOutputOptions" />
 
 **Throws:** `DeviceError` if no matching output feature exists at the given index.
 
 ```ts
 await device.output({
   featureIndex: 0,
-  command: { Vibrate: { Value: 50 } },
+  command: { Vibrate: { Value: 50 } }, // device-range integer
 });
 ```
 
@@ -315,7 +319,7 @@ Checks whether this device supports a given output type.
 
 ```ts
 if (device.canOutput("Vibrate")) {
-  await device.vibrate(50);
+  await device.vibrate(0.5);
 }
 ```
 
@@ -337,7 +341,7 @@ Checks whether this device supports subscriptions for a given sensor type.
 
 ## Related
 
-- [Devices](/docs/guide/devices) -- discovering devices and inspecting capabilities
-- [Commands](/docs/guide/commands) -- output command patterns
-- [Sensors](/docs/guide/sensors) -- reading and subscribing to sensors
-- [Types](/docs/reference/types) -- FeatureValue, RotationValue, PositionValue, and more
+- [Devices](/docs/guide/devices): discovering devices and inspecting capabilities
+- [Commands](/docs/guide/commands): output command patterns
+- [Sensors](/docs/guide/sensors): reading and subscribing to sensors
+- [Types](/docs/client/types): FeatureValue, RotationValue, PositionValue, and more

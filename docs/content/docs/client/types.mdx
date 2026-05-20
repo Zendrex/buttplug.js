@@ -1,0 +1,216 @@
+---
+title: Types
+description: All exported types from @zendrex/buttplug.js.
+---
+
+## Client Types
+
+### ButtplugClientOptions
+
+Configuration options for [ButtplugClient](/docs/client/buttplug-client).
+
+<AutoTypeTable path="../src/client.ts" name="ButtplugClientOptions" />
+
+### ClientEventMap
+
+Event map for the [ButtplugClient](/docs/client/buttplug-client) emitter. Each key is an event name and its value is the payload type passed to listeners.
+
+<AutoTypeTable path="../src/client.ts" name="ClientEventMap" />
+
+## Transport Types
+
+Pluggable connection layer for [ButtplugClient](/docs/client/buttplug-client). Pass a URL string for the built-in WebSocket transport, or inject a custom implementation.
+
+### Transport
+
+<AutoTypeTable path="../src/transport/types.ts" name="Transport" />
+
+Built-in implementations:
+
+- `WebSocketTransport`: default for a URL string passed to `ButtplugClient` (package root export)
+- [`WasmTransport`](/docs/client/wasm-transport): in-browser server via `@zendrex/buttplug.js/wasm`
+
+### TransportState
+
+<AutoTypeTable path="../src/transport/types.ts" name="TransportState" />
+
+### TransportEvents
+
+<AutoTypeTable path="../src/transport/types.ts" name="TransportEvents" />
+
+### TransportEventName
+
+<AutoTypeTable path="../src/transport/types.ts" name="TransportEventName" />
+
+### WebSocketTransportOptions
+
+Options for `WebSocketTransport`.
+
+<AutoTypeTable path="../src/transport/connection.ts" name="WebSocketTransportOptions" />
+
+### DeviceOutputOptions
+
+Options for [Device.output](/docs/client/device#output). Sends a raw `OutputCommand` to a specific feature on the device.
+
+<AutoTypeTable path="../src/device.ts" name="DeviceOutputOptions" />
+
+### DeviceStopOptions
+
+Options for [Device.stop](/docs/client/device#stop). Without any options, stops all features on the device.
+
+<AutoTypeTable path="../src/device.ts" name="DeviceStopOptions" />
+
+## Device Types
+
+### DeviceFeatures
+
+Collection of normalized output and input features for a device.
+
+<AutoTypeTable path="../src/protocol/schema/features.ts" name="DeviceFeatures" />
+
+### OutputFeature
+
+Normalized output feature with type, index, range, and optional duration range.
+
+<AutoTypeTable path="../src/protocol/schema/features.ts" name="OutputFeature" />
+
+### InputFeature
+
+Normalized input feature with type, index, range, and command capabilities.
+
+<AutoTypeTable path="../src/protocol/schema/features.ts" name="InputFeature" />
+
+### FeatureValue
+
+Feature index paired with a scalar value, used for batch output commands.
+
+<AutoTypeTable path="../src/protocol/schema/values.ts" name="FeatureValue" />
+
+### RotationValue
+
+Feature index paired with speed and direction for rotation commands.
+
+<AutoTypeTable path="../src/protocol/schema/values.ts" name="RotationValue" />
+
+### PositionValue
+
+Feature index paired with position and duration for timed movement commands.
+
+<AutoTypeTable path="../src/protocol/schema/values.ts" name="PositionValue" />
+
+## Protocol Types
+
+### OutputType
+
+Output actuator type string literal union. All supported output types:
+
+```ts
+type OutputType =
+  | "Vibrate"
+  | "Rotate"
+  | "RotateWithDirection"
+  | "Oscillate"
+  | "Constrict"
+  | "Spray"
+  | "Temperature"
+  | "Led"
+  | "Position"
+  | "HwPositionWithDuration";
+```
+
+### InputType
+
+Input sensor type string literal union. All supported input types:
+
+```ts
+type InputType =
+  | "Battery"
+  | "RSSI"
+  | "Pressure"
+  | "Button"
+  | "Position";
+```
+
+### OutputCommand
+
+Discriminated union of output command payloads, keyed by actuator type. Each variant is a single-key object:
+
+```ts
+type OutputCommand =
+  | { Vibrate: { Value: number } }
+  | { Rotate: { Value: number } }
+  | { RotateWithDirection: { Value: number; Clockwise: boolean } }
+  | { Oscillate: { Value: number } }
+  | { Constrict: { Value: number } }
+  | { Spray: { Value: number } }
+  | { Temperature: { Value: number } }
+  | { Led: { Value: number } }
+  | { Position: { Value: number } }
+  | { HwPositionWithDuration: { Position: number; Duration: number } };
+```
+
+### ServerInfo
+
+Handshake response from the server with capabilities and timing requirements.
+
+<AutoTypeTable path="../src/protocol/schema/server-messages.ts" name="ServerInfo" />
+
+### InputReading
+
+Server message delivering a sensor reading from a device.
+
+<AutoTypeTable path="../src/protocol/schema/sensor-data.ts" name="InputReading" />
+
+## Logger
+
+### Logger
+
+Optional diagnostics for library internals (transport, message router, reconnect, device parsing). **Application behavior should not depend on log output**; use [client events](#clienteventmap) and typed errors instead.
+
+The interface supports hierarchical prefixes via `child()`.
+
+<AutoTypeTable path="../src/lib/logger.ts" name="Logger" />
+
+Two built-in implementations are exported:
+
+- `noopLogger`: default; discards all messages
+- `consoleLogger`: writes to `console` with a `[buttplug]` prefix
+
+```ts
+import { ButtplugClient, consoleLogger } from "@zendrex/buttplug.js";
+
+const client = new ButtplugClient("ws://localhost:12345", {
+  verbose: true,
+});
+
+// Explicit logger:
+new ButtplugClient("ws://localhost:12345", { logger: consoleLogger });
+```
+
+### resolveDiagnosticsLogger
+
+```ts
+import { resolveDiagnosticsLogger } from "@zendrex/buttplug.js";
+
+const logger = resolveDiagnosticsLogger({
+  verbose: import.meta.env.DEV,
+});
+// Pass `logger` into anything that accepts the package `Logger` type.
+```
+
+Uses the same resolution rules as **`ButtplugClient`**: explicit `logger` wins; otherwise `verbose: true` selects **`consoleLogger`**; otherwise **`noopLogger`**.
+
+### ResolveDiagnosticsLoggerOptions
+
+<AutoTypeTable path="../src/lib/logger.ts" name="ResolveDiagnosticsLoggerOptions" />
+
+For raw protocol debugging in the browser, DevTools → Network → WebSocket → Messages is usually more authoritative than internal logs.
+
+## Related
+
+- [ButtplugClient overview](/docs/client): setup, scanning, events, lifecycle
+- [ButtplugClient](/docs/client/buttplug-client): full API reference
+- [WasmTransport](/docs/client/wasm-transport): in-browser WASM transport
+- [Device](/docs/client/device): device API reference
+- [Patterns](/docs/patterns): pattern engine guides and API reference
+- [Constants](/docs/client/constants): protocol and error constant values

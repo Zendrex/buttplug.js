@@ -7,6 +7,9 @@ import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
 
+import { InstallTabs } from "@/components/install-tabs";
+import { WasmDemo } from "@/components/wasm-demo-loader";
+
 const generator = createGenerator({
 	cache: createFileSystemGeneratorCache(".next/fumadocs-typescript"),
 });
@@ -22,6 +25,8 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
 		Steps,
 		Step,
 		AutoTypeTable: (props) => <AutoTypeTable {...props} generator={generator} />,
+		InstallTabs,
+		WasmDemo: () => <WasmDemo />,
 		...components,
 	};
 }

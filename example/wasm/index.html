@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>buttplug.js — WASM transport example</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<style>
+		body {
+			max-width: 36rem;
+			padding: 0 1rem;
+			margin: 2rem auto;
+			font-family: system-ui, sans-serif;
+		}
+		button {
+			padding: 0.5rem 1rem;
+			margin-right: 0.5rem;
+		}
+		pre {
+			padding: 1rem;
+			color: #eee;
+			white-space: pre-wrap;
+			background: #111;
+			border-radius: 4px;
+		}
+		</style>
+	</head>
+	<body>
+		<h1>buttplug.js — WASM transport</h1>
+		<p>
+			Runs the Buttplug server in-browser via <code>buttplug-wasm-blob</code>. Requires a Chromium-family browser
+			served over HTTPS (or <code>localhost</code>).
+		</p>
+		<button type="button" id="connect">Connect</button>
+		<button type="button" id="scan">Scan</button>
+		<button type="button" id="vibe">Vibrate 50% for 2s</button>
+		<button type="button" id="stop">Stop all</button>
+		<button type="button" id="disconnect">Disconnect</button>
+		<pre id="log"></pre>
+		<script type="module" src="./main.ts"></script>
+	</body>
+</html>

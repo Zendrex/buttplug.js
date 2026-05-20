@@ -22,6 +22,44 @@
 		"lineWidth": 120,
 		"indentWidth": 4
 	},
+	"overrides": [
+		{
+			"includes": ["src/lib/logger.ts"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noConsole": "off",
+						"noEmptyBlockStatements": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/patterns/engine.ts"],
+			"linter": {
+				"rules": {
+					"style": {
+						"useUnifiedTypeSignatures": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"src/index.ts",
+				"src/patterns/index.ts",
+				"src/wasm/index.ts",
+				"src/protocol/schema/index.ts"
+			],
+			"linter": {
+				"rules": {
+					"performance": {
+						"noBarrelFile": "off"
+					}
+				}
+			}
+		}
+	],
 	"linter": {
 		"enabled": true,
 		"domains": {

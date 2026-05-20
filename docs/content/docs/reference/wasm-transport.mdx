@@ -1,0 +1,79 @@
+---
+title: WasmTransport
+description: In-process Buttplug server via buttplug-wasm-blob and Web Bluetooth.
+---
+
+`WasmTransport` implements the [`Transport`](/docs/reference/types#transport) interface by embedding the Buttplug server as WebAssembly inside the page. Hardware discovery uses the browser's Web Bluetooth API instead of Intiface Central.
+
+```ts
+import { ButtplugClient } from "@zendrex/buttplug.js";
+import { WasmTransport } from "@zendrex/buttplug.js/wasm";
+
+const client = new ButtplugClient(new WasmTransport());
+await client.connect();
+```
+
+Optional peer `buttplug-wasm-blob`. [WASM Transport](/docs/guide/wasm): install, browser requirements, bundler setup, limitations.
+
+## Constructor
+
+```ts
+new WasmTransport(options?: WasmTransportOptions)
+```
+
+### WasmTransportOptions
+
+<AutoTypeTable path="../src/transport/wasm.ts" name="WasmTransportOptions" />
+
+## Methods
+
+### connect
+
+```ts
+connect(): Promise<void>
+```
+
+Validates Web Bluetooth support, lazy-loads `buttplug-wasm-blob`, initializes the in-process server, and emits `open` on the transport. Resolves when the WASM server is ready for protocol messages.
+
+**Throws:** `ConnectionError` if the environment lacks Web Bluetooth, the WASM module fails to load, or server creation fails.
+
+### disconnect
+
+```ts
+disconnect(): Promise<void>
+```
+
+Frees the WASM server handle and emits `close`. Safe to call when already disconnected.
+
+### send
+
+```ts
+send(data: string): void
+```
+
+Encodes a JSON protocol message and passes it to the WASM server. Replies are delivered asynchronously via the transport `message` event.
+
+**Throws:** `ConnectionError` if the server is not running.
+
+### on / off
+
+```ts
+on<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void
+off<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void
+```
+
+Subscribe or unsubscribe from transport events: `open`, `close`, `message`, `error`.
+
+### state
+
+```ts
+get state(): TransportState
+```
+
+Current transport state: `"disconnected"`, `"connecting"`, or `"connected"`.
+
+## Related
+
+- [WASM Transport guide](/docs/guide/wasm)
+- [ButtplugClient](/docs/reference/buttplug-client)
+- [Types: Transport](/docs/reference/types#transport)

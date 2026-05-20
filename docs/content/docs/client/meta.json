@@ -1,10 +1,12 @@
 {
-	"title": "Reference",
+	"title": "Client",
 	"root": true,
 	"pages": [
+		"index",
+		"---Reference---",
 		"buttplug-client",
+		"wasm-transport",
 		"device",
-		"pattern-engine",
 		"types",
 		"errors",
 		"constants"

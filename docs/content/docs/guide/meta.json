@@ -9,6 +9,7 @@
 		"commands",
 		"sensors",
 		"events",
-		"error-handling"
+		"error-handling",
+		"wasm"
 	]
 }

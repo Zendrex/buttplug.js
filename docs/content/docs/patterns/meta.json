@@ -1,5 +1,16 @@
 {
 	"title": "Patterns",
 	"root": true,
-	"pages": ["index", "presets", "custom-tracks", "easing", "examples"]
+	"pages": [
+		"index",
+		"---Guides---",
+		"presets",
+		"custom-tracks",
+		"easing",
+		"examples",
+		"---Reference---",
+		"pattern-engine",
+		"types",
+		"constants"
+	]
 }

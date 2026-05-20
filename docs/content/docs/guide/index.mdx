@@ -1,44 +1,64 @@
 ---
 title: Introduction
-description: Modern TypeScript client for the Buttplug protocol v4
+description: Learn the buttplug.js client from install through device control
 ---
 
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-**buttplug.js** is a type-safe TypeScript client for the [Buttplug Intimacy Protocol](https://buttplug.io) v4. It connects to a Buttplug server over WebSocket, discovers devices, and controls them through a high-level API.
+**buttplug.js** is a TypeScript client for the [Buttplug](https://buttplug.io) message protocol (v4). It validates wire messages with Zod, exposes typed [`Device`](/docs/client/device) instances, and works over WebSocket or an optional in-browser WASM server.
 
 ```ts
 import { ButtplugClient } from "@zendrex/buttplug.js";
 
-const client = new ButtplugClient("ws://localhost:12345");
+const client = new ButtplugClient("ws://127.0.0.1:12345");
 
-client.on("deviceAdded", ({ data: { device } }) => {
-  device.vibrate(50);
+client.on("device.added", async ({ data: { device } }) => {
+  if (device.canOutput("Vibrate")) {
+    await device.vibrate(0.5);
+  }
 });
 
 await client.connect();
 await client.startScanning();
 ```
 
-## Features
+## How it fits together
 
-- **Protocol v4** -- 10 output types and 5 sensor input types: vibration, rotation, position, oscillation, constriction, and more
-- **Type-safe API** -- Full TypeScript types with Zod schema validation for autocomplete and compile-time safety
-- **Pattern Engine** -- Keyframe-based pattern playback with built-in presets, custom tracks, easing curves, and loop control
-- **Auto-reconnect** -- Configurable reconnection with exponential backoff, attempt limits, and lifecycle events
-- **Ping Keep-alive** -- Automatic ping management with configurable intervals to maintain server connections
-- **Runtime Agnostic** -- Works in any JavaScript runtime with WebSocket support
+1. **Connect** to a Buttplug server ([Intiface Central](https://intiface.com/central/) over WebSocket, or [WASM + Web Bluetooth](/docs/guide/wasm) in the browser).
+2. **Scan** for hardware; the client emits `device.added` for each match.
+3. **Control** outputs (`vibrate`, `rotate`, `position`, …) and read sensors (`Battery`, `Button`, …).
+4. **React** to lifecycle with typed events (`connection.*`, `device.*`, `scan.*`).
+5. **Optional:** drive timed waveforms with the [`PatternEngine`](/docs/patterns) subpath.
 
-## Prerequisites
+Output values are normalized **0–1** floats; the library maps them to each feature's server-reported device range. The pattern engine uses the same **0–1** scale for intensities and keyframes; see [Patterns](/docs/patterns).
 
-**[Intiface Central](https://intiface.com/central/)** acts as the Buttplug server. Install and start it before connecting from your application. The default WebSocket address is `ws://localhost:12345`.
+## Choose a connection path
 
-Any JavaScript runtime with WebSocket support works: Node.js 18+, Bun, Deno, or modern browsers. The library has zero native dependencies.
+| Path | Best for | You need |
+| --- | --- | --- |
+| **WebSocket** (default) | Node, Bun, Deno, desktop browsers | A v4 server such as Intiface Central (`ws://127.0.0.1:12345`) |
+| **WASM transport** | Web apps without a desktop server | Chromium, HTTPS or `localhost`, peer [`buttplug-wasm-blob`](https://www.npmjs.com/package/buttplug-wasm-blob) |
 
-## Next Steps
+Both paths share the same `ButtplugClient`, `Device` API, and events after `connect()`. Only transport setup differs.
+
+## Learning path
+
+Guides:
 
 <Cards>
-  <Card title="Getting Started" description="Install, connect, and control your first device" href="/docs/guide/getting-started" />
-  <Card title="Devices" description="Discover devices and inspect their capabilities" href="/docs/guide/devices" />
-  <Card title="Commands" description="Vibrate, rotate, position, and more" href="/docs/guide/commands" />
+  <Card title="Getting Started" description="Install, connect, scan, first command" href="/docs/guide/getting-started" />
+  <Card title="Connecting" description="Transports, options, reconnect, ping" href="/docs/guide/connecting" />
+  <Card title="Devices" description="Discovery, properties, capabilities" href="/docs/guide/devices" />
+  <Card title="Commands" description="Vibrate, rotate, position, stop" href="/docs/guide/commands" />
+  <Card title="Sensors" description="Reads, subscriptions, input events" href="/docs/guide/sensors" />
+  <Card title="Events" description="Connection, device, and scan lifecycle" href="/docs/guide/events" />
+  <Card title="Error Handling" description="Error types, codes, recovery" href="/docs/guide/error-handling" />
+  <Card title="WASM Transport" description="Browser server via Web Bluetooth" href="/docs/guide/wasm" />
+</Cards>
+
+## Beyond the guide
+
+<Cards>
+  <Card title="Patterns" description="Presets, keyframes, easing, loop control" href="/docs/patterns" />
+  <Card title="Client" description="ButtplugClient, Device, types, errors" href="/docs/client" />
 </Cards>

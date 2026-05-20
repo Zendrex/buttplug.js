@@ -6,10 +6,7 @@ description: Orchestrates pattern playback on devices using tick-based keyframe 
 The `PatternEngine` manages the lifecycle of active patterns: loop handling, drift-corrected tick scheduling, deduplication of redundant commands, and automatic cleanup on disconnect or device removal.
 
 ```ts
-import { ButtplugClient, PatternEngine } from "@zendrex/buttplug.js";
-
-const client = new ButtplugClient("ws://localhost:12345");
-await client.connect();
+import { PatternEngine } from "@zendrex/buttplug.js/patterns";
 
 const engine = new PatternEngine(client);
 ```
@@ -27,7 +24,7 @@ new PatternEngine(client: PatternEngineClient, options?: { defaultTimeout?: numb
 
 The default safety timeout automatically stops patterns after 30 minutes to prevent unattended devices from running indefinitely.
 
-The engine subscribes to client `disconnected` and `deviceRemoved` events. When the client disconnects, all patterns are stopped with reason `"disconnect"`. When a device is removed, its patterns are stopped with reason `"deviceRemoved"`.
+The engine subscribes to client `connection.disconnected` and `device.removed` events. When the client disconnects, all patterns are stopped with reason `"disconnect"`. When a device is removed, its patterns are stopped with reason `"deviceRemoved"`.
 
 ## Methods
 
@@ -180,7 +177,7 @@ listPresets(): PresetInfo[]
 
 Returns metadata for all available built-in presets.
 
-<AutoTypeTable path="../src/patterns/types.ts" name="PresetInfo" />
+<AutoTypeTable path="../src/patterns/presets.ts" name="PresetInfo" />
 
 ### dispose
 
@@ -209,12 +206,13 @@ const id = await engine.play(device, "surge", {
 });
 ```
 
-The `reason` parameter is a `StopReason` string: `"manual"`, `"complete"`, `"timeout"`, `"error"`, `"disconnect"`, or `"deviceRemoved"`.
+The `reason` parameter is a [`StopReason`](/docs/patterns/types#stopreason) string.
 
 ## Related
 
-- [Patterns](/docs/patterns) -- pattern concepts and usage guides
-- [Presets](/docs/patterns/presets) -- built-in preset patterns
-- [Custom Tracks](/docs/patterns/custom-tracks) -- defining custom keyframe tracks
-- [Easing](/docs/patterns/easing) -- easing curve reference
-- [Types](/docs/reference/types) -- PatternDescriptor, Track, Keyframe, and more
+- [Patterns](/docs/patterns): pattern concepts and usage guides
+- [Presets](/docs/patterns/presets): built-in preset patterns
+- [Custom Tracks](/docs/patterns/custom-tracks): defining custom keyframe tracks
+- [Easing](/docs/patterns/easing): easing curve reference
+- [Types](/docs/patterns/types): PatternDescriptor, Track, Keyframe, and more
+- [Constants](/docs/patterns/constants): PRESET_NAMES and EASING_VALUES

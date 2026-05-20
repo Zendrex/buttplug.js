@@ -1,81 +1,139 @@
 ---
 title: Commands
-description: Control device outputs — vibration, rotation, position, and more
+description: Control device outputs (vibration, rotation, position, and more)
 ---
 
+Output methods on [`Device`](/docs/client/device) are async. They build protocol messages, map normalized values to each feature's device range, and reject with `DeviceError` when the capability is missing.
+
 ```ts
-await device.vibrate(50);
+if (device.canOutput("Vibrate")) {
+  await device.vibrate(0.5);
+}
 ```
 
-All output commands on a [`Device`](/docs/reference/device) are async and accept integer values within the device's feature range (typically `0` to `100`, except position durations which are in milliseconds). The valid range is defined per-feature in `device.features.outputs`. Values are rounded and clamped to the feature range automatically. Commands throw a `DeviceError` if the device lacks the required capability.
+**Value scale:** normalized **0–1** floats. The library maps to each feature's device range internally (so `0.5` becomes the midpoint of whatever range the server reports — `50` on a 0–100 device, `10` on a 0–20 device). Position `duration` is in **milliseconds**.
 
-## Scalar Commands
+For repeating waveforms (pulse, wave, custom ramps), use the [PatternEngine](/docs/patterns) instead of manual timers.
 
-The scalar commands -- `vibrate()`, `oscillate()`, `constrict()`, `spray()`, `temperature()`, and `led()` -- share the same signature. Pass a single `number` to set all motors/actuators uniformly, or a `FeatureValue[]` to address each one individually.
+## Scalar outputs
+
+`vibrate`, `oscillate`, `constrict`, `spray`, `temperature`, and `led` accept either one number for **all** actuators of that type, or a `FeatureValue[]` for per-motor control.
+
+### Uniform intensity
 
 ```ts
-// All motors at 75%
-await device.vibrate(75);
+await device.vibrate(0.75);
+await device.oscillate(0.4);
+await device.led(1);
+```
 
-// Per-motor control: motor 0 at 50%, motor 1 at 100%
+### Per feature
+
+```ts
 await device.vibrate([
-  { index: 0, value: 50 },
-  { index: 1, value: 100 },
+  { index: 0, value: 0.3 },
+  { index: 1, value: 1 },
 ]);
 ```
 
-Each scalar type maps to an output type: `vibrate()` sends `Vibrate`, `oscillate()` sends `Oscillate`, and so on. Check support with `device.canOutput("Vibrate")` before calling.
+`index` is the feature index from `device.features.outputs`, not the device index.
+
+| Method | Output type |
+| --- | --- |
+| `vibrate()` | `Vibrate` |
+| `oscillate()` | `Oscillate` |
+| `constrict()` | `Constrict` |
+| `spray()` | `Spray` |
+| `temperature()` | `Temperature` (signed: heat / cool) |
+| `led()` | `Led` |
+
+Gate with `device.canOutput("Vibrate")` (or the matching type) before calling.
 
 ## Rotation
 
-`rotate()` has two overloads. The simple form takes a speed and an optional direction. The array form addresses each motor independently with a `RotationValue[]`.
+`rotate()` supports a single motor or multiple motors with direction.
 
 ```ts
-// All motors at 60%, clockwise (default)
-await device.rotate(60);
+// All rotation features at 60% speed
+await device.rotate(0.6);
 
-// Counterclockwise
-await device.rotate(60, { clockwise: false });
+// Single motor, counter-clockwise
+await device.rotate(0.6, { clockwise: false });
 
-// Per-motor: different speeds and directions
+// Per motor
 await device.rotate([
-  { index: 0, speed: 50, clockwise: true },
-  { index: 1, speed: 80, clockwise: false },
+  { index: 0, speed: 0.5, clockwise: true },
+  { index: 1, speed: 0.8, clockwise: false },
 ]);
 ```
 
-The client automatically selects `RotateWithDirection` when the device supports it, falling back to `Rotate` otherwise. Use `device.canRotate` to check support.
+Uses `RotateWithDirection` when the device supports it; otherwise `Rotate`. Check `device.canRotate` first.
 
 ## Position
 
-`position()` moves linear axes to a target position over a specified duration. The `duration` parameter is **required** for the uniform overload and is specified in milliseconds.
+Linear actuators need a target position and, on the uniform overload, a movement duration.
 
 ```ts
-// All axes to 80% over 500ms
-await device.position(80, { duration: 500 });
+await device.position(0.8, { duration: 500 });
 
-// Per-axis control
 await device.position([
-  { index: 0, position: 100, duration: 300 },
-  { index: 1, position: 20, duration: 600 },
+  { index: 0, position: 1, duration: 300 },
+  { index: 1, position: 0.2, duration: 600 },
 ]);
 ```
 
-The client selects `HwPositionWithDuration` when available, falling back to `Position`. Use `device.canPosition` to check support.
+Uses `HwPositionWithDuration` when available, else `Position`. Check `device.canPosition` first.
+
+## Raw output
+
+For advanced cases, send a typed `OutputCommand` to a specific feature. Unlike the typed methods, `output()` is the raw protocol escape hatch — `Value` is in the feature's **device range** (integer), not normalized 0–1:
+
+```ts
+await device.output({
+  featureIndex: 0,
+  command: { Vibrate: { Value: 50 } }, // device-range integer
+});
+```
+
+See [`Device.output`](/docs/client/device#output) and [`OutputCommand`](/docs/client/types#outputcommand).
 
 ## Stopping
 
-Stop a single device or all devices at once:
+### One device
 
 ```ts
-// Stop everything on one device
-await device.stop();
+await device.stop(); // all features
 
-// Stop only outputs (keep sensor subscriptions)
-await device.stop({ outputs: true });
+await device.stop({ outputs: true, inputs: false }); // outputs only
 
-// Stop all devices globally
+await device.stop({ featureIndex: 0 }); // one feature
+```
+
+### All devices on the client
+
+```ts
 await client.stopAll();
 ```
 
-`device.stop()` without options halts all features. Pass `DeviceStopOptions` to target a specific feature index or filter by inputs/outputs.
+Stopping is also implicit when the client disconnects (server-side behavior).
+
+## Patterns vs manual commands
+
+| Approach | When to use |
+| --- | --- |
+| `device.vibrate(n)` | Immediate level, one-off changes |
+| `PatternEngine.play()` | Loops, easing, presets, multi-track timing |
+
+```ts
+import { PatternEngine } from "@zendrex/buttplug.js/patterns";
+
+const engine = new PatternEngine(client);
+await engine.play(device, "wave", { intensity: 0.7, loop: true });
+```
+
+Pattern `intensity` is **0–1** and scales keyframe values, matching the device-method scale. See [Patterns](/docs/patterns).
+
+## Next steps
+
+- [Sensors](/docs/guide/sensors): read battery, buttons, and other inputs
+- [Device reference](/docs/client/device): full method list and options

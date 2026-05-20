@@ -5,16 +5,21 @@ import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
 const managers = [
-	{ name: "bun", command: "bun add @zendrex/buttplug.js" },
-	{ name: "npm", command: "npm install @zendrex/buttplug.js" },
-	{ name: "yarn", command: "yarn add @zendrex/buttplug.js" },
-	{ name: "pnpm", command: "pnpm add @zendrex/buttplug.js" },
+	{ name: "bun", prefix: "bun add" },
+	{ name: "npm", prefix: "npm install" },
+	{ name: "yarn", prefix: "yarn add" },
+	{ name: "pnpm", prefix: "pnpm add" },
 ] as const;
 
-export function InstallTabs() {
+interface InstallTabsProps {
+	packages?: string;
+}
+
+export function InstallTabs({ packages = "@zendrex/buttplug.js" }: InstallTabsProps) {
 	const [active, setActive] = useState(0);
 	const current = managers[active];
-	const [checked, onCopy] = useCopyButton(() => navigator.clipboard.writeText(current.command));
+	const command = `${current.prefix} ${packages}`;
+	const [checked, onCopy] = useCopyButton(() => navigator.clipboard.writeText(command));
 
 	return (
 		<div className="w-full max-w-lg overflow-hidden rounded-xl border border-fd-border bg-fd-card">
@@ -44,7 +49,7 @@ export function InstallTabs() {
 			</div>
 			<pre className="px-4 py-3 font-mono text-[13px] text-fd-foreground">
 				<span className="text-fd-muted-foreground">$ </span>
-				{current.command}
+				{command}
 			</pre>
 		</div>
 	);

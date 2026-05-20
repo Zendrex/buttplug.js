@@ -1,0 +1,48 @@
+---
+title: Constants
+description: Pattern constants exported from @zendrex/buttplug.js/patterns.
+---
+
+```ts
+import { EASING_VALUES, PRESET_NAMES } from "@zendrex/buttplug.js/patterns";
+```
+
+## EASING_VALUES
+
+All easing curve identifiers used for keyframe interpolation. Typed as `readonly Easing[]`.
+
+```ts
+const EASING_VALUES = [
+  "linear",
+  "easeIn",
+  "easeOut",
+  "easeInOut",
+  "step",
+] as const;
+```
+
+Curve behavior and formulas: [Easing](/docs/patterns/easing). Type alias: [`Easing`](/docs/patterns/types#easing).
+
+## PRESET_NAMES
+
+All available built-in pattern preset names. Typed as `readonly PresetName[]`.
+
+```ts
+const PRESET_NAMES = [
+  "pulse",
+  "wave",
+  "ramp_up",
+  "ramp_down",
+  "heartbeat",
+  "surge",
+  "stroke",
+] as const;
+```
+
+Per-preset behavior, loop defaults, compatible output types, and examples: [Presets](/docs/patterns/presets).
+
+## Related
+
+- [Types](/docs/patterns/types): `Easing`, `PresetName`, and descriptor types
+- [PatternEngine](/docs/patterns/pattern-engine): uses presets and easing values
+- [Presets](/docs/patterns/presets): preset pattern details and examples

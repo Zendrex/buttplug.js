@@ -1,29 +1,5 @@
-/**
- * @packageDocumentation
- *
- * Buttplug.js client library for controlling intimate hardware over WebSocket.
- *
- * This package provides:
- * - {@link ButtplugClient} - High-level client with connection, scanning, and device management
- * - {@link Device} - Per-device control for outputs (vibration, rotation, position) and sensor input
- * - {@link PatternEngine} - Keyframe-based pattern playback engine
- */
-
-/** biome-ignore-all lint/performance/noBarrelFile: package entry point re-exports public API */
-/** biome-ignore-all assist/source/organizeImports: exports grouped by domain */
-
-// Main classes
 export { ButtplugClient } from "./client";
 export { Device } from "./device";
-
-// Client types
-export type { DeviceOutputOptions, DeviceStopOptions } from "./device";
-export type {
-	ButtplugClientOptions,
-	ClientEventMap,
-} from "./types";
-
-// Errors
 export {
 	ButtplugError,
 	ConnectionError,
@@ -34,16 +10,27 @@ export {
 	ProtocolError,
 	TimeoutError,
 } from "./lib/errors";
-
-// Logger
-export type { Logger } from "./lib/logger";
-export { consoleLogger, noopLogger } from "./lib/logger";
-
-// Protocol types (used in public method signatures and event payloads)
+export {
+	consoleLogger,
+	noopLogger,
+	resolveDiagnosticsLogger,
+} from "./lib/logger";
+export { INPUT_TYPES, OUTPUT_TYPES } from "./protocol/features";
+export { WebSocketTransport } from "./transport/connection";
+export type {
+	ButtplugClientOptions,
+	ClientEventMap,
+} from "./client";
+export type { DeviceOutputOptions, DeviceStopOptions } from "./device";
+export type {
+	Logger,
+	ResolveDiagnosticsLoggerOptions,
+} from "./lib/logger";
 export type {
 	ClientMessage,
 	DeviceFeatures,
 	FeatureValue,
+	InputData,
 	InputFeature,
 	InputReading,
 	InputType,
@@ -51,32 +38,17 @@ export type {
 	OutputFeature,
 	OutputType,
 	PositionValue,
+	RawDevice,
 	RotationValue,
+	SensorValue,
 	ServerInfo,
 	ServerMessage,
 } from "./protocol/schema";
 export type { SensorCallback } from "./protocol/types";
-
-// Feature type constants
-export { INPUT_TYPES, OUTPUT_TYPES } from "./builders/features";
-
-// Pattern engine
-export { PatternEngine } from "./patterns/engine";
+export type { WebSocketTransportOptions } from "./transport/connection";
 export type {
-	CustomPattern,
-	Easing,
-	Keyframe,
-	PatternDescriptor,
-	PatternDevice,
-	PatternEngineClient,
-	PatternInfo,
-	PatternPlayOptions,
-	PresetInfo,
-	PresetName,
-	PresetPattern,
-	StopReason,
-	Track,
-} from "./patterns/types";
-export { EASING_VALUES, PRESET_NAMES } from "./patterns/types";
-export { EASING_FUNCTIONS } from "./patterns/easing";
-export { PRESETS, getPresetInfo } from "./patterns/presets";
+	Transport,
+	TransportEventName,
+	TransportEvents,
+	TransportState,
+} from "./transport/types";

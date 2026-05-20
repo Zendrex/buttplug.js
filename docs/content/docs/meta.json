@@ -3,9 +3,9 @@
 	"pages": [
 		"---Guide---",
 		"guide",
-		"---Reference---",
-		"reference",
 		"---Patterns---",
-		"patterns"
+		"patterns",
+		"---Client---",
+		"client"
 	]
 }

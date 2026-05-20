@@ -2,84 +2,43 @@ import { formatError, TimeoutError } from "../lib/errors";
 import { noopLogger } from "../lib/logger";
 import type { Logger } from "../lib/logger";
 
-const MIN_PING_INTERVAL_MS = 100;
-const DEFAULT_PING_TIMEOUT_MS = 5000;
-
-/**
- * Configuration for {@link PingManager}.
- */
 export interface PingOptions {
-	/** Whether to automatically send periodic pings. Defaults to `true`. */
 	autoPing?: boolean;
-	/** Cancels an in-flight ping with the given error (e.g. on timeout). */
 	cancelPing: (error: Error) => void;
-	/** Returns whether the transport is currently connected. */
 	isConnected: () => boolean;
-	/** Optional logger for ping diagnostics. Defaults to a no-op logger. */
 	logger?: Logger;
-	/** Called to initiate a disconnect when a ping times out while still connected. */
 	onDisconnect: (reason: string) => Promise<void>;
-	/** Called when a ping fails with a non-timeout error. */
 	onError: (error: Error) => void;
-	/** Sends a protocol-level ping and resolves when the pong arrives. */
 	sendPing: () => Promise<void>;
 }
 
-/**
- * Schedules periodic keep-alive pings over a {@link Transport} and triggers
- * disconnect when the server stops responding within the allowed time.
- *
- * **Important**: Callers must call {@link PingManager.stop} when the transport
- * disconnects. The PingManager does not subscribe to transport events directly.
- */
-export class PingManager {
-	/** Sends a protocol-level ping and resolves when the pong arrives. */
-	private readonly sendPing: () => Promise<void>;
-	/** Cancels an in-flight ping with the given error (e.g. on timeout). */
-	private readonly cancelPing: (error: Error) => void;
-	/** Logger for ping diagnostics. */
-	private readonly logger: Logger;
-	/** Whether automatic periodic pings are enabled. */
-	private readonly autoPing: boolean;
-	/** Callback invoked when a ping fails with a non-timeout error. */
-	private readonly onError: (error: Error) => void;
-	/** Callback to initiate disconnect when a ping times out. */
-	private readonly onDisconnect: (reason: string) => Promise<void>;
-	/** Returns whether the transport is currently connected. */
-	private readonly isConnected: () => boolean;
+const DEFAULT_PING_TIMEOUT_MS = 5000;
+const MIN_PING_INTERVAL_MS = 100;
 
-	/** Interval timer that triggers periodic ping attempts. */
+export class PingManager {
+	private readonly logger: Logger;
+	private readonly autoPing: boolean;
+	private readonly cancelPing: (error: Error) => void;
+	private readonly isConnected: () => boolean;
+	private readonly onDisconnect: (reason: string) => Promise<void>;
+	private readonly onError: (error: Error) => void;
+	private readonly sendPing: () => Promise<void>;
 	private pingTimer: ReturnType<typeof setInterval> | null = null;
-	/** Tracks whether a ping request is currently awaiting a response. */
 	private pingInFlight = false;
-	/** Whether the manager is in a stopped state. */
 	private stopped = true;
-	/** Maximum time in ms the server allows between pings. */
 	private maxPingTime = 0;
 
 	constructor(options: PingOptions) {
-		this.sendPing = options.sendPing;
-		this.cancelPing = options.cancelPing;
 		this.logger = (options.logger ?? noopLogger).child("ping");
 		this.autoPing = options.autoPing ?? true;
-		this.onError = options.onError;
-		this.onDisconnect = options.onDisconnect;
+		this.cancelPing = options.cancelPing;
 		this.isConnected = options.isConnected;
+		this.onDisconnect = options.onDisconnect;
+		this.onError = options.onError;
+		this.sendPing = options.sendPing;
 	}
 
-	/**
-	 * Starts the periodic ping timer.
-	 *
-	 * The ping interval is 60% of `maxPingTime`, clamped to a minimum of 100ms.
-	 * Stops any previously running timer before starting a new one.
-	 *
-	 * **Important**: Callers must call {@link PingManager.stop} when the transport
-	 * disconnects to prevent pings from being sent to a closed connection.
-	 *
-	 * @param maxPingTime - Maximum time in ms the server allows between pings
-	 */
 	start(maxPingTime: number): void {
-		// Cancel any in-flight ping before stopping the timer to avoid orphaned promises
 		if (this.pingInFlight) {
 			this.cancelPing(new TimeoutError("Ping", 0));
 		}
@@ -109,7 +68,6 @@ export class PingManager {
 		}, pingInterval);
 	}
 
-	/** Stops the ping timer and resets in-flight state. */
 	stop(): void {
 		this.stopped = true;
 
@@ -121,7 +79,6 @@ export class PingManager {
 		}
 	}
 
-	/** Sends a single ping and handles timeout or failure. */
 	private async doPing(): Promise<void> {
 		if (this.stopped) {
 			return;
@@ -141,7 +98,6 @@ export class PingManager {
 		try {
 			await this.sendPing();
 		} catch (err) {
-			// After await, the manager may have been stopped — bail out
 			if (this.stopped) {
 				return;
 			}
@@ -149,7 +105,6 @@ export class PingManager {
 			const isTimeout = err instanceof TimeoutError;
 			this.logger.error(`Ping failed: ${formatError(err)}`);
 			this.onError(err instanceof Error ? err : new Error(String(err)));
-			// Only disconnect on timeout errors — transient errors are recoverable
 			if (isTimeout && this.isConnected()) {
 				await this.onDisconnect("Ping response timeout");
 			} else if (!isTimeout) {

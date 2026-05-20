@@ -44,7 +44,7 @@ await engine.play(device, [
 
 ## Position Stroking with Custom Speed
 
-Build a position stroke pattern with asymmetric timing -- slow extend, fast retract.
+Build a position stroke pattern with asymmetric timing: slow extend, fast retract.
 
 ```ts
 await engine.play(device, [
@@ -79,18 +79,18 @@ const id = await engine.play(device, "surge", {
 ```
 
 <Callout type="warn">
-`onComplete` fires **before** `onStop`. When a pattern completes naturally, both callbacks fire in sequence -- first `onComplete`, then `onStop` with reason `"complete"`.
+`onComplete` fires **before** `onStop`. When a pattern finishes on its own, both run in order: `onComplete`, then `onStop` with reason `"complete"`.
 </Callout>
 
 ## Dynamic Pattern Switching
 
-Starting a new pattern on a device automatically stops any existing pattern on that device. There is no need to call `stop()` first.
+A new `play()` on a device stops any existing pattern on that device without a prior `stop()`.
 
 ```ts
 // Start with a gentle wave
 await engine.play(device, "wave", { intensity: 0.3 });
 
-// Switch to intense pulse -- previous pattern auto-stops
+// Switch to intense pulse; previous pattern auto-stops
 await engine.play(device, "pulse", { intensity: 1.0 });
 
 // Switch to a custom pattern
@@ -108,4 +108,4 @@ await engine.play(device, [
 ], { loop: true });
 ```
 
-For the full options API, see the [`PatternEngine` reference](/docs/reference/pattern-engine).
+[`PatternEngine` reference](/docs/patterns/pattern-engine).

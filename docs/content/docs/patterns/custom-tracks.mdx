@@ -27,7 +27,7 @@ The total cycle duration is the sum of all keyframe durations in the track (1000
 
 ## Multi-Track Patterns
 
-Target multiple features simultaneously by including multiple tracks. Each track operates independently on its assigned `featureIndex`. The cycle duration is determined by the longest track -- shorter tracks hold their final value until the cycle ends.
+Target multiple features simultaneously by including multiple tracks. Each track operates independently on its assigned `featureIndex`. The cycle duration is the longest track; shorter tracks hold their final value until the cycle ends.
 
 ```ts
 await engine.play(device, [
@@ -50,7 +50,7 @@ await engine.play(device, [
 
 ## Output Type and Rotation
 
-Set `outputType` explicitly to target a specific output type when a device has mixed feature types. Valid types are `Vibrate`, `Rotate`, `RotateWithDirection`, `Oscillate`, `Constrict`, `Spray`, `Temperature`, `Led`, `Position`, and `HwPositionWithDuration`. By default, the engine resolves tracks to compatible features automatically.
+Set `outputType` explicitly to target a specific output type when a device has mixed feature types. Valid values are listed in [`OUTPUT_TYPES`](/docs/client/constants#output_types). By default, the engine resolves tracks to compatible features automatically.
 
 For `RotateWithDirection` features, set `clockwise` to control rotation direction (defaults to `true`).
 
@@ -68,7 +68,7 @@ const rotationTrack = {
 
 ## Looping and Intensity
 
-Custom tracks do not loop by default. Pass `loop: true` for infinite repetition or a number for a fixed cycle count. The `intensity` option scales all keyframe values proportionally -- a keyframe with `value: 1` at `intensity: 0.5` produces an effective value of `0.5`.
+Custom tracks do not loop by default. Pass `loop: true` for infinite repetition or a number for a fixed cycle count. The `intensity` option scales keyframe values: `value: 1` at `intensity: 0.5` becomes `0.5`.
 
 ```ts
 await engine.play(device, tracks, {
@@ -77,4 +77,4 @@ await engine.play(device, tracks, {
 });
 ```
 
-Combine looping with [lifecycle callbacks](/docs/patterns/examples) to build sequences that react when cycles complete. See the [`PatternEngine` reference](/docs/reference/pattern-engine) for full `Track` and `Keyframe` type definitions.
+Looping with [lifecycle callbacks](/docs/patterns/examples). [`Track` and `Keyframe` types](/docs/patterns/types).

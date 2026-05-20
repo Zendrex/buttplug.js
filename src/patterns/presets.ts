@@ -1,33 +1,40 @@
-import type { OutputType } from "../protocol/schema";
-import type { Keyframe, PresetInfo, PresetName } from "./types";
+import { z } from "zod";
 
-/**
- * Internal definition of a preset pattern, including its keyframe tracks
- * and compatible output types.
- */
-interface PresetDefinition {
-	/** Human-readable description of the pattern's behavior. */
+import type { OutputType } from "../protocol/schema";
+import type { Keyframe } from "./keyframe";
+
+export const PRESET_NAMES = ["pulse", "wave", "ramp_up", "ramp_down", "heartbeat", "surge", "stroke"] as const;
+
+export type PresetName = (typeof PRESET_NAMES)[number];
+
+export const PresetPatternSchema = z.object({
+	type: z.literal("preset"),
+	preset: z.enum(PRESET_NAMES),
+	intensity: z.number().min(0).max(1).optional(),
+	speed: z.number().min(0.25).max(4).optional(),
+	loop: z.union([z.boolean(), z.number().int().positive()]).optional(),
+});
+
+export type PresetPattern = z.infer<typeof PresetPatternSchema>;
+
+export interface PresetInfo {
+	readonly compatibleOutputTypes: OutputType[];
+	readonly defaultLoop: boolean;
 	readonly description: string;
-	/** Whether this preset loops by default. */
+	readonly name: string;
+}
+
+interface PresetDefinition {
+	readonly description: string;
 	readonly loop: boolean;
-	/** {@link OutputType} values this preset is compatible with. */
 	readonly outputTypes: OutputType[];
-	/** Keyframe sequences for the pattern. Features are assigned tracks via round-robin when there are more features than tracks. */
 	readonly tracks: Keyframe[][];
 }
 
-/** {@link OutputType} values driven by scalar intensity (motors, oscillators, constrictors). */
 const MOTOR_OUTPUT_TYPES: OutputType[] = ["Vibrate", "Rotate", "RotateWithDirection", "Oscillate", "Constrict"];
 
-/** {@link OutputType} values driven by position values (linear actuators). */
 const POSITION_OUTPUT_TYPES: OutputType[] = ["Position", "HwPositionWithDuration"];
 
-/**
- * Built-in pattern presets keyed by {@link PresetName}.
- *
- * Each preset defines keyframe tracks, compatible output types, and default loop behavior.
- * Presets are resolved into {@link ResolvedTrack} arrays by the track resolver.
- */
 export const PRESETS: Record<PresetName, PresetDefinition> = {
 	pulse: {
 		description: "Square wave on/off",
@@ -130,11 +137,6 @@ export const PRESETS: Record<PresetName, PresetDefinition> = {
 	},
 };
 
-/**
- * Returns metadata for all available preset patterns.
- *
- * @returns Array of {@link PresetInfo} with name, description, compatible types, and loop defaults
- */
 export function getPresetInfo(): PresetInfo[] {
 	return Object.entries(PRESETS).map(([name, def]) => ({
 		name,

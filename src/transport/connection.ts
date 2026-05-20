@@ -3,54 +3,32 @@ import { noopLogger } from "../lib/logger";
 import type { Logger } from "../lib/logger";
 import type { Transport, TransportEventName, TransportEvents, TransportState } from "./types";
 
-/**
- * Configuration for {@link WebSocketTransport}.
- */
 export interface WebSocketTransportOptions {
-	/** Optional logger for connection diagnostics. Defaults to a no-op logger. */
 	logger?: Logger;
 }
 
-/**
- * {@link Transport} implementation backed by a native WebSocket.
- *
- * Manages the full connection lifecycle including opening, closing,
- * message dispatch, and event propagation.
- */
+const CLIENT_DISCONNECT_CODE = 1000;
+const CLIENT_DISCONNECT_REASON = "Client disconnect";
+
 export class WebSocketTransport implements Transport {
-	/** Logger for connection diagnostics. */
-	private readonly logger: Logger;
-	/** Map of event names to sets of handler callbacks. */
 	private readonly listeners = new Map<TransportEventName, Set<TransportEvents[TransportEventName]>>();
-
-	/** Active WebSocket instance, null when disconnected. */
-	private ws: WebSocket | null = null;
-	/** Current connection lifecycle state. */
-	private _state: TransportState = "disconnected";
-	/** Tracks in-flight connection attempt to deduplicate concurrent connect calls. */
+	private readonly logger: Logger;
+	private readonly url: string;
 	private connectPromise: Promise<void> | null = null;
-	/** Set by disconnect() when a connect() is in flight to signal early teardown. */
 	private disconnectRequested = false;
-
-	/** Stored handler references for cleanup. */
 	private handleMessage: ((event: MessageEvent) => void) | null = null;
 	private handleClose: ((event: CloseEvent) => void) | null = null;
 	private handleError: ((event: Event) => void) | null = null;
+	private _state: TransportState = "disconnected";
+	private ws: WebSocket | null = null;
 
-	constructor(options: WebSocketTransportOptions = {}) {
+	constructor(url: string, options: WebSocketTransportOptions = {}) {
+		this.url = url;
 		this.logger = (options.logger ?? noopLogger).child("ws-transport");
 	}
 
-	/**
-	 * Opens a WebSocket connection to the given URL.
-	 *
-	 * Returns immediately if already connected. Deduplicates concurrent
-	 * connect calls by returning the same in-flight promise.
-	 *
-	 * @param url - The WebSocket endpoint to connect to
-	 * @throws {ConnectionError} if the connection fails or is closed during handshake
-	 */
-	connect(url: string): Promise<void> {
+	connect(): Promise<void> {
+		const url = this.url;
 		if (this._state === "connected") {
 			return Promise.resolve();
 		}
@@ -80,7 +58,6 @@ export class WebSocketTransport implements Transport {
 			const handleOpen = () => {
 				cleanup();
 
-				// disconnect() was called while connecting — tear down immediately
 				if (this.disconnectRequested) {
 					this.disconnectRequested = false;
 					this.cleanup();
@@ -95,7 +72,7 @@ export class WebSocketTransport implements Transport {
 				resolve();
 			};
 
-			const handleError = (event: Event) => {
+			const handleConnectError = (event: Event) => {
 				cleanup();
 				this.logger.error(`WebSocket error during connect: ${event.type}`);
 				const error = new ConnectionError(`WebSocket error: ${event.type}`);
@@ -105,7 +82,7 @@ export class WebSocketTransport implements Transport {
 				reject(error);
 			};
 
-			const handleClose = (event: CloseEvent) => {
+			const handleConnectClose = (event: CloseEvent) => {
 				cleanup();
 				this._state = "disconnected";
 				this.ws = null;
@@ -118,14 +95,14 @@ export class WebSocketTransport implements Transport {
 			const cleanup = () => {
 				if (this.ws) {
 					this.ws.removeEventListener("open", handleOpen);
-					this.ws.removeEventListener("error", handleError);
-					this.ws.removeEventListener("close", handleClose);
+					this.ws.removeEventListener("error", handleConnectError);
+					this.ws.removeEventListener("close", handleConnectClose);
 				}
 			};
 
 			this.ws.addEventListener("open", handleOpen);
-			this.ws.addEventListener("error", handleError);
-			this.ws.addEventListener("close", handleClose);
+			this.ws.addEventListener("error", handleConnectError);
+			this.ws.addEventListener("close", handleConnectClose);
 		}).finally(() => {
 			this.connectPromise = null;
 		});
@@ -133,18 +110,11 @@ export class WebSocketTransport implements Transport {
 		return this.connectPromise;
 	}
 
-	/**
-	 * Closes the active WebSocket connection.
-	 *
-	 * No-ops if already disconnected. Waits for the close handshake to complete
-	 * if the socket is currently open or closing.
-	 */
 	disconnect(): Promise<void> {
 		if (this._state === "disconnected") {
 			return Promise.resolve();
 		}
 
-		// Signal in-flight connect() to abort on open
 		if (this.connectPromise) {
 			this.disconnectRequested = true;
 		}
@@ -158,17 +128,6 @@ export class WebSocketTransport implements Transport {
 
 		return new Promise<void>((resolve) => {
 			const ws = this.ws;
-
-			if (ws?.readyState === WebSocket.CLOSING) {
-				const onClose = () => {
-					ws.removeEventListener("close", onClose);
-					this.cleanup();
-					resolve();
-				};
-				ws.addEventListener("close", onClose);
-				return;
-			}
-
 			if (!ws) {
 				this.cleanup();
 				resolve();
@@ -181,16 +140,17 @@ export class WebSocketTransport implements Transport {
 				resolve();
 			};
 			ws.addEventListener("close", onClose);
-			ws.close(1000, "Client disconnect");
+
+			if (ws.readyState !== WebSocket.CLOSING) {
+				ws.close(CLIENT_DISCONNECT_CODE, CLIENT_DISCONNECT_REASON);
+			}
 		});
 	}
 
-	/**
-	 * Sends a text message over the active WebSocket.
-	 *
-	 * @param data - The string payload to send
-	 * @throws {ConnectionError} if the WebSocket is not in the OPEN state or send fails
-	 */
+	get state(): TransportState {
+		return this._state;
+	}
+
 	send(data: string): void {
 		if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
 			throw new ConnectionError("Cannot send: WebSocket is not connected");
@@ -205,12 +165,6 @@ export class WebSocketTransport implements Transport {
 		}
 	}
 
-	/**
-	 * Subscribes a handler for the given transport event.
-	 *
-	 * @param event - The event to listen for
-	 * @param handler - The callback to invoke when the event fires
-	 */
 	on<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void {
 		let handlers = this.listeners.get(event);
 		if (!handlers) {
@@ -220,12 +174,6 @@ export class WebSocketTransport implements Transport {
 		handlers.add(handler);
 	}
 
-	/**
-	 * Removes a previously registered handler for the given event.
-	 *
-	 * @param event - The event to stop listening for
-	 * @param handler - The callback to remove
-	 */
 	off<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void {
 		const handlers = this.listeners.get(event);
 		if (handlers) {
@@ -233,12 +181,6 @@ export class WebSocketTransport implements Transport {
 		}
 	}
 
-	/** Current connection lifecycle state. */
-	get state(): TransportState {
-		return this._state;
-	}
-
-	/** Dispatches an event to all registered handlers for that event name. */
 	private emit<E extends TransportEventName>(event: E, ...args: Parameters<TransportEvents[E]>): void {
 		const handlers = this.listeners.get(event);
 		if (!handlers) {
@@ -246,7 +188,6 @@ export class WebSocketTransport implements Transport {
 		}
 		for (const handler of handlers) {
 			try {
-				// Type assertion safe: handler is from a Set keyed by event name, args match the event signature
 				(handler as (...a: unknown[]) => void)(...args);
 			} catch (err) {
 				this.logger.error(`Error in ${event} handler: ${formatError(err)}`);
@@ -254,7 +195,6 @@ export class WebSocketTransport implements Transport {
 		}
 	}
 
-	/** Wires up message, close, and error listeners on the active WebSocket. */
 	private attachHandlers(): void {
 		const ws = this.ws;
 		if (!ws) {
@@ -286,7 +226,6 @@ export class WebSocketTransport implements Transport {
 		ws.addEventListener("error", this.handleError);
 	}
 
-	/** Removes message/close/error listeners from the active WebSocket. */
 	private removeHandlers(): void {
 		const ws = this.ws;
 		if (!ws) {
@@ -306,7 +245,6 @@ export class WebSocketTransport implements Transport {
 		}
 	}
 
-	/** Removes listeners, nulls the socket reference, and resets state to disconnected. */
 	private cleanup(): void {
 		this.removeHandlers();
 		this.ws = null;

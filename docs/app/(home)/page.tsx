@@ -9,33 +9,32 @@ const features = [
 		icon: Cable,
 		title: "Protocol v4",
 		description:
-			"10 output types and 5 sensor inputs — vibration, rotation, position, oscillation, constriction, and more.",
+			"10 output types and 5 sensor inputs: vibration, rotation, position, oscillation, constriction, and more.",
 	},
 	{
 		icon: Shield,
 		title: "Type-safe API",
-		description: "Full TypeScript types with Zod schema validation for autocomplete and compile-time safety.",
+		description: "TypeScript types with Zod validation on protocol messages.",
 	},
 	{
 		icon: Radio,
 		title: "Pattern Engine",
-		description:
-			"Keyframe-based pattern playback with built-in presets, custom tracks, easing curves, and loop control.",
+		description: "Keyframe playback, presets, custom tracks, easing, loop control.",
 	},
 	{
 		icon: RefreshCw,
 		title: "Auto-reconnect",
-		description: "Configurable reconnection with exponential backoff, attempt limits, and lifecycle events.",
+		description: "Exponential backoff, attempt limits, lifecycle events.",
 	},
 	{
 		icon: Puzzle,
-		title: "Runtime Agnostic",
-		description: "Works in any JavaScript runtime with WebSocket support — Node.js, Bun, Deno, and browsers.",
+		title: "Runtime agnostic",
+		description: "WebSocket on Node.js, Bun, Deno, and browsers.",
 	},
 	{
 		icon: Gamepad2,
-		title: "Device Control",
-		description: "High-level API for device discovery, output commands, and sensor reads across all device types.",
+		title: "Device API",
+		description: "Discovery, outputs, sensors, capability checks.",
 	},
 ] as const;
 
@@ -43,8 +42,7 @@ const codeExample = `import { ButtplugClient } from "@zendrex/buttplug.js";
 
 const client = new ButtplugClient("ws://localhost:12345");
 
-client.on("deviceAdded", ({ data: { device } }) => {
-  // Good vibrations
+client.on("device.added", ({ data: { device } }) => {
   device.vibrate(0.5);
 });
 
@@ -54,11 +52,12 @@ await client.startScanning();`;
 export default function HomePage() {
 	return (
 		<div className="flex flex-col">
-			{/* Hero */}
 			<section className="flex flex-col items-center gap-6 px-6 pt-24 pb-16 text-center md:pt-32 md:pb-24">
 				<div className="inline-flex items-center gap-2 rounded-full border border-fd-border bg-fd-secondary/50 px-4 py-1.5 text-fd-muted-foreground text-sm">
 					<Vibrate className="size-3.5" />
-					Buttplug Protocol v4
+					<Link className="hover:text-fd-foreground" href="https://buttplug.io">
+						Buttplug <span className="text-fd-foreground">v4</span>
+					</Link>
 				</div>
 				<h1 className="max-w-3xl font-bold text-5xl leading-[1.1] tracking-tight md:text-6xl">
 					Intimate hardware control for{" "}
@@ -67,15 +66,14 @@ export default function HomePage() {
 					</span>
 				</h1>
 				<p className="max-w-2xl text-fd-muted-foreground text-lg leading-relaxed md:text-xl">
-					A TypeScript client for the Buttplug Intimacy Protocol. Connect to devices, send commands, read
-					sensors, and play patterns — with full type safety and good vibrations.
+					WebSocket or in-browser WASM. Zod-validated messages, typed devices, optional pattern engine.
 				</p>
 				<div className="mt-2 flex flex-wrap justify-center gap-3">
 					<Link
 						className="inline-flex items-center gap-2 rounded-lg bg-fd-primary px-6 py-3 font-medium text-fd-primary-foreground transition-colors hover:bg-fd-primary/90"
 						href="/docs/guide"
 					>
-						Get Started
+						Documentation
 						<ChevronRight className="size-4" />
 					</Link>
 					<Link
@@ -90,18 +88,13 @@ export default function HomePage() {
 				</div>
 			</section>
 
-			{/* Code Preview */}
 			<section className="mx-auto w-full max-w-4xl px-6 pb-16">
 				<ServerCodeBlock code={codeExample} lang="ts" />
 			</section>
 
-			{/* Features */}
 			<section className="border-fd-border border-t bg-fd-card/50 px-6 py-16 md:py-24">
 				<div className="mx-auto max-w-5xl">
-					<h2 className="mb-4 text-center font-semibold text-3xl tracking-tight">Pleasure, engineered</h2>
-					<p className="mx-auto mb-12 max-w-2xl text-center text-fd-muted-foreground text-lg">
-						Everything you need to build intimate applications with confidence.
-					</p>
+					<h2 className="mb-12 text-center font-semibold text-3xl tracking-tight">Overview</h2>
 					<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 						{features.map((feature) => (
 							<div
@@ -119,27 +112,14 @@ export default function HomePage() {
 				</div>
 			</section>
 
-			{/* CTA */}
 			<section className="flex flex-col items-center gap-6 px-6 py-16 text-center md:py-24">
-				<h2 className="font-semibold text-3xl tracking-tight">Ready to turn things on?</h2>
-				<p className="max-w-lg text-fd-muted-foreground text-lg">
-					Follow the getting started guide to connect to your first device in minutes.
-				</p>
-				<div className="flex flex-wrap justify-center gap-3">
-					<Link
-						className="inline-flex items-center gap-2 rounded-lg bg-fd-primary px-6 py-3 font-medium text-fd-primary-foreground transition-colors hover:bg-fd-primary/90"
-						href="/docs/guide"
-					>
-						Read the Guide
-						<ChevronRight className="size-4" />
-					</Link>
-					<Link
-						className="inline-flex items-center gap-2 rounded-lg border border-fd-border px-6 py-3 font-medium transition-colors hover:bg-fd-accent"
-						href="https://github.com/zendrex/buttplug.js"
-					>
-						GitHub
-					</Link>
-				</div>
+				<Link
+					className="inline-flex items-center gap-2 rounded-lg bg-fd-primary px-6 py-3 font-medium text-fd-primary-foreground transition-colors hover:bg-fd-primary/90"
+					href="/docs/guide/getting-started"
+				>
+					Getting started
+					<ChevronRight className="size-4" />
+				</Link>
 			</section>
 		</div>
 	);

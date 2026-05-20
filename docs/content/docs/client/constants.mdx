@@ -1,0 +1,96 @@
+---
+title: Constants
+description: Exported constant values.
+---
+
+Protocol and error constants are exported from the package root:
+
+```ts
+import { OUTPUT_TYPES, INPUT_TYPES, ErrorCode } from "@zendrex/buttplug.js";
+```
+
+Pattern constants (`EASING_VALUES`, `PRESET_NAMES`) live on the `/patterns` subpath; see [Pattern Constants](/docs/patterns/constants).
+
+## OUTPUT_TYPES
+
+All output actuator types defined by the Buttplug v4 protocol. Typed as `readonly OutputType[]`.
+
+```ts
+const OUTPUT_TYPES = [
+  "Vibrate",
+  "Rotate",
+  "RotateWithDirection",
+  "Oscillate",
+  "Constrict",
+  "Spray",
+  "Temperature",
+  "Led",
+  "Position",
+  "HwPositionWithDuration",
+] as const;
+```
+
+| Value | Description |
+| --- | --- |
+| `"Vibrate"` | Vibration motor control |
+| `"Rotate"` | Rotation motor (speed only) |
+| `"RotateWithDirection"` | Rotation motor with clockwise/counter-clockwise direction |
+| `"Oscillate"` | Oscillation motor control |
+| `"Constrict"` | Constriction pressure actuator |
+| `"Spray"` | Spray mechanism |
+| `"Temperature"` | Temperature control (signed values: positive = heat, negative = cool) |
+| `"Led"` | LED brightness control |
+| `"Position"` | Linear position actuator |
+| `"HwPositionWithDuration"` | Position actuator with timed movement duration |
+
+## INPUT_TYPES
+
+All input sensor types defined by the Buttplug v4 protocol. Typed as `readonly InputType[]`.
+
+```ts
+const INPUT_TYPES = [
+  "Battery",
+  "RSSI",
+  "Pressure",
+  "Button",
+  "Position",
+] as const;
+```
+
+| Value | Description |
+| --- | --- |
+| `"Battery"` | Battery level percentage |
+| `"RSSI"` | Bluetooth signal strength |
+| `"Pressure"` | Pressure sensor reading |
+| `"Button"` | Physical button state |
+| `"Position"` | Position sensor reading |
+
+## ErrorCode
+
+Numeric error codes returned by the Buttplug protocol.
+
+```ts
+const ErrorCode = {
+  UNKNOWN: 0,
+  INIT: 1,
+  PING: 2,
+  MESSAGE: 3,
+  DEVICE: 4,
+} as const;
+```
+
+| Key | Value | Description |
+| --- | --- | --- |
+| `UNKNOWN` | `0` | Unknown or unclassified error |
+| `INIT` | `1` | Initialization or handshake error |
+| `PING` | `2` | Ping timeout; server will halt devices |
+| `MESSAGE` | `3` | Malformed or invalid message |
+| `DEVICE` | `4` | Device-specific protocol error |
+
+See [Errors](/docs/client/errors) for the error classes that use these codes.
+
+## Related
+
+- [Types](/docs/client/types): OutputType, InputType, and protocol type aliases
+- [Patterns](/docs/patterns): pattern engine guides and API reference
+- [Errors](/docs/client/errors): ErrorCode usage in ProtocolError
