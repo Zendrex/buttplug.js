@@ -26,7 +26,7 @@ jobs:
         steps:
             - name: Check for source changes
               id: check
-              uses: actions/github-script@v8
+              uses: actions/github-script@v9
               with:
                   script: |
                       const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
@@ -76,7 +76,7 @@ jobs:
 
             - name: Comment on PR
               if: steps.check.outputs.has-code-changes == 'true'
-              uses: actions/github-script@v8
+              uses: actions/github-script@v9
               with:
                   script: |
                       const fs = require('fs');
