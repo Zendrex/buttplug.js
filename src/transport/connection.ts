@@ -16,9 +16,9 @@ export class WebSocketTransport implements Transport {
 	private readonly url: string;
 	private connectPromise: Promise<void> | null = null;
 	private disconnectRequested = false;
-	private handleMessage: ((event: MessageEvent) => void) | null = null;
-	private handleClose: ((event: CloseEvent) => void) | null = null;
-	private handleError: ((event: Event) => void) | null = null;
+	private onMessage: ((event: MessageEvent) => void) | null = null;
+	private onWsClose: ((event: CloseEvent) => void) | null = null;
+	private onWsError: ((event: Event) => void) | null = null;
 	private _state: TransportState = "disconnected";
 	private ws: WebSocket | null = null;
 
@@ -55,7 +55,7 @@ export class WebSocketTransport implements Transport {
 				return;
 			}
 
-			const handleOpen = () => {
+			const onOpen = () => {
 				cleanup();
 
 				if (this.disconnectRequested) {
@@ -72,7 +72,7 @@ export class WebSocketTransport implements Transport {
 				resolve();
 			};
 
-			const handleConnectError = (event: Event) => {
+			const onConnectError = (event: Event) => {
 				cleanup();
 				this.logger.error(`WebSocket error during connect: ${event.type}`);
 				const error = new ConnectionError(`WebSocket error: ${event.type}`);
@@ -82,7 +82,7 @@ export class WebSocketTransport implements Transport {
 				reject(error);
 			};
 
-			const handleConnectClose = (event: CloseEvent) => {
+			const onConnectClose = (event: CloseEvent) => {
 				cleanup();
 				this._state = "disconnected";
 				this.ws = null;
@@ -94,15 +94,15 @@ export class WebSocketTransport implements Transport {
 
 			const cleanup = () => {
 				if (this.ws) {
-					this.ws.removeEventListener("open", handleOpen);
-					this.ws.removeEventListener("error", handleConnectError);
-					this.ws.removeEventListener("close", handleConnectClose);
+					this.ws.removeEventListener("open", onOpen);
+					this.ws.removeEventListener("error", onConnectError);
+					this.ws.removeEventListener("close", onConnectClose);
 				}
 			};
 
-			this.ws.addEventListener("open", handleOpen);
-			this.ws.addEventListener("error", handleConnectError);
-			this.ws.addEventListener("close", handleConnectClose);
+			this.ws.addEventListener("open", onOpen);
+			this.ws.addEventListener("error", onConnectError);
+			this.ws.addEventListener("close", onConnectClose);
 		}).finally(() => {
 			this.connectPromise = null;
 		});
@@ -201,13 +201,13 @@ export class WebSocketTransport implements Transport {
 			return;
 		}
 
-		this.handleMessage = (event: MessageEvent) => {
+		this.onMessage = (event: MessageEvent) => {
 			if (typeof event.data === "string") {
 				this.emit("message", event.data);
 			}
 		};
 
-		this.handleClose = (event: CloseEvent) => {
+		this.onWsClose = (event: CloseEvent) => {
 			this.removeHandlers();
 			this._state = "disconnected";
 			this.ws = null;
@@ -216,14 +216,14 @@ export class WebSocketTransport implements Transport {
 			this.emit("close", event.code, reason);
 		};
 
-		this.handleError = (event: Event) => {
+		this.onWsError = (event: Event) => {
 			this.logger.error(`WebSocket error: ${event.type}`);
 			this.emit("error", new ConnectionError(`WebSocket error: ${event.type}`));
 		};
 
-		ws.addEventListener("message", this.handleMessage);
-		ws.addEventListener("close", this.handleClose);
-		ws.addEventListener("error", this.handleError);
+		ws.addEventListener("message", this.onMessage);
+		ws.addEventListener("close", this.onWsClose);
+		ws.addEventListener("error", this.onWsError);
 	}
 
 	private removeHandlers(): void {
@@ -231,17 +231,17 @@ export class WebSocketTransport implements Transport {
 		if (!ws) {
 			return;
 		}
-		if (this.handleMessage) {
-			ws.removeEventListener("message", this.handleMessage);
-			this.handleMessage = null;
+		if (this.onMessage) {
+			ws.removeEventListener("message", this.onMessage);
+			this.onMessage = null;
 		}
-		if (this.handleClose) {
-			ws.removeEventListener("close", this.handleClose);
-			this.handleClose = null;
+		if (this.onWsClose) {
+			ws.removeEventListener("close", this.onWsClose);
+			this.onWsClose = null;
 		}
-		if (this.handleError) {
-			ws.removeEventListener("error", this.handleError);
-			this.handleError = null;
+		if (this.onWsError) {
+			ws.removeEventListener("error", this.onWsError);
+			this.onWsError = null;
 		}
 	}
 

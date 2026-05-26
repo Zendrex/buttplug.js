@@ -74,8 +74,8 @@ import { consoleLogger } from "@zendrex/buttplug.js";
 import { WasmTransport } from "@zendrex/buttplug.js/wasm";
 
 const transport = new WasmTransport({
-  enableWasmLogging: true,
-  wasmLogLevel: "debug",
+  enableLogging: true,
+  logLevel: "debug",
   logger: consoleLogger,
 });
 

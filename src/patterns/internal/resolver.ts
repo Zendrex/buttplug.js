@@ -1,5 +1,5 @@
 import { DeviceError } from "../../lib/errors";
-import { getOutputsByType } from "../../protocol/features";
+import { outputsByType } from "../../protocol/features";
 import { PRESETS } from "../presets";
 import type { OutputFeature, OutputType } from "../../protocol/schema";
 import type { Easing } from "../easing";
@@ -48,7 +48,7 @@ export function resolvePresetTracks(
 
 	const matchingFeatures: { feature: OutputFeature; outputType: OutputType }[] = [];
 	for (const outputType of preset.outputTypes) {
-		const features = getOutputsByType(device.features, outputType);
+		const features = outputsByType(device.features, outputType);
 		for (const feature of features) {
 			if (featureIndex === undefined || feature.index === featureIndex) {
 				matchingFeatures.push({ feature, outputType });

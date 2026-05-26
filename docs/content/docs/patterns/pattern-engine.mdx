@@ -14,12 +14,12 @@ const engine = new PatternEngine(client);
 ## Constructor
 
 ```ts
-new PatternEngine(client: PatternEngineClient, options?: { defaultTimeout?: number })
+new PatternEngine(client: PatternClient, options?: { defaultTimeout?: number })
 ```
 
 | Parameter | Type | Description |
 | --- | --- | --- |
-| `client` | `PatternEngineClient` | Client providing device access and event hooks |
+| `client` | `PatternClient` | Client providing device access and event hooks |
 | `options.defaultTimeout` | `number` | Safety timeout in milliseconds (default: 30 minutes) |
 
 The default safety timeout automatically stops patterns after 30 minutes to prevent unattended devices from running indefinitely.

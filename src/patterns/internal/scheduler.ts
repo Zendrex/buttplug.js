@@ -46,7 +46,7 @@ export function buildScalarCommand(track: ResolvedTrack, value: number, deviceIn
 	return { [track.outputType]: { Value: value } } as OutputCommand;
 }
 
-export function getCycleDuration(tracks: ResolvedTrack[]): number {
+export function cycleDuration(tracks: ResolvedTrack[]): number {
 	let max = 0;
 	for (const track of tracks) {
 		let total = 0;
@@ -83,7 +83,7 @@ export function evaluateScalarTrack(
 	state.lastSentValues.set(featureIndex, mapped);
 }
 
-export function evaluateHwPositionTrack(
+export function evaluatePositionTrack(
 	state: PatternState,
 	track: ResolvedTrack,
 	elapsed: number,

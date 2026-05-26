@@ -1,25 +1,25 @@
 import { DeviceError, ProtocolError } from "../lib/errors";
 import { PatternDescriptorSchema } from "./descriptor";
 import { resolveTracks } from "./internal/resolver";
-import { evaluateHwPositionTrack, evaluateScalarTrack, getCycleDuration } from "./internal/scheduler";
-import { getPresetInfo, PRESETS } from "./presets";
+import { cycleDuration, evaluatePositionTrack, evaluateScalarTrack } from "./internal/scheduler";
+import { listPresets, PRESETS } from "./presets";
 import type { PatternDescriptor } from "./descriptor";
 import type { PatternState } from "./internal/state";
 import type { PresetInfo, PresetName } from "./presets";
 import type { Track } from "./track";
-import type { PatternDevice, PatternEngineClient, PatternInfo, PatternPlayOptions, StopReason } from "./types";
+import type { PatternClient, PatternDevice, PatternInfo, PatternPlayOptions, StopReason } from "./types";
 
 export class PatternEngine {
 	static readonly DEFAULT_TIMEOUT_MS = 1_800_000;
 	static readonly DEFAULT_TICK_INTERVAL_MS = 50;
-	private readonly client: PatternEngineClient;
+	private readonly client: PatternClient;
 	private readonly patterns: Map<string, PatternState> = new Map();
 	private readonly defaultTimeout: number;
 	private readonly unsubDisconnect: () => void;
 	private readonly unsubDeviceRemoved: () => void;
 	private disposed = false;
 
-	constructor(client: PatternEngineClient, options?: { defaultTimeout?: number }) {
+	constructor(client: PatternClient, options?: { defaultTimeout?: number }) {
 		this.client = client;
 		this.defaultTimeout = options?.defaultTimeout ?? PatternEngine.DEFAULT_TIMEOUT_MS;
 
@@ -31,15 +31,15 @@ export class PatternEngine {
 		});
 	}
 
-	play(device: PatternDevice | number, preset: PresetName, options?: PatternPlayOptions): Promise<string>;
-	play(device: PatternDevice | number, tracks: Track[], options?: PatternPlayOptions): Promise<string>;
-	play(device: PatternDevice | number, descriptor: PatternDescriptor, options?: PatternPlayOptions): Promise<string>;
+	play(target: PatternDevice | number, preset: PresetName, options?: PatternPlayOptions): Promise<string>;
+	play(target: PatternDevice | number, tracks: Track[], options?: PatternPlayOptions): Promise<string>;
+	play(target: PatternDevice | number, descriptor: PatternDescriptor, options?: PatternPlayOptions): Promise<string>;
 	play(
-		device: PatternDevice | number,
+		target: PatternDevice | number,
 		pattern: PresetName | Track[] | PatternDescriptor,
 		options?: PatternPlayOptions
 	): Promise<string> {
-		const deviceIndex = typeof device === "number" ? device : device.index;
+		const deviceIndex = typeof target === "number" ? target : target.index;
 
 		if (this.disposed) {
 			throw new DeviceError(deviceIndex, "PatternEngine has been disposed");
@@ -48,7 +48,7 @@ export class PatternEngine {
 		const descriptor = this.buildDescriptor(pattern, options);
 		const parsed = PatternDescriptorSchema.parse(descriptor);
 
-		const resolvedDevice = typeof device === "number" ? this.client.getDevice(device) : device;
+		const resolvedDevice = typeof target === "number" ? this.client.getDevice(target) : target;
 		if (!resolvedDevice) {
 			throw new DeviceError(deviceIndex, `Device at index ${deviceIndex} not found`);
 		}
@@ -60,7 +60,7 @@ export class PatternEngine {
 
 		for (const state of this.patterns.values()) {
 			if (state.deviceIndex === deviceIndex) {
-				this.stopPatternInternal(state, "manual");
+				this.stopPattern(state, "manual");
 			}
 		}
 
@@ -100,7 +100,7 @@ export class PatternEngine {
 
 		const timeout = options?.timeout ?? this.defaultTimeout;
 		if (timeout > 0) {
-			state.safetyTimerId = setTimeout(() => this.stopPatternInternal(state, "timeout"), timeout);
+			state.safetyTimerId = setTimeout(() => this.stopPattern(state, "timeout"), timeout);
 		}
 		state.timerId = setTimeout(() => this.tick(state, resolvedDevice), 0);
 		return Promise.resolve(id);
@@ -111,7 +111,7 @@ export class PatternEngine {
 		if (!state) {
 			return Promise.resolve();
 		}
-		this.stopPatternInternal(state, "manual");
+		this.stopPattern(state, "manual");
 		return Promise.resolve();
 	}
 
@@ -146,7 +146,7 @@ export class PatternEngine {
 	}
 
 	listPresets(): PresetInfo[] {
-		return getPresetInfo();
+		return listPresets();
 	}
 
 	private tick(state: PatternState, device: PatternDevice): void {
@@ -156,15 +156,15 @@ export class PatternEngine {
 
 		const now = performance.now();
 		const elapsed = now - state.startedAt;
-		const cycleDuration = getCycleDuration(state.tracks);
+		const duration = cycleDuration(state.tracks);
 
-		const cycleComplete = cycleDuration > 0 && elapsed >= cycleDuration;
-		const cycleElapsed = cycleComplete ? cycleDuration : elapsed;
+		const cycleComplete = duration > 0 && elapsed >= duration;
+		const cycleElapsed = cycleComplete ? duration : elapsed;
 		const onError = (err: unknown) => this.handleOutputError(state, err);
 
 		for (const track of state.tracks) {
 			if (track.outputType === "HwPositionWithDuration") {
-				evaluateHwPositionTrack(state, track, cycleElapsed, device, onError);
+				evaluatePositionTrack(state, track, cycleElapsed, device, onError);
 			} else {
 				evaluateScalarTrack(state, track, cycleElapsed, device, onError);
 			}
@@ -172,14 +172,14 @@ export class PatternEngine {
 
 		if (cycleComplete) {
 			if (state.remainingLoops === Number.POSITIVE_INFINITY) {
-				state.startedAt += cycleDuration;
+				state.startedAt += duration;
 				state.lastSentKeyframeIndex.clear();
 			} else if (state.remainingLoops > 1) {
 				state.remainingLoops--;
-				state.startedAt += cycleDuration;
+				state.startedAt += duration;
 				state.lastSentKeyframeIndex.clear();
 			} else {
-				this.stopPatternInternal(state, "complete", true);
+				this.stopPattern(state, "complete", true);
 				return;
 			}
 		}
@@ -192,7 +192,7 @@ export class PatternEngine {
 
 	private handleOutputError(state: PatternState, err: unknown): void {
 		if (err instanceof DeviceError || err instanceof ProtocolError) {
-			this.stopPatternInternal(state, "error");
+			this.stopPattern(state, "error");
 		}
 	}
 
@@ -226,12 +226,12 @@ export class PatternEngine {
 				? [...this.patterns.values()]
 				: [...this.patterns.values()].filter((s) => s.deviceIndex === deviceIndex);
 		for (const state of patterns) {
-			this.stopPatternInternal(state, reason);
+			this.stopPattern(state, reason);
 		}
 		return patterns.length;
 	}
 
-	private stopPatternInternal(state: PatternState, reason: StopReason, complete = false): void {
+	private stopPattern(state: PatternState, reason: StopReason, complete = false): void {
 		if (state.stopped) {
 			return;
 		}

@@ -4,7 +4,7 @@ import { buildScalarOutputMessages } from "./builders/scalar";
 import { DeviceError } from "./lib/errors";
 import { noopLogger } from "./lib/logger";
 import { validateRange } from "./lib/range";
-import { getInputsByType, getOutputsByType, hasOutputType, parseFeatures } from "./protocol/features";
+import { hasOutputType, inputsByType, outputsByType, parseFeatures } from "./protocol/features";
 import { sensorKey } from "./protocol/shared";
 import type { Logger } from "./lib/logger";
 import type {
@@ -96,7 +96,7 @@ export class Device {
 			throw new DeviceError(this.index, "Device does not support rotation");
 		}
 		const rotationType = hasOutputType(this._features, "RotateWithDirection") ? "RotateWithDirection" : "Rotate";
-		const features = getOutputsByType(this._features, rotationType);
+		const features = outputsByType(this._features, rotationType);
 		const clockwise = options?.clockwise ?? true;
 		const messages = buildRotateMessages({
 			client: this.client,
@@ -126,7 +126,7 @@ export class Device {
 		const positionType = hasOutputType(this._features, "HwPositionWithDuration")
 			? "HwPositionWithDuration"
 			: "Position";
-		const features = getOutputsByType(this._features, positionType);
+		const features = outputsByType(this._features, positionType);
 		const duration = typeof position === "number" ? (options?.duration ?? 0) : 0;
 		const messages = buildPositionMessages({
 			client: this.client,
@@ -225,25 +225,25 @@ export class Device {
 		const feature = this.requireSensor({ type, sensorIndex, capability: "canSubscribe" });
 		const subscriptionKey = sensorKey(this.index, feature.index, type);
 		await this.sendInputCmd({ featureIndex: feature.index, type, command: "Subscribe" });
-		this.client.registerSensorSubscription(subscriptionKey, callback, {
+		this.client.registerSensor(subscriptionKey, callback, {
 			deviceIndex: this.index,
 			featureIndex: feature.index,
 			type,
 		});
 		return async () => {
-			this.client.unregisterSensorSubscription(subscriptionKey);
+			this.client.unregisterSensor(subscriptionKey);
 			await this.sendInputCmd({ featureIndex: feature.index, type, command: "Unsubscribe" });
 		};
 	}
 
 	async unsubscribe(type: InputType, sensorIndex = 0): Promise<void> {
-		const features = getInputsByType(this._features, type);
+		const features = inputsByType(this._features, type);
 		const feature = features[sensorIndex];
 		if (!feature) {
 			throw new DeviceError(this.index, `Device does not have ${type} sensor at index ${sensorIndex}`);
 		}
 		const subscriptionKey = sensorKey(this.index, feature.index, type);
-		this.client.unregisterSensorSubscription(subscriptionKey);
+		this.client.unregisterSensor(subscriptionKey);
 		await this.sendInputCmd({ featureIndex: feature.index, type, command: "Unsubscribe" });
 	}
 
@@ -252,11 +252,11 @@ export class Device {
 	}
 
 	canRead(type: InputType): boolean {
-		return getInputsByType(this._features, type).some((f) => f.canRead);
+		return inputsByType(this._features, type).some((f) => f.canRead);
 	}
 
 	canSubscribe(type: InputType): boolean {
-		return getInputsByType(this._features, type).some((f) => f.canSubscribe);
+		return inputsByType(this._features, type).some((f) => f.canSubscribe);
 	}
 
 	get canRotate(): boolean {
@@ -289,7 +289,7 @@ export class Device {
 
 	private requireSensor(params: { type: InputType; sensorIndex: number; capability: "canRead" | "canSubscribe" }) {
 		const { type, sensorIndex, capability } = params;
-		const features = getInputsByType(this._features, type);
+		const features = inputsByType(this._features, type);
 		const feature = features[sensorIndex];
 		if (!feature) {
 			throw new DeviceError(this.index, `Device does not have ${type} sensor at index ${sensorIndex}`);
@@ -323,7 +323,7 @@ export class Device {
 		if (!this.canOutput(type)) {
 			throw new DeviceError(this.index, `Device does not support ${errorLabel}`);
 		}
-		const features = getOutputsByType(this._features, type);
+		const features = outputsByType(this._features, type);
 		const messages = buildScalarOutputMessages({
 			client: this.client,
 			deviceIndex: this.index,

@@ -18,10 +18,10 @@ export const PresetPatternSchema = z.object({
 export type PresetPattern = z.infer<typeof PresetPatternSchema>;
 
 export interface PresetInfo {
-	readonly compatibleOutputTypes: OutputType[];
 	readonly defaultLoop: boolean;
 	readonly description: string;
 	readonly name: string;
+	readonly outputTypes: OutputType[];
 }
 
 interface PresetDefinition {
@@ -137,11 +137,11 @@ export const PRESETS: Record<PresetName, PresetDefinition> = {
 	},
 };
 
-export function getPresetInfo(): PresetInfo[] {
+export function listPresets(): PresetInfo[] {
 	return Object.entries(PRESETS).map(([name, def]) => ({
 		name,
 		description: def.description,
-		compatibleOutputTypes: def.outputTypes,
+		outputTypes: def.outputTypes,
 		defaultLoop: def.loop,
 	}));
 }

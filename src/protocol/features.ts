@@ -52,11 +52,11 @@ class DeviceFeaturesIndex {
 		return this.getOutputIndex(features).has(type);
 	}
 
-	getOutputsByType(features: DeviceFeatures, type: OutputType): OutputFeature[] {
+	outputsByType(features: DeviceFeatures, type: OutputType): OutputFeature[] {
 		return this.getOutputIndex(features).get(type) ?? [];
 	}
 
-	getInputsByType(features: DeviceFeatures, type: InputType): InputFeature[] {
+	inputsByType(features: DeviceFeatures, type: InputType): InputFeature[] {
 		return this.getInputIndex(features).get(type) ?? [];
 	}
 
@@ -73,7 +73,7 @@ class DeviceFeaturesIndex {
 		return map;
 	}
 
-	private getOrBuildIndex<T extends string, F extends { type: T }>(
+	private indexFor<T extends string, F extends { type: T }>(
 		cache: WeakMap<DeviceFeatures, Map<T, F[]>>,
 		features: DeviceFeatures,
 		items: readonly F[]
@@ -87,11 +87,11 @@ class DeviceFeaturesIndex {
 	}
 
 	private getOutputIndex(features: DeviceFeatures): Map<OutputType, OutputFeature[]> {
-		return this.getOrBuildIndex(this.outputIndex, features, features.outputs);
+		return this.indexFor(this.outputIndex, features, features.outputs);
 	}
 
 	private getInputIndex(features: DeviceFeatures): Map<InputType, InputFeature[]> {
-		return this.getOrBuildIndex(this.inputIndex, features, features.inputs);
+		return this.indexFor(this.inputIndex, features, features.inputs);
 	}
 
 	private collectOutputs(feature: RawDeviceFeature, logger: Logger): OutputFeature[] {
@@ -178,10 +178,10 @@ export function hasOutputType(features: DeviceFeatures, type: OutputType): boole
 	return deviceFeaturesIndex.hasOutputType(features, type);
 }
 
-export function getOutputsByType(features: DeviceFeatures, type: OutputType): OutputFeature[] {
-	return deviceFeaturesIndex.getOutputsByType(features, type);
+export function outputsByType(features: DeviceFeatures, type: OutputType): OutputFeature[] {
+	return deviceFeaturesIndex.outputsByType(features, type);
 }
 
-export function getInputsByType(features: DeviceFeatures, type: InputType): InputFeature[] {
-	return deviceFeaturesIndex.getInputsByType(features, type);
+export function inputsByType(features: DeviceFeatures, type: InputType): InputFeature[] {
+	return deviceFeaturesIndex.inputsByType(features, type);
 }

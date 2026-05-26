@@ -125,7 +125,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 					this.pingManager.stop();
 					this.emit("connection.reconnecting", { attempt });
 				},
-				onReconnected: () => this.handleReconnected(),
+				onReconnected: () => this.onReconnected(),
 				onFailed: (reason) => {
 					this.logger.error(`Reconnection failed: ${reason}`);
 					this.emit("connection.error", { error: new ConnectionError(reason) });
@@ -250,7 +250,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 		return this.messageRouter.nextId();
 	}
 
-	registerSensorSubscription(
+	registerSensor(
 		key: string,
 		callback: SensorCallback,
 		info: { deviceIndex: number; featureIndex: number; type: InputType }
@@ -263,7 +263,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 		return await this.messageRouter.send(messages);
 	}
 
-	unregisterSensorSubscription(key: string): void {
+	unregisterSensor(key: string): void {
 		this.sensorHandler.unregister(key);
 	}
 
@@ -409,7 +409,7 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 		this.emit("connection.connected", undefined);
 	}
 
-	private async handleReconnected(): Promise<void> {
+	private async onReconnected(): Promise<void> {
 		this.logger.info("Reconnected, performing handshake");
 		this.messageRouter.cancelAll(new ConnectionError("Reconnecting"));
 		this.messageRouter.resetId();

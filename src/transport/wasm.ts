@@ -8,13 +8,13 @@ export interface WasmTransportOptions {
 	 * Activate the WASM server's internal `env_logger` on connect.
 	 * @defaultValue false
 	 */
-	enableWasmLogging?: boolean;
+	enableLogging?: boolean;
 	logger?: Logger;
 	/**
-	 * Log level passed to `activateLogging` when `enableWasmLogging` is true.
+	 * Log level passed to `activateLogging` when `enableLogging` is true.
 	 * @defaultValue "info"
 	 */
-	wasmLogLevel?: string;
+	logLevel?: string;
 }
 
 type WasmModule = typeof import("buttplug-wasm-blob");
@@ -34,16 +34,16 @@ const decoder = new TextDecoder();
 export class WasmTransport implements Transport {
 	private readonly listeners = new Map<TransportEventName, Set<TransportEvents[TransportEventName]>>();
 	private readonly logger: Logger;
-	private readonly enableWasmLogging: boolean;
-	private readonly wasmLogLevel: string;
+	private readonly enableLogging: boolean;
+	private readonly logLevel: string;
 	private wasm: WasmModule | null = null;
 	private handle: number | null = null;
 	private _state: TransportState = "disconnected";
 
 	constructor(options: WasmTransportOptions = {}) {
 		this.logger = (options.logger ?? noopLogger).child("wasm-transport");
-		this.enableWasmLogging = options.enableWasmLogging ?? false;
-		this.wasmLogLevel = options.wasmLogLevel ?? "info";
+		this.enableLogging = options.enableLogging ?? false;
+		this.logLevel = options.logLevel ?? "info";
 	}
 
 	async connect(): Promise<void> {
@@ -55,8 +55,8 @@ export class WasmTransport implements Transport {
 		try {
 			const mod = (await import("buttplug-wasm-blob")) as WasmModule;
 			await mod.loadButtplugWasm();
-			if (this.enableWasmLogging) {
-				mod.activateLogging(this.wasmLogLevel);
+			if (this.enableLogging) {
+				mod.activateLogging(this.logLevel);
 			}
 			this.handle = mod.createServer((msg) => this.handleIncoming(msg));
 			this.wasm = mod;
