@@ -1,5 +1,44 @@
 # @zendrex/buttplug.js
 
+## 0.5.0
+
+### Minor Changes
+
+- [#42](https://github.com/Zendrex/buttplug.js/pull/42) [`53481c7`](https://github.com/Zendrex/buttplug.js/commit/53481c7e998407139680fae7ac72f6348402ba66) Thanks [@Zendrex](https://github.com/Zendrex)! - Naming cleanup for clarity and role-consistent prefixes. Several exports and options were renamed; update imports and call sites accordingly.
+
+  **Patterns (`@zendrex/buttplug.js/patterns`):**
+
+  - `PatternEngineClient` → `PatternClient`
+  - `getPresetInfo` → `listPresets` (module export; `PatternEngine.listPresets()` unchanged in name)
+  - `PresetInfo.compatibleOutputTypes` → `outputTypes`
+  - `PatternEngine.play(device, …)` → `play(target, …)` (parameter rename only)
+
+  **Sensors (`DeviceMessageSender` / custom client implementors):**
+
+  - `registerSensorSubscription` → `registerSensor`
+  - `unregisterSensorSubscription` → `unregisterSensor`
+
+  **Feature helpers (deep imports from `./protocol/features`):**
+
+  - `getOutputsByType` → `outputsByType`
+  - `getInputsByType` → `inputsByType`
+
+  **Wasm transport (`@zendrex/buttplug.js/wasm`):**
+
+  - `WasmTransportOptions.enableWasmLogging` → `enableLogging`
+  - `WasmTransportOptions.wasmLogLevel` → `logLevel`
+
+  **Unchanged (intentionally kept):** `ButtplugClientOptions.clientName`, `requestTimeout`; device `featureIndex` options; `Device` class name.
+
+### Patch Changes
+
+- [#42](https://github.com/Zendrex/buttplug.js/pull/42) [`9895811`](https://github.com/Zendrex/buttplug.js/commit/9895811970f9ee341b8d3a219778e1a8bcd36ad4) Thanks [@Zendrex](https://github.com/Zendrex)! - Fix auto-reconnect re-arming and trim disconnect teardown.
+
+  - **Auto-reconnect**: reconnect now arms only on an _unexpected_ transport close, not on every `connection.disconnected` emit. Explicit `disconnect()` — including server ping-timeout teardown — no longer re-triggers reconnection.
+  - **Disconnect**: the client no longer sends a protocol `Disconnect` message during teardown; teardown still stops all devices and cancels in-flight requests.
+
+  Also includes an internal declutter pass (shared transport event-emitter base, folded single-use helpers, direct feature-array filters) with no public API changes.
+
 ## 0.4.0
 
 ### Minor Changes
