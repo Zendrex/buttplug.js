@@ -36,8 +36,11 @@ Thumbs.db
 # =====================
 # AI / Agents
 # =====================
+.agents/
+.codex/
 .claude/
 .cursor/
+.worktrees/
 
 # =====================
 # Logs
@@ -63,13 +66,3 @@ coverage
 .cache
 tmp
 temp
-
-# =====================
-# Documentation
-# =====================
-docs/.next/
-docs/.source/
-docs/out/
-docs/node_modules/
-docs/bun.lock
-docs/next-env.d.ts

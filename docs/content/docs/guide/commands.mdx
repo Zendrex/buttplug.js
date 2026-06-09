@@ -90,7 +90,7 @@ For advanced cases, send a typed `OutputCommand` to a specific feature. Unlike t
 
 ```ts
 await device.output({
-  index: 0,
+  featureIndex: 0,
   command: { Vibrate: { Value: 50 } }, // device-range integer
 });
 ```

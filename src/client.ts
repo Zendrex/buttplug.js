@@ -65,6 +65,12 @@ export interface ButtplugClientOptions {
 
 const STOP_DEVICES_TIMEOUT_MS = 2000;
 
+/**
+ * Primary entry point for talking to a Buttplug v4 server. Construct with a
+ * WebSocket URL or a custom {@link Transport}, then `connect()` to perform the
+ * handshake. Tracks the device list and emits {@link ClientEventMap} events
+ * across the connection and device lifecycle.
+ */
 export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMessageSender {
 	private readonly clientName: string;
 	private readonly baseLogger: Logger;

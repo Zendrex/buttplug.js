@@ -116,11 +116,11 @@ const id = await engine.play(device, "wave", {
 
 const id2 = await engine.play(device, [
   {
-    index: 0,
+    featureIndex: 0,
     keyframes: [
       { value: 0, duration: 0 },
-      { value: 100, duration: 1000, easing: "easeIn" },
-      { value: 20, duration: 500, easing: "easeOut" },
+      { value: 1, duration: 1000, easing: "easeIn" },
+      { value: 0.2, duration: 500, easing: "easeOut" },
     ],
   },
 ], { loop: 3, intensity: 0.6 });

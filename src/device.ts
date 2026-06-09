@@ -39,6 +39,12 @@ export interface DeviceOutputOptions {
 	featureIndex: number;
 }
 
+/**
+ * Handle to a connected device. Use the capability checks (`canOutput`,
+ * `canRead`, `canSubscribe`, `canRotate`, `canPosition`) to gate access, the
+ * typed output methods that map normalized 0-1 floats to each feature's device
+ * range, and the sensor `read`/`subscribe` helpers.
+ */
 export class Device {
 	private readonly client: DeviceMessageSender;
 	private readonly logger: Logger;

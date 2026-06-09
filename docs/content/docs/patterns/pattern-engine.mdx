@@ -36,7 +36,7 @@ The `play` method has three overloads for different pattern specification styles
 
 ```ts
 play(
-  device: PatternDevice | number,
+  target: PatternDevice | number,
   preset: PresetName,
   options?: PatternPlayOptions
 ): Promise<string>
@@ -56,7 +56,7 @@ const id = await engine.play(device, "wave", {
 
 ```ts
 play(
-  device: PatternDevice | number,
+  target: PatternDevice | number,
   tracks: Track[],
   options?: PatternPlayOptions
 ): Promise<string>
@@ -81,7 +81,7 @@ const id = await engine.play(device, [
 
 ```ts
 play(
-  device: PatternDevice | number,
+  target: PatternDevice | number,
   descriptor: PatternDescriptor,
   options?: PatternPlayOptions
 ): Promise<string>
@@ -102,7 +102,7 @@ const id = await engine.play(device, {
 
 | Parameter | Type | Description |
 | --- | --- | --- |
-| `device` | `PatternDevice \| number` | Target device instance or device index |
+| `target` | `PatternDevice \| number` | Target device instance or device index |
 | `preset` | `PresetName` | Built-in preset name (overload 1) |
 | `tracks` | `Track[]` | Custom keyframe tracks (overload 2) |
 | `descriptor` | `PatternDescriptor` | Full pattern descriptor (overload 3) |
