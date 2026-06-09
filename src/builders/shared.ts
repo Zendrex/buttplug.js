@@ -1,25 +1,6 @@
 import { DeviceError } from "../lib/errors";
 import type { OutputFeature } from "../protocol/schema";
 
-export function assertNonEmpty<T>(values: T[], deviceIndex: number): void {
-	if (values.length === 0) {
-		throw new DeviceError(deviceIndex, "Values array must not be empty");
-	}
-}
-
-export function findFeatureOrThrow(
-	features: OutputFeature[],
-	index: number,
-	deviceIndex: number,
-	label: string
-): OutputFeature {
-	const feature = features.find((f) => f.index === index);
-	if (!feature) {
-		throw new DeviceError(deviceIndex, `${label} feature index ${index} not found on device`);
-	}
-	return feature;
-}
-
 export function buildBatchMessages<E extends { index: number }, M>(
 	input: number | E[],
 	features: OutputFeature[],
@@ -29,10 +10,16 @@ export function buildBatchMessages<E extends { index: number }, M>(
 	fromBroadcast: (feature: OutputFeature) => M
 ): M[] {
 	if (Array.isArray(input)) {
-		assertNonEmpty(input, deviceIndex);
-		return input.map((entry) =>
-			fromEntry(findFeatureOrThrow(features, entry.index, deviceIndex, errorLabel), entry)
-		);
+		if (input.length === 0) {
+			throw new DeviceError(deviceIndex, "Values array must not be empty");
+		}
+		return input.map((entry) => {
+			const feature = features.find((f) => f.index === entry.index);
+			if (!feature) {
+				throw new DeviceError(deviceIndex, `${errorLabel} feature index ${entry.index} not found on device`);
+			}
+			return fromEntry(feature, entry);
+		});
 	}
 	return features.map(fromBroadcast);
 }

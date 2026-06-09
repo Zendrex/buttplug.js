@@ -1,5 +1,5 @@
 import { DeviceError } from "../../lib/errors";
-import { mapToRange } from "../../lib/range";
+import { clampNormalized, mapToRange } from "../../lib/range";
 import { EASING_FUNCTIONS } from "../easing";
 import type { OutputCommand } from "../../protocol/schema";
 import type { PatternDevice } from "../types";
@@ -26,14 +26,14 @@ function interpolateKeyframes(keyframes: ResolvedKeyframe[], elapsed: number): n
 		if (elapsed < accumulated + kf.duration) {
 			const t = (elapsed - accumulated) / kf.duration;
 			const result = prevValue + (kf.value - prevValue) * EASING_FUNCTIONS[kf.easing](t);
-			return Math.max(0, Math.min(1, result));
+			return clampNormalized(result);
 		}
 
 		accumulated += kf.duration;
 		value = kf.value;
 	}
 
-	return Math.max(0, Math.min(1, value));
+	return clampNormalized(value);
 }
 
 export function buildScalarCommand(track: ResolvedTrack, value: number, deviceIndex: number): OutputCommand {

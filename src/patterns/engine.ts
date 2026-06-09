@@ -1,12 +1,11 @@
 import { DeviceError, ProtocolError } from "../lib/errors";
-import { PatternDescriptorSchema } from "./descriptor";
 import { resolveTracks } from "./internal/resolver";
 import { cycleDuration, evaluatePositionTrack, evaluateScalarTrack } from "./internal/scheduler";
 import { listPresets, PRESETS } from "./presets";
-import type { PatternDescriptor } from "./descriptor";
+import { PatternDescriptorSchema } from "./track";
 import type { PatternState } from "./internal/state";
 import type { PresetInfo, PresetName } from "./presets";
-import type { Track } from "./track";
+import type { PatternDescriptor, Track } from "./track";
 import type { PatternClient, PatternDevice, PatternInfo, PatternPlayOptions, StopReason } from "./types";
 
 export class PatternEngine {

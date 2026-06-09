@@ -1,7 +1,8 @@
 import { ConnectionError, formatError } from "../lib/errors";
 import { noopLogger } from "../lib/logger";
+import { TransportEventEmitter } from "./event-emitter";
 import type { Logger } from "../lib/logger";
-import type { Transport, TransportEventName, TransportEvents, TransportState } from "./types";
+import type { Transport, TransportState } from "./types";
 
 export interface WasmTransportOptions {
 	/**
@@ -31,9 +32,7 @@ const decoder = new TextDecoder();
  *
  * @remarks `buttplug-wasm-blob` is an optional peer dependency.
  */
-export class WasmTransport implements Transport {
-	private readonly listeners = new Map<TransportEventName, Set<TransportEvents[TransportEventName]>>();
-	private readonly logger: Logger;
+export class WasmTransport extends TransportEventEmitter implements Transport {
 	private readonly enableLogging: boolean;
 	private readonly logLevel: string;
 	private wasm: WasmModule | null = null;
@@ -41,7 +40,7 @@ export class WasmTransport implements Transport {
 	private _state: TransportState = "disconnected";
 
 	constructor(options: WasmTransportOptions = {}) {
-		this.logger = (options.logger ?? noopLogger).child("wasm-transport");
+		super((options.logger ?? noopLogger).child("wasm-transport"));
 		this.enableLogging = options.enableLogging ?? false;
 		this.logLevel = options.logLevel ?? "info";
 	}
@@ -108,33 +107,6 @@ export class WasmTransport implements Transport {
 				`Failed to send data: ${formatError(error)}`,
 				error instanceof Error ? error : undefined
 			);
-		}
-	}
-
-	on<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void {
-		let handlers = this.listeners.get(event);
-		if (!handlers) {
-			handlers = new Set();
-			this.listeners.set(event, handlers);
-		}
-		handlers.add(handler);
-	}
-
-	off<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void {
-		this.listeners.get(event)?.delete(handler);
-	}
-
-	private emit<E extends TransportEventName>(event: E, ...args: Parameters<TransportEvents[E]>): void {
-		const handlers = this.listeners.get(event);
-		if (!handlers) {
-			return;
-		}
-		for (const handler of handlers) {
-			try {
-				(handler as (...a: unknown[]) => void)(...args);
-			} catch (error) {
-				this.logger.error(`Error in ${event} handler: ${formatError(error)}`);
-			}
 		}
 	}
 

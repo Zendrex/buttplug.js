@@ -1,4 +1,4 @@
-import type { PatternDescriptor } from "../descriptor";
+import type { PatternDescriptor } from "../track";
 import type { PatternPlayOptions } from "../types";
 import type { ResolvedTrack } from "./resolver";
 

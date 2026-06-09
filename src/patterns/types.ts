@@ -1,6 +1,6 @@
 import type { DeviceOutputOptions, DeviceStopOptions } from "../device";
 import type { DeviceFeatures } from "../protocol/schema";
-import type { PatternDescriptor } from "./descriptor";
+import type { PatternDescriptor } from "./track";
 
 export interface PatternDevice {
 	readonly features: DeviceFeatures;

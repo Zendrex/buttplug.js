@@ -1,7 +1,8 @@
 import { ConnectionError, formatError } from "../lib/errors";
 import { noopLogger } from "../lib/logger";
+import { TransportEventEmitter } from "./event-emitter";
 import type { Logger } from "../lib/logger";
-import type { Transport, TransportEventName, TransportEvents, TransportState } from "./types";
+import type { Transport, TransportState } from "./types";
 
 export interface WebSocketTransportOptions {
 	logger?: Logger;
@@ -10,21 +11,23 @@ export interface WebSocketTransportOptions {
 const CLIENT_DISCONNECT_CODE = 1000;
 const CLIENT_DISCONNECT_REASON = "Client disconnect";
 
-export class WebSocketTransport implements Transport {
-	private readonly listeners = new Map<TransportEventName, Set<TransportEvents[TransportEventName]>>();
-	private readonly logger: Logger;
+export class WebSocketTransport extends TransportEventEmitter implements Transport {
 	private readonly url: string;
 	private connectPromise: Promise<void> | null = null;
 	private disconnectRequested = false;
-	private onMessage: ((event: MessageEvent) => void) | null = null;
+	private onWsMessage: ((event: MessageEvent) => void) | null = null;
 	private onWsClose: ((event: CloseEvent) => void) | null = null;
 	private onWsError: ((event: Event) => void) | null = null;
 	private _state: TransportState = "disconnected";
 	private ws: WebSocket | null = null;
 
 	constructor(url: string, options: WebSocketTransportOptions = {}) {
+		super((options.logger ?? noopLogger).child("ws-transport"));
 		this.url = url;
-		this.logger = (options.logger ?? noopLogger).child("ws-transport");
+	}
+
+	get state(): TransportState {
+		return this._state;
 	}
 
 	connect(): Promise<void> {
@@ -147,10 +150,6 @@ export class WebSocketTransport implements Transport {
 		});
 	}
 
-	get state(): TransportState {
-		return this._state;
-	}
-
 	send(data: string): void {
 		if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
 			throw new ConnectionError("Cannot send: WebSocket is not connected");
@@ -165,43 +164,13 @@ export class WebSocketTransport implements Transport {
 		}
 	}
 
-	on<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void {
-		let handlers = this.listeners.get(event);
-		if (!handlers) {
-			handlers = new Set();
-			this.listeners.set(event, handlers);
-		}
-		handlers.add(handler);
-	}
-
-	off<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void {
-		const handlers = this.listeners.get(event);
-		if (handlers) {
-			handlers.delete(handler);
-		}
-	}
-
-	private emit<E extends TransportEventName>(event: E, ...args: Parameters<TransportEvents[E]>): void {
-		const handlers = this.listeners.get(event);
-		if (!handlers) {
-			return;
-		}
-		for (const handler of handlers) {
-			try {
-				(handler as (...a: unknown[]) => void)(...args);
-			} catch (err) {
-				this.logger.error(`Error in ${event} handler: ${formatError(err)}`);
-			}
-		}
-	}
-
 	private attachHandlers(): void {
 		const ws = this.ws;
 		if (!ws) {
 			return;
 		}
 
-		this.onMessage = (event: MessageEvent) => {
+		this.onWsMessage = (event: MessageEvent) => {
 			if (typeof event.data === "string") {
 				this.emit("message", event.data);
 			}
@@ -221,7 +190,7 @@ export class WebSocketTransport implements Transport {
 			this.emit("error", new ConnectionError(`WebSocket error: ${event.type}`));
 		};
 
-		ws.addEventListener("message", this.onMessage);
+		ws.addEventListener("message", this.onWsMessage);
 		ws.addEventListener("close", this.onWsClose);
 		ws.addEventListener("error", this.onWsError);
 	}
@@ -231,9 +200,9 @@ export class WebSocketTransport implements Transport {
 		if (!ws) {
 			return;
 		}
-		if (this.onMessage) {
-			ws.removeEventListener("message", this.onMessage);
-			this.onMessage = null;
+		if (this.onWsMessage) {
+			ws.removeEventListener("message", this.onWsMessage);
+			this.onWsMessage = null;
 		}
 		if (this.onWsClose) {
 			ws.removeEventListener("close", this.onWsClose);
