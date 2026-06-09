@@ -10,7 +10,6 @@ import { resolveDiagnosticsLogger } from "./lib/logger";
 import { raceTimeout } from "./lib/promise";
 import { DEFAULT_CLIENT_NAME } from "./protocol/constants";
 import {
-	createDisconnect,
 	createPing,
 	createRequestDeviceList,
 	createStartScanning,
@@ -65,7 +64,6 @@ export interface ButtplugClientOptions {
 }
 
 const STOP_DEVICES_TIMEOUT_MS = 2000;
-const DISCONNECT_TIMEOUT_MS = 3000;
 
 export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMessageSender {
 	private readonly clientName: string;
@@ -190,14 +188,6 @@ export class ButtplugClient extends Emittery<ClientEventMap> implements DeviceMe
 					await raceTimeout(this.stopAll(), STOP_DEVICES_TIMEOUT_MS);
 				} catch {
 					this.logger.warn("Stop all devices timed out during disconnect");
-				}
-				try {
-					await raceTimeout(
-						this.messageRouter.send(createDisconnect(this.messageRouter.nextId())),
-						DISCONNECT_TIMEOUT_MS
-					);
-				} catch {
-					this.logger.warn("Disconnect message failed or timed out");
 				}
 			}
 
