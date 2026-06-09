@@ -1,5 +1,5 @@
 ---
-"@zendrex/buttplug.js": major
+"@zendrex/buttplug.js": minor
 ---
 
 Naming cleanup for clarity and role-consistent prefixes. Several exports and options were renamed; update imports and call sites accordingly.
