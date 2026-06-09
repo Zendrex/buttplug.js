@@ -1,7 +1,8 @@
 import { ConnectionError, formatError } from "../lib/errors";
 import { noopLogger } from "../lib/logger";
+import { TransportEventEmitter } from "./event-emitter";
 import type { Logger } from "../lib/logger";
-import type { Transport, TransportEventName, TransportEvents, TransportState } from "./types";
+import type { Transport, TransportState } from "./types";
 
 export interface WebSocketTransportOptions {
 	logger?: Logger;
@@ -10,21 +11,23 @@ export interface WebSocketTransportOptions {
 const CLIENT_DISCONNECT_CODE = 1000;
 const CLIENT_DISCONNECT_REASON = "Client disconnect";
 
-export class WebSocketTransport implements Transport {
-	private readonly listeners = new Map<TransportEventName, Set<TransportEvents[TransportEventName]>>();
-	private readonly logger: Logger;
+export class WebSocketTransport extends TransportEventEmitter implements Transport {
 	private readonly url: string;
 	private connectPromise: Promise<void> | null = null;
 	private disconnectRequested = false;
-	private handleMessage: ((event: MessageEvent) => void) | null = null;
-	private handleClose: ((event: CloseEvent) => void) | null = null;
-	private handleError: ((event: Event) => void) | null = null;
+	private onWsMessage: ((event: MessageEvent) => void) | null = null;
+	private onWsClose: ((event: CloseEvent) => void) | null = null;
+	private onWsError: ((event: Event) => void) | null = null;
 	private _state: TransportState = "disconnected";
 	private ws: WebSocket | null = null;
 
 	constructor(url: string, options: WebSocketTransportOptions = {}) {
+		super((options.logger ?? noopLogger).child("ws-transport"));
 		this.url = url;
-		this.logger = (options.logger ?? noopLogger).child("ws-transport");
+	}
+
+	get state(): TransportState {
+		return this._state;
 	}
 
 	connect(): Promise<void> {
@@ -55,7 +58,7 @@ export class WebSocketTransport implements Transport {
 				return;
 			}
 
-			const handleOpen = () => {
+			const onOpen = () => {
 				cleanup();
 
 				if (this.disconnectRequested) {
@@ -72,7 +75,7 @@ export class WebSocketTransport implements Transport {
 				resolve();
 			};
 
-			const handleConnectError = (event: Event) => {
+			const onConnectError = (event: Event) => {
 				cleanup();
 				this.logger.error(`WebSocket error during connect: ${event.type}`);
 				const error = new ConnectionError(`WebSocket error: ${event.type}`);
@@ -82,7 +85,7 @@ export class WebSocketTransport implements Transport {
 				reject(error);
 			};
 
-			const handleConnectClose = (event: CloseEvent) => {
+			const onConnectClose = (event: CloseEvent) => {
 				cleanup();
 				this._state = "disconnected";
 				this.ws = null;
@@ -94,15 +97,15 @@ export class WebSocketTransport implements Transport {
 
 			const cleanup = () => {
 				if (this.ws) {
-					this.ws.removeEventListener("open", handleOpen);
-					this.ws.removeEventListener("error", handleConnectError);
-					this.ws.removeEventListener("close", handleConnectClose);
+					this.ws.removeEventListener("open", onOpen);
+					this.ws.removeEventListener("error", onConnectError);
+					this.ws.removeEventListener("close", onConnectClose);
 				}
 			};
 
-			this.ws.addEventListener("open", handleOpen);
-			this.ws.addEventListener("error", handleConnectError);
-			this.ws.addEventListener("close", handleConnectClose);
+			this.ws.addEventListener("open", onOpen);
+			this.ws.addEventListener("error", onConnectError);
+			this.ws.addEventListener("close", onConnectClose);
 		}).finally(() => {
 			this.connectPromise = null;
 		});
@@ -147,10 +150,6 @@ export class WebSocketTransport implements Transport {
 		});
 	}
 
-	get state(): TransportState {
-		return this._state;
-	}
-
 	send(data: string): void {
 		if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
 			throw new ConnectionError("Cannot send: WebSocket is not connected");
@@ -165,49 +164,19 @@ export class WebSocketTransport implements Transport {
 		}
 	}
 
-	on<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void {
-		let handlers = this.listeners.get(event);
-		if (!handlers) {
-			handlers = new Set();
-			this.listeners.set(event, handlers);
-		}
-		handlers.add(handler);
-	}
-
-	off<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void {
-		const handlers = this.listeners.get(event);
-		if (handlers) {
-			handlers.delete(handler);
-		}
-	}
-
-	private emit<E extends TransportEventName>(event: E, ...args: Parameters<TransportEvents[E]>): void {
-		const handlers = this.listeners.get(event);
-		if (!handlers) {
-			return;
-		}
-		for (const handler of handlers) {
-			try {
-				(handler as (...a: unknown[]) => void)(...args);
-			} catch (err) {
-				this.logger.error(`Error in ${event} handler: ${formatError(err)}`);
-			}
-		}
-	}
-
 	private attachHandlers(): void {
 		const ws = this.ws;
 		if (!ws) {
 			return;
 		}
 
-		this.handleMessage = (event: MessageEvent) => {
+		this.onWsMessage = (event: MessageEvent) => {
 			if (typeof event.data === "string") {
 				this.emit("message", event.data);
 			}
 		};
 
-		this.handleClose = (event: CloseEvent) => {
+		this.onWsClose = (event: CloseEvent) => {
 			this.removeHandlers();
 			this._state = "disconnected";
 			this.ws = null;
@@ -216,14 +185,14 @@ export class WebSocketTransport implements Transport {
 			this.emit("close", event.code, reason);
 		};
 
-		this.handleError = (event: Event) => {
+		this.onWsError = (event: Event) => {
 			this.logger.error(`WebSocket error: ${event.type}`);
 			this.emit("error", new ConnectionError(`WebSocket error: ${event.type}`));
 		};
 
-		ws.addEventListener("message", this.handleMessage);
-		ws.addEventListener("close", this.handleClose);
-		ws.addEventListener("error", this.handleError);
+		ws.addEventListener("message", this.onWsMessage);
+		ws.addEventListener("close", this.onWsClose);
+		ws.addEventListener("error", this.onWsError);
 	}
 
 	private removeHandlers(): void {
@@ -231,17 +200,17 @@ export class WebSocketTransport implements Transport {
 		if (!ws) {
 			return;
 		}
-		if (this.handleMessage) {
-			ws.removeEventListener("message", this.handleMessage);
-			this.handleMessage = null;
+		if (this.onWsMessage) {
+			ws.removeEventListener("message", this.onWsMessage);
+			this.onWsMessage = null;
 		}
-		if (this.handleClose) {
-			ws.removeEventListener("close", this.handleClose);
-			this.handleClose = null;
+		if (this.onWsClose) {
+			ws.removeEventListener("close", this.onWsClose);
+			this.onWsClose = null;
 		}
-		if (this.handleError) {
-			ws.removeEventListener("error", this.handleError);
-			this.handleError = null;
+		if (this.onWsError) {
+			ws.removeEventListener("error", this.onWsError);
+			this.onWsError = null;
 		}
 	}
 

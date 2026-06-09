@@ -139,7 +139,7 @@ See [Sensors](/docs/guide/sensors) for read vs subscribe semantics.
 | `device.updated` | Metadata changed (`displayName`, features, …) |
 | `device.list` | Full list after reconciliation |
 
-On client disconnect, every device is removed locally before `connection.disconnected`.
+On client disconnect, `connection.disconnected` is emitted first; its handler then emits `device.removed` for each device and clears `client.devices`.
 
 ## Lookup by index
 

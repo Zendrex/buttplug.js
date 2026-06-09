@@ -56,7 +56,7 @@ await client.startScanning();
 client.on("device.added", async ({ data: { device } }) => {
   console.log(`${device.index}: ${device.name}`);
   for (const output of device.features.outputs) {
-    console.log(`  ${output.type} (feature ${output.featureIndex})`);
+    console.log(`  ${output.type} (feature ${output.index})`);
   }
 });
 
@@ -119,8 +119,8 @@ const id2 = await engine.play(device, [
     featureIndex: 0,
     keyframes: [
       { value: 0, duration: 0 },
-      { value: 100, duration: 1000, easing: "easeIn" },
-      { value: 20, duration: 500, easing: "easeOut" },
+      { value: 1, duration: 1000, easing: "easeIn" },
+      { value: 0.2, duration: 500, easing: "easeOut" },
     ],
   },
 ], { loop: 3, intensity: 0.6 });
@@ -176,14 +176,14 @@ On reconnect the client re-handshakes, refreshes the device list, and emits `con
 
 **Events.** Emittery v2 shape: handlers get `{ data }` (and `{ name, data }` when needed). `client.on(...)` returns an unsubscribe function; `client.clearListeners()` and `client.dispose()` tear down.
 
-**Patterns.** `@zendrex/buttplug.js/patterns` keeps the scheduler out of the main bundle. `ButtplugClient` implements `PatternEngineClient`.
+**Patterns.** `@zendrex/buttplug.js/patterns` keeps the scheduler out of the main bundle. `ButtplugClient` implements `PatternClient`.
 
 ## Package exports
 
 | Import | Provides |
 | --- | --- |
 | `@zendrex/buttplug.js` | `ButtplugClient`, `Device`, errors, loggers, `WebSocketTransport`, protocol types |
-| `@zendrex/buttplug.js/patterns` | `PatternEngine`, `PRESETS`, `PRESET_NAMES`, `getPresetInfo`, pattern types |
+| `@zendrex/buttplug.js/patterns` | `PatternEngine`, `PRESETS`, `PRESET_NAMES`, `listPresets`, pattern types |
 | `@zendrex/buttplug.js/wasm` | `WasmTransport` (peer: `buttplug-wasm-blob`) |
 
 ## API reference
@@ -255,7 +255,7 @@ All extend `ButtplugError`:
 | `HandshakeError` | Handshake rejected |
 | `ProtocolError` | Server error message (`code` from `ErrorCode`) |
 | `DeviceError` | Missing capability or invalid pattern target (`deviceIndex`) |
-| `TimeoutError` | `requestTimeout` exceeded (`operation`, `timeoutMs`) |
+| `TimeoutError` | `timeout` exceeded (`operation`, `timeoutMs`) |
 
 `formatError(err)` stringifies unknown throws safely.
 

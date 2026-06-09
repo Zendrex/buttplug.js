@@ -2,10 +2,16 @@ import { ErrorCode, ProtocolError } from "../lib/errors";
 import { noopLogger } from "../lib/logger";
 import { ServerMessageSchema } from "./schema";
 import type { Logger } from "../lib/logger";
-import type { DeviceList, ErrorMsg, InputReading, Ok, ScanningFinished, ServerInfo, ServerMessage } from "./schema";
-
-type ExtractKeys<T> = T extends Record<infer K, unknown> ? K : never;
-type ServerMessageType = ExtractKeys<ServerMessage>;
+import type {
+	BaseMessage,
+	DeviceList,
+	ErrorMsg,
+	InputReading,
+	Ok,
+	ScanningFinished,
+	ServerInfo,
+	ServerMessage,
+} from "./schema";
 
 export function parseServerMessages(raw: string, logger: Logger = noopLogger): ServerMessage[] {
 	const log = logger.child("parse");
@@ -40,10 +46,9 @@ export function parseServerMessages(raw: string, logger: Logger = noopLogger): S
 }
 
 export function extractId(message: ServerMessage): number {
-	const type = getMessageType(message);
-	const inner = (message as Record<string, Record<string, unknown>>)[type];
+	const inner = Object.values(message)[0] as BaseMessage | undefined;
 	if (typeof inner?.Id !== "number") {
-		throw new ProtocolError(ErrorCode.MESSAGE, `Message type "${type}" has no valid Id field`);
+		throw new ProtocolError(ErrorCode.MESSAGE, "Invalid server message: missing or non-numeric Id field");
 	}
 	return inner.Id;
 }
@@ -70,28 +75,4 @@ export function isScanningFinished(message: ServerMessage): message is { Scannin
 
 export function isInputReading(message: ServerMessage): message is { InputReading: InputReading } {
 	return "InputReading" in message;
-}
-
-export function getServerInfo(message: { ServerInfo: ServerInfo }): ServerInfo {
-	return message.ServerInfo;
-}
-
-export function getError(message: { Error: ErrorMsg }): ErrorMsg {
-	return message.Error;
-}
-
-export function getDeviceList(message: { DeviceList: DeviceList }): DeviceList {
-	return message.DeviceList;
-}
-
-export function getInputReading(message: { InputReading: InputReading }): InputReading {
-	return message.InputReading;
-}
-
-function getMessageType(message: ServerMessage): ServerMessageType {
-	const keys = Object.keys(message);
-	if (keys.length !== 1) {
-		throw new ProtocolError(ErrorCode.MESSAGE, "Invalid message: expected exactly one key");
-	}
-	return keys[0] as ServerMessageType;
 }

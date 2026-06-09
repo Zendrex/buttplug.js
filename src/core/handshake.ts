@@ -2,7 +2,7 @@ import { HandshakeError } from "../lib/errors";
 import { noopLogger } from "../lib/logger";
 import { PROTOCOL_VERSION_MAJOR, PROTOCOL_VERSION_MINOR } from "../protocol/constants";
 import { createRequestServerInfo } from "../protocol/messages";
-import { getServerInfo, isServerInfo } from "../protocol/parser";
+import { isServerInfo } from "../protocol/parser";
 import type { Logger } from "../lib/logger";
 import type { ServerInfo, ServerMessage } from "../protocol/schema";
 import type { PingManager } from "../transport/ping";
@@ -33,7 +33,7 @@ export async function performHandshake(options: HandshakeOptions): Promise<Hands
 	if (!isServerInfo(response)) {
 		throw new HandshakeError("Handshake failed: unexpected response type");
 	}
-	const serverInfo = getServerInfo(response);
+	const serverInfo = response.ServerInfo;
 	if (serverInfo.ProtocolVersionMajor !== PROTOCOL_VERSION_MAJOR) {
 		throw new HandshakeError(
 			`Server protocol version ${serverInfo.ProtocolVersionMajor} is incompatible (client requires ${PROTOCOL_VERSION_MAJOR})`

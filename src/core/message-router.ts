@@ -4,9 +4,6 @@ import { DEFAULT_REQUEST_TIMEOUT, MAX_MESSAGE_ID, SYSTEM_MESSAGE_ID } from "../p
 import { serializeMessages } from "../protocol/messages";
 import {
 	extractId,
-	getDeviceList,
-	getError,
-	getInputReading,
 	isDeviceList,
 	isError,
 	isInputReading,
@@ -66,7 +63,7 @@ export class MessageRouter {
 		const label = messages.length === 1 ? "message" : `batch (${messages.length})`;
 		this.logger.debug(`Sending ${label}: ${serialized}`);
 
-		const ids = messages.map((m) => this.extractMessageId(m));
+		const ids = messages.map((m) => this.extractId(m));
 		const promises = ids.map(
 			(id) =>
 				new Promise<ServerMessage>((resolve, reject) => {
@@ -166,10 +163,10 @@ export class MessageRouter {
 		if (messages.length === 0) {
 			return;
 		}
-		const deviceLists = messages.filter(isDeviceList);
-		const scanningFinished = messages.filter(isScanningFinished);
-		const rest = messages.filter((message) => !(isDeviceList(message) || isScanningFinished(message)));
-		for (const message of [...deviceLists, ...rest, ...scanningFinished]) {
+		// DeviceList must route before ScanningFinished so the post-scan refresh
+		// (onScanningFinished -> requestDeviceList) sees the current device set.
+		const ordered = [...messages].sort((a, b) => systemEventPriority(a) - systemEventPriority(b));
+		for (const message of ordered) {
 			this.routeEvent(message);
 		}
 	}
@@ -192,7 +189,7 @@ export class MessageRouter {
 			return;
 		}
 		if (isError(message)) {
-			const error = getError(message);
+			const error = message.Error;
 			pending.reject(new ProtocolError(error.ErrorCode, error.ErrorMessage));
 			return;
 		}
@@ -206,7 +203,7 @@ export class MessageRouter {
 
 	private routeEvent(message: ServerMessage): void {
 		if (isDeviceList(message)) {
-			const deviceList = getDeviceList(message);
+			const deviceList = message.DeviceList;
 			this.onDeviceList?.(Object.values(deviceList.Devices));
 			return;
 		}
@@ -215,19 +212,19 @@ export class MessageRouter {
 			return;
 		}
 		if (isInputReading(message)) {
-			const reading = getInputReading(message);
+			const reading = message.InputReading;
 			this.onInputReading?.(reading);
 			return;
 		}
 		if (isError(message)) {
-			const error = getError(message);
+			const error = message.Error;
 			this.onError?.(error);
 			return;
 		}
 		this.logger.warn(`Unexpected message type: ${JSON.stringify(message)}`);
 	}
 
-	private extractMessageId(message: ClientMessage): number {
+	private extractId(message: ClientMessage): number {
 		const keys = Object.keys(message);
 		if (keys.length !== 1) {
 			throw new ProtocolError(ErrorCode.MESSAGE, "Invalid message: expected exactly one key");
@@ -238,4 +235,14 @@ export class MessageRouter {
 		}
 		return inner.Id;
 	}
+}
+
+function systemEventPriority(message: ServerMessage): number {
+	if (isDeviceList(message)) {
+		return 0;
+	}
+	if (isScanningFinished(message)) {
+		return 2;
+	}
+	return 1;
 }

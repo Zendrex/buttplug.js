@@ -1,6 +1,6 @@
 import type { DeviceOutputOptions, DeviceStopOptions } from "../device";
 import type { DeviceFeatures } from "../protocol/schema";
-import type { PatternDescriptor } from "./descriptor";
+import type { PatternDescriptor } from "./track";
 
 export interface PatternDevice {
 	readonly features: DeviceFeatures;
@@ -12,7 +12,7 @@ export interface PatternDevice {
 
 export type StopReason = "manual" | "complete" | "timeout" | "error" | "disconnect" | "deviceRemoved";
 
-export interface PatternEngineClient {
+export interface PatternClient {
 	getDevice(index: number): PatternDevice | undefined;
 	on(
 		event: "connection.disconnected",
@@ -28,8 +28,8 @@ export interface PatternPlayOptions {
 	featureIndex?: number;
 	intensity?: number;
 	loop?: boolean | number;
-	onComplete?: (patternId: string) => void;
-	onStop?: (patternId: string, reason: StopReason) => void;
+	onComplete?: (id: string) => void;
+	onStop?: (id: string, reason: StopReason) => void;
 	speed?: number;
 	tickInterval?: number;
 	timeout?: number;

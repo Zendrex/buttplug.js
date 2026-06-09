@@ -12,7 +12,7 @@ export interface ReconcileCallbacks<T extends ReconcilableDevice> {
 	onAdded: (device: T) => void;
 	onList: (devices: T[]) => void;
 	onRemoved: (device: T) => void;
-	onUpdated: (newDevice: T, oldDevice: T) => void;
+	onUpdated: (device: T, previous: T) => void;
 }
 
 export interface ReconcileOptions<T extends ReconcilableDevice> {

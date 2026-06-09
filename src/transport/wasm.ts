@@ -1,20 +1,21 @@
 import { ConnectionError, formatError } from "../lib/errors";
 import { noopLogger } from "../lib/logger";
+import { TransportEventEmitter } from "./event-emitter";
 import type { Logger } from "../lib/logger";
-import type { Transport, TransportEventName, TransportEvents, TransportState } from "./types";
+import type { Transport, TransportState } from "./types";
 
 export interface WasmTransportOptions {
 	/**
 	 * Activate the WASM server's internal `env_logger` on connect.
 	 * @defaultValue false
 	 */
-	enableWasmLogging?: boolean;
+	enableLogging?: boolean;
 	logger?: Logger;
 	/**
-	 * Log level passed to `activateLogging` when `enableWasmLogging` is true.
+	 * Log level passed to `activateLogging` when `enableLogging` is true.
 	 * @defaultValue "info"
 	 */
-	wasmLogLevel?: string;
+	logLevel?: string;
 }
 
 type WasmModule = typeof import("buttplug-wasm-blob");
@@ -31,19 +32,17 @@ const decoder = new TextDecoder();
  *
  * @remarks `buttplug-wasm-blob` is an optional peer dependency.
  */
-export class WasmTransport implements Transport {
-	private readonly listeners = new Map<TransportEventName, Set<TransportEvents[TransportEventName]>>();
-	private readonly logger: Logger;
-	private readonly enableWasmLogging: boolean;
-	private readonly wasmLogLevel: string;
+export class WasmTransport extends TransportEventEmitter implements Transport {
+	private readonly enableLogging: boolean;
+	private readonly logLevel: string;
 	private wasm: WasmModule | null = null;
 	private handle: number | null = null;
 	private _state: TransportState = "disconnected";
 
 	constructor(options: WasmTransportOptions = {}) {
-		this.logger = (options.logger ?? noopLogger).child("wasm-transport");
-		this.enableWasmLogging = options.enableWasmLogging ?? false;
-		this.wasmLogLevel = options.wasmLogLevel ?? "info";
+		super((options.logger ?? noopLogger).child("wasm-transport"));
+		this.enableLogging = options.enableLogging ?? false;
+		this.logLevel = options.logLevel ?? "info";
 	}
 
 	async connect(): Promise<void> {
@@ -55,8 +54,8 @@ export class WasmTransport implements Transport {
 		try {
 			const mod = (await import("buttplug-wasm-blob")) as WasmModule;
 			await mod.loadButtplugWasm();
-			if (this.enableWasmLogging) {
-				mod.activateLogging(this.wasmLogLevel);
+			if (this.enableLogging) {
+				mod.activateLogging(this.logLevel);
 			}
 			this.handle = mod.createServer((msg) => this.handleIncoming(msg));
 			this.wasm = mod;
@@ -108,33 +107,6 @@ export class WasmTransport implements Transport {
 				`Failed to send data: ${formatError(error)}`,
 				error instanceof Error ? error : undefined
 			);
-		}
-	}
-
-	on<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void {
-		let handlers = this.listeners.get(event);
-		if (!handlers) {
-			handlers = new Set();
-			this.listeners.set(event, handlers);
-		}
-		handlers.add(handler);
-	}
-
-	off<E extends TransportEventName>(event: E, handler: TransportEvents[E]): void {
-		this.listeners.get(event)?.delete(handler);
-	}
-
-	private emit<E extends TransportEventName>(event: E, ...args: Parameters<TransportEvents[E]>): void {
-		const handlers = this.listeners.get(event);
-		if (!handlers) {
-			return;
-		}
-		for (const handler of handlers) {
-			try {
-				(handler as (...a: unknown[]) => void)(...args);
-			} catch (error) {
-				this.logger.error(`Error in ${event} handler: ${formatError(error)}`);
-			}
 		}
 	}
 

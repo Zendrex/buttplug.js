@@ -84,7 +84,7 @@ console.log(client.serverInfo);
 disconnect(reason?: string): Promise<void>
 ```
 
-Gracefully disconnects from the server. Stops all devices, sends a protocol-level disconnect message, then closes the WebSocket. Both stop and disconnect steps are time-bounded so the method does not hang indefinitely.
+Gracefully disconnects from the server. Stops all devices, cancels any in-flight requests, then closes the transport. The device-stop step is time-bounded so the method does not hang indefinitely.
 
 | Parameter | Type | Description |
 | --- | --- | --- |

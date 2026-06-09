@@ -4,7 +4,8 @@ import { buildScalarOutputMessages } from "./builders/scalar";
 import { DeviceError } from "./lib/errors";
 import { noopLogger } from "./lib/logger";
 import { validateRange } from "./lib/range";
-import { getInputsByType, getOutputsByType, hasOutputType, parseFeatures } from "./protocol/features";
+import { hasOutputType, inputsByType, outputsByType, parseFeatures } from "./protocol/features";
+import { createStopCmd } from "./protocol/messages";
 import { sensorKey } from "./protocol/shared";
 import type { Logger } from "./lib/logger";
 import type {
@@ -38,6 +39,12 @@ export interface DeviceOutputOptions {
 	featureIndex: number;
 }
 
+/**
+ * Handle to a connected device. Use the capability checks (`canOutput`,
+ * `canRead`, `canSubscribe`, `canRotate`, `canPosition`) to gate access, the
+ * typed output methods that map normalized 0-1 floats to each feature's device
+ * range, and the sensor `read`/`subscribe` helpers.
+ */
 export class Device {
 	private readonly client: DeviceMessageSender;
 	private readonly logger: Logger;
@@ -49,6 +56,46 @@ export class Device {
 		this.logger = (options.logger ?? noopLogger).child("device");
 		this._raw = options.raw;
 		this._features = parseFeatures(options.raw, this.logger);
+	}
+
+	get canRotate(): boolean {
+		return this.canOutput("Rotate") || this.canOutput("RotateWithDirection");
+	}
+
+	get canPosition(): boolean {
+		return this.canOutput("Position") || this.canOutput("HwPositionWithDuration");
+	}
+
+	get index(): number {
+		return this._raw.DeviceIndex;
+	}
+
+	get name(): string {
+		return this._raw.DeviceName;
+	}
+
+	get displayName(): string | null {
+		return this._raw.DeviceDisplayName ?? null;
+	}
+
+	get features(): DeviceFeatures {
+		return this._features;
+	}
+
+	get raw(): RawDevice {
+		return this._raw;
+	}
+
+	canOutput(type: OutputType): boolean {
+		return hasOutputType(this._features, type);
+	}
+
+	canRead(type: InputType): boolean {
+		return inputsByType(this._features, type).some((f) => f.canRead);
+	}
+
+	canSubscribe(type: InputType): boolean {
+		return inputsByType(this._features, type).some((f) => f.canSubscribe);
 	}
 
 	/**
@@ -96,7 +143,7 @@ export class Device {
 			throw new DeviceError(this.index, "Device does not support rotation");
 		}
 		const rotationType = hasOutputType(this._features, "RotateWithDirection") ? "RotateWithDirection" : "Rotate";
-		const features = getOutputsByType(this._features, rotationType);
+		const features = outputsByType(this._features, rotationType);
 		const clockwise = options?.clockwise ?? true;
 		const messages = buildRotateMessages({
 			client: this.client,
@@ -111,8 +158,10 @@ export class Device {
 	}
 
 	/**
-	 * Move to a normalized 0-1 position over `duration` milliseconds, or
-	 * per-axis using a `PositionValue[]` (each `position` 0-1, `duration` ms).
+	 * Move to a normalized 0-1 position, or per-axis using a `PositionValue[]`
+	 * (each `position` 0-1, `duration` ms). With `HwPositionWithDuration`
+	 * features the move interpolates over `duration` milliseconds; plain
+	 * `Position` features jump immediately and reject a nonzero duration.
 	 */
 	async position(values: PositionValue[]): Promise<void>;
 	async position(position: number, options: { duration: number }): Promise<void>;
@@ -126,7 +175,7 @@ export class Device {
 		const positionType = hasOutputType(this._features, "HwPositionWithDuration")
 			? "HwPositionWithDuration"
 			: "Position";
-		const features = getOutputsByType(this._features, positionType);
+		const features = outputsByType(this._features, positionType);
 		const duration = typeof position === "number" ? (options?.duration ?? 0) : 0;
 		const messages = buildPositionMessages({
 			client: this.client,
@@ -141,36 +190,16 @@ export class Device {
 	}
 
 	async stop(options?: DeviceStopOptions): Promise<void> {
-		if (options?.featureIndex !== undefined) {
-			const isOutput = this._features.outputs.some((f) => f.index === options.featureIndex);
-			const isInput = this._features.inputs.some((f) => f.index === options.featureIndex);
-			if (!(isOutput || isInput)) {
-				throw new DeviceError(this.index, `No feature at index ${options.featureIndex}`);
-			}
-			if (isOutput && !isInput && options.outputs === false) {
-				throw new DeviceError(
-					this.index,
-					`Feature at index ${options.featureIndex} is output-only, but outputs filter is false`
-				);
-			}
-			if (isInput && !isOutput && options.inputs === false) {
-				throw new DeviceError(
-					this.index,
-					`Feature at index ${options.featureIndex} is input-only, but inputs filter is false`
-				);
-			}
-		}
+		this.validateStopTarget(options);
 		this.logger.debug(`Stop command on device ${this.name} (index ${this.index})`);
-		const id = this.client.nextId();
-		await this.client.send({
-			StopCmd: {
-				Id: id,
-				DeviceIndex: this.index,
-				...(options?.featureIndex !== undefined && { FeatureIndex: options.featureIndex }),
-				...(options?.inputs !== undefined && { Inputs: options.inputs }),
-				...(options?.outputs !== undefined && { Outputs: options.outputs }),
-			},
-		});
+		await this.client.send(
+			createStopCmd(this.client.nextId(), {
+				deviceIndex: this.index,
+				featureIndex: options?.featureIndex,
+				inputs: options?.inputs,
+				outputs: options?.outputs,
+			})
+		);
 	}
 
 	/**
@@ -225,71 +254,54 @@ export class Device {
 		const feature = this.requireSensor({ type, sensorIndex, capability: "canSubscribe" });
 		const subscriptionKey = sensorKey(this.index, feature.index, type);
 		await this.sendInputCmd({ featureIndex: feature.index, type, command: "Subscribe" });
-		this.client.registerSensorSubscription(subscriptionKey, callback, {
+		this.client.registerSensor(subscriptionKey, callback, {
 			deviceIndex: this.index,
 			featureIndex: feature.index,
 			type,
 		});
 		return async () => {
-			this.client.unregisterSensorSubscription(subscriptionKey);
+			this.client.unregisterSensor(subscriptionKey);
 			await this.sendInputCmd({ featureIndex: feature.index, type, command: "Unsubscribe" });
 		};
 	}
 
 	async unsubscribe(type: InputType, sensorIndex = 0): Promise<void> {
-		const features = getInputsByType(this._features, type);
+		const features = inputsByType(this._features, type);
 		const feature = features[sensorIndex];
 		if (!feature) {
 			throw new DeviceError(this.index, `Device does not have ${type} sensor at index ${sensorIndex}`);
 		}
 		const subscriptionKey = sensorKey(this.index, feature.index, type);
-		this.client.unregisterSensorSubscription(subscriptionKey);
+		this.client.unregisterSensor(subscriptionKey);
 		await this.sendInputCmd({ featureIndex: feature.index, type, command: "Unsubscribe" });
 	}
 
-	canOutput(type: OutputType): boolean {
-		return hasOutputType(this._features, type);
-	}
-
-	canRead(type: InputType): boolean {
-		return getInputsByType(this._features, type).some((f) => f.canRead);
-	}
-
-	canSubscribe(type: InputType): boolean {
-		return getInputsByType(this._features, type).some((f) => f.canSubscribe);
-	}
-
-	get canRotate(): boolean {
-		return this.canOutput("Rotate") || this.canOutput("RotateWithDirection");
-	}
-
-	get canPosition(): boolean {
-		return this.canOutput("Position") || this.canOutput("HwPositionWithDuration");
-	}
-
-	get index(): number {
-		return this._raw.DeviceIndex;
-	}
-
-	get name(): string {
-		return this._raw.DeviceName;
-	}
-
-	get displayName(): string | null {
-		return this._raw.DeviceDisplayName ?? null;
-	}
-
-	get features(): DeviceFeatures {
-		return this._features;
-	}
-
-	get raw(): RawDevice {
-		return this._raw;
+	private validateStopTarget(options?: DeviceStopOptions): void {
+		if (options?.featureIndex === undefined) {
+			return;
+		}
+		const isOutput = this._features.outputs.some((f) => f.index === options.featureIndex);
+		const isInput = this._features.inputs.some((f) => f.index === options.featureIndex);
+		if (!(isOutput || isInput)) {
+			throw new DeviceError(this.index, `No feature at index ${options.featureIndex}`);
+		}
+		if (isOutput && !isInput && options.outputs === false) {
+			throw new DeviceError(
+				this.index,
+				`Feature at index ${options.featureIndex} is output-only, but outputs filter is false`
+			);
+		}
+		if (isInput && !isOutput && options.inputs === false) {
+			throw new DeviceError(
+				this.index,
+				`Feature at index ${options.featureIndex} is input-only, but inputs filter is false`
+			);
+		}
 	}
 
 	private requireSensor(params: { type: InputType; sensorIndex: number; capability: "canRead" | "canSubscribe" }) {
 		const { type, sensorIndex, capability } = params;
-		const features = getInputsByType(this._features, type);
+		const features = inputsByType(this._features, type);
 		const feature = features[sensorIndex];
 		if (!feature) {
 			throw new DeviceError(this.index, `Device does not have ${type} sensor at index ${sensorIndex}`);
@@ -323,7 +335,7 @@ export class Device {
 		if (!this.canOutput(type)) {
 			throw new DeviceError(this.index, `Device does not support ${errorLabel}`);
 		}
-		const features = getOutputsByType(this._features, type);
+		const features = outputsByType(this._features, type);
 		const messages = buildScalarOutputMessages({
 			client: this.client,
 			deviceIndex: this.index,

@@ -49,8 +49,8 @@ Call `listPresets()` to retrieve metadata for all built-in presets, including co
 for (const preset of engine.listPresets()) {
   console.log(preset.name, preset.description);
   console.log("  loops:", preset.defaultLoop);
-  console.log("  types:", preset.compatibleOutputTypes);
+  console.log("  types:", preset.outputTypes);
 }
 ```
 
-Returns `PresetInfo` (`name`, `description`, `compatibleOutputTypes`, `defaultLoop`). [`PatternEngine` reference](/docs/patterns/pattern-engine).
+Returns `PresetInfo` (`name`, `description`, `outputTypes`, `defaultLoop`). [`PatternEngine` reference](/docs/patterns/pattern-engine).

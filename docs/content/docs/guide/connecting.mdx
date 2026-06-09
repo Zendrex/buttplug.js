@@ -115,7 +115,7 @@ Full reconnect timeline (cached devices removed → reconcile → fresh `device.
 await client.disconnect("Session ended");
 ```
 
-`disconnect()` stops devices on the server, sends a protocol disconnect, and closes the transport. An optional `reason` appears in `connection.disconnected`.
+`disconnect()` stops devices on the server and closes the transport. An optional `reason` appears in `connection.disconnected`.
 
 <Callout type="warn">
   Buttplug servers stop **all** devices when a client disconnects. That is server behavior; the client cannot override it.
@@ -130,7 +130,7 @@ await client.disconnect();
 client.dispose();
 ```
 
-`dispose()` disconnects if needed, removes listeners, and clears internal state. Further `connect()` or `play()` calls are invalid.
+`dispose()` removes listeners, stops keep-alive/reconnect, and clears internal state; call `disconnect()` first to close the transport. Further `connect()` or `play()` calls are invalid.
 
 ## Connection events
 

@@ -8,8 +8,8 @@ const log = (message: string) => {
 
 const transport = new WasmTransport({
 	logger: consoleLogger,
-	enableWasmLogging: true,
-	wasmLogLevel: "debug",
+	enableLogging: true,
+	logLevel: "debug",
 });
 const client = new ButtplugClient(transport, { autoPing: true, verbose: true });
 
