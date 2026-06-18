@@ -59,7 +59,7 @@ jobs:
                       core.setOutput('has-code-changes', String(hasCodeChanges));
                       core.info(`Code changes detected: ${hasCodeChanges}`);
 
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
               if: steps.check.outputs.has-code-changes == 'true'
               with:
                   ref: ${{ github.event.workflow_run.head_sha }}
