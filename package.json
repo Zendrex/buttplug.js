@@ -87,7 +87,7 @@
 		"buttplug-wasm-blob": "^3.0.0",
 		"lefthook": "^2.1.9",
 		"tsdown": "^0.22.2",
-		"typescript": "^6.0.3",
+		"typescript": "^7.0.0",
 		"ultracite": "^7.8.2",
 		"vite": "^8.0.16"
 	},
