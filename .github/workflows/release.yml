@@ -28,7 +28,7 @@ jobs:
 
             - name: Create release PR
               id: changesets
-              uses: changesets/action@v1
+              uses: changesets/action@v2.1.1
               with:
                   version: bun run version
                   title: "chore: version packages"
